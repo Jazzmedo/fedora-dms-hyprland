@@ -4,6 +4,7 @@ StartLimitIntervalSec=0
 
 [Path]
 PathChanged=%h/.config/DankMaterialShell/settings.json
+PathChanged=%h/.config/DankMaterialShell/session.json
 Unit=dms-theme-wallpapers.service
 
 [Install]

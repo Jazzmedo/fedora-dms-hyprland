@@ -143,6 +143,20 @@ kv "kdeglobals colour blocks" "$(grep -c '^\[Colors' "$kg" 2>/dev/null || echo 0
 kv "ColorScheme" "$(sed -n 's/^ColorScheme=//p' "$kg" 2>/dev/null | head -1)"
 kv "qt6ct palette" "$([[ -f $HOME/.config/qt6ct/colors/matugen.conf ]] && echo present || echo MISSING)"
 
+sec "wallpaper follows theme"
+kv "watcher" "$(systemctl --user is-active dms-theme-wallpapers.path 2>/dev/null)"
+kv "last theme applied" "$(cat "${XDG_STATE_HOME:-$HOME/.local/state}/dms-theme-wallpapers/last-theme" 2>/dev/null)"
+b="$HOME/Pictures/Wallpapers/theme-collections"
+if [[ -d $b ]]; then
+  for d in "$b"/*/; do
+    [[ -d $d ]] || continue
+    kv "$(basename "$d")" "$(find "$d" -type f | wc -l) image(s)"
+  done
+else
+  printf '  no wallpaper collections installed\n'
+fi
+journalctl --user -u dms-theme-wallpapers.service -n 5 --no-pager -o cat 2>/dev/null | sed 's/^/  /'
+
 sec "next"
 cat <<'TXT'
   If the shell is not running, start it in the foreground so its errors land

@@ -12,9 +12,11 @@ flock -n 9 || exit 0
 
 # DMS saves several theme fields in quick succession. Read after they settle.
 sleep 0.6
-theme_file="$(jq -r '.customThemeFile // ""' "$settings" 2>/dev/null)"
+[[ -d "$base" ]] || exit 0
 
-[[ -f "$theme_file" && -d "$base" ]] || exit 0
+category="$(jq -r '.currentThemeCategory // ""' "$settings" 2>/dev/null)"
+name="$(jq -r '.currentThemeName // ""' "$settings" 2>/dev/null)"
+theme_file="$(jq -r '.customThemeFile // ""' "$settings" 2>/dev/null)"
 
 # Match wallpaper folders to installed DMS themes without maintaining a list.
 # Folder names are compared as lowercase slugs, so theme directories such as
@@ -26,8 +28,21 @@ slugify() {
     | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//; s/-+/-/g'
 }
 
-theme_id="$(basename "$(dirname "$theme_file")")"
-theme_name="$(jq -r '.name // ""' "$theme_file" 2>/dev/null)"
+# What identifies the selected theme. A theme picked from the DMS registry is
+# named directly in settings.json and never touches customThemeFile, so keying
+# off that file alone makes every registry switch look like no change at all
+# and the wallpaper never follows.
+if [[ -n "$name" && "$name" != "custom" ]]; then
+  theme_id="$name"
+  theme_name="$name"
+  identity="${category:-registry}:$name"
+else
+  [[ -f "$theme_file" ]] || exit 0
+  theme_id="$(basename "$(dirname "$theme_file")")"
+  theme_name="$(jq -r '.name // ""' "$theme_file" 2>/dev/null)"
+  identity="file:$theme_file"
+fi
+
 theme_slug="$(slugify "$theme_id")"
 name_slug="$(slugify "$theme_name")"
 collection=""
@@ -35,7 +50,7 @@ collection=""
 # Wallpaper changes also rewrite settings.json. Only a genuine theme change
 # should select a new collection; follow-up settings writes must be no-ops.
 last_theme="$(cat "$theme_state" 2>/dev/null || true)"
-[[ "$last_theme" != "$theme_file" ]] || exit 0
+[[ "$last_theme" != "$identity" ]] || exit 0
 
 while IFS= read -r -d '' candidate; do
   candidate_slug="$(slugify "$(basename "$candidate")")"
@@ -91,7 +106,7 @@ fi
 # Record the theme before asking DMS to change wallpapers. Those IPC calls
 # rewrite settings.json and immediately trigger this service again.
 mkdir -p "$state_dir"
-printf '%s\n' "$theme_file" > "$theme_state"
+printf '%s\n' "$identity" > "$theme_state"
 
 # Wallpaper writes update DMS settings and regenerate Matugen colors. Since
 # this service watches the settings file, only write when the selected file is
@@ -119,5 +134,9 @@ for spec in "${outputs[@]}"; do
   [[ -n "$wanted" ]] || continue
   current="$(dms ipc call wallpaper getFor "$name" 2>/dev/null || true)"
   [[ "$current" == "$wanted" ]] && continue
-  dms ipc call wallpaper setFor "$name" "$wanted" >/dev/null
+  # Reported rather than swallowed: if a DMS release renames this call, the
+  # only symptom is a wallpaper that quietly stops following the theme.
+  if ! err="$(dms ipc call wallpaper setFor "$name" "$wanted" 2>&1 >/dev/null)"; then
+    printf 'dms-theme-wallpapers: setFor %s failed: %s\n' "$name" "$err" >&2
+  fi
 done
