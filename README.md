@@ -64,6 +64,12 @@ The lock screen, clipboard history, colour picker, emoji picker and screenshot
 tools are all driven by DMS over IPC, backed by hyprlock, cliphist, hyprpicker,
 the emojiLauncher plugin and grim/slurp plus the quickCapture plugin.
 
+Two plugins are installed from your own forks rather than the DMS registry:
+**cliampDms** from `Jazzmedo/cliamp-dms` on the `playback-offset` branch, which
+also builds the CLIAMP player and stages its Lua bridge, and **lyricsOnPanel**
+from `Jazzmedo/lyrics-on-panel` on the `niri-enhancments` branch, whose MPRIS
+backend is built into a virtualenv and run as a user service.
+
 **Optional** — zsh with oh-my-zsh and starship, Neovim with LazyVim, tmux,
 yazi, the modern CLI set (eza, bat, ripgrep, fd, fzf, trash-cli), btop,
 fastfetch, cava, podman, pyenv, nvm, Rust, Go, Helium, Brave Origin, Vesktop,
@@ -116,6 +122,22 @@ Two mechanisms keep these files portable:
 * a line ending in `-- @component:NAME` or `# @component:NAME` is deleted when
   that component was not selected, so a keybinding for an app you did not
   install simply does not exist.
+
+### Reporting a failed install
+
+```sh
+./report.sh          # writes ~/.cache/fedora-nothing/report-<timestamp>.txt
+./report.sh -        # same, to stdout
+```
+
+It gathers the Fedora version, the graphics hardware, the enabled
+repositories, which key packages and DMS plugins actually landed, the state of
+the systemd user units, and the warnings and errors from the newest installer
+log. Home paths, the username, the hostname, email addresses and anything
+shaped like a token are redacted, so the result is safe to paste.
+
+The raw log is at `~/.cache/fedora-nothing/install-<timestamp>.log`. Steps that
+fail without stopping the install are also listed at the end of every run.
 
 ### Pulling changes back
 

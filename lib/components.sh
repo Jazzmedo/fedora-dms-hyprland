@@ -169,8 +169,17 @@ pkgs "obs-studio"
 component obsidian    apps on  "Obsidian"     "notes, matugen-themed snippet"
 flatpaks "md.obsidian.Obsidian"
 
-component cliamp      apps on  "CLIAMP"       "terminal music player + DMS bar plugin"
+component cliamp      apps on  "CLIAMP"       "terminal music player + your cliamp-dms bar plugin"
+# ffprobe ships in ffmpeg-free; gjs and gdbus back the plugin's helper scripts,
+# and alsa-lib-devel is what the player links against when Go builds it.
+pkgs "curl ffmpeg-free gjs glib2 alsa-lib-devel"
 dms_plugin "cliampDms"
+
+component lyrics      apps on  "Lyrics on Panel" "your lyrics-on-panel fork plus its MPRIS backend"
+# The backend is a Python service that reads MPRIS over D-Bus; dbus-devel and
+# the compiler are needed because dbus-python builds from source.
+pkgs "python3 python3-devel dbus-devel glib2-devel pkgconf gcc"
+dms_plugin "lyricsOnPanel"
 
 component easyeffects apps on  "EasyEffects"  "audio effects, Handfree/Normal presets"
 flatpaks "com.github.wwmm.easyeffects"
@@ -231,7 +240,7 @@ select_gpu() {
 # DMS plugins that are always installed, regardless of selection.
 DMS_BASE_PLUGINS=(
   dmsThemeSync nothingClock wallpaperCarousel emojiLauncher quickCapture
-  dankKDEConnect extendedNetworkToggle lyricsOnPanel aiOverviewControl
+  dankKDEConnect extendedNetworkToggle aiOverviewControl
 )
 # Present in the backup's settings.json but with no plugin directory. Removed
 # from plugin_settings.json and from the bar so DMS does not log for them.
