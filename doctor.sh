@@ -143,6 +143,22 @@ kv "kdeglobals colour blocks" "$(grep -c '^\[Colors' "$kg" 2>/dev/null || echo 0
 kv "ColorScheme" "$(sed -n 's/^ColorScheme=//p' "$kg" 2>/dev/null | head -1)"
 kv "qt6ct palette" "$([[ -f $HOME/.config/qt6ct/colors/matugen.conf ]] && echo present || echo MISSING)"
 
+sec "shell"
+login=$(getent passwd "$USER" | cut -d: -f7)
+zsh=$(command -v zsh 2>/dev/null)
+if [[ -n $zsh && $login == "$zsh" ]]; then
+  kv "login shell" "$login"
+else
+  printf '  %-26s %s%s%s\n' "login shell" "$C" "${login:-unknown} — not zsh" "$O"
+  [[ -z $zsh ]] && printf '  %-26s %sNOT INSTALLED%s\n' "zsh" "$C" "$O"
+fi
+# chsh refuses a shell that is not listed here, and says so quietly.
+kv "zsh in /etc/shells" "$( [[ -n $zsh ]] && grep -qx "$zsh" /etc/shells 2>/dev/null && echo yes || echo NO )"
+kv "oh-my-zsh"   "$([[ -d $HOME/.oh-my-zsh ]] && echo present || echo MISSING)"
+kv "starship"    "$(command -v starship >/dev/null 2>&1 && echo present || echo MISSING)"
+kv ".zshrc"      "$([[ -f $HOME/.zshrc ]] && echo "$(wc -l < "$HOME/.zshrc") lines" || echo MISSING)"
+kv "zshrc.d"     "$(ls "${XDG_CONFIG_HOME:-$HOME/.config}/zsh/zshrc.d"/*.zsh 2>/dev/null | wc -l) fragment(s)"
+
 sec "login screen"
 kv "configured theme" "$(sed -n 's/^Current=//p' /etc/sddm.conf.d/*.conf /etc/sddm.conf 2>/dev/null | tail -1)"
 kv "theme installed"  "$([[ -f /usr/share/sddm/themes/nothing/Main.qml ]] && echo yes || echo NO)"
