@@ -5,8 +5,8 @@ DankMaterialShell and its plugins, the Nothing login theme, Ndot 57 as the
 system font, and kitty, Zen and Dolphin as the defaults.
 
 ```sh
-git clone <this repo> ~/fedora-nothing
-cd ~/fedora-nothing
+git clone https://github.com/Jazzmedo/fedora-dms-hyprland-setup
+cd ~/fedora-dms-hyprland-setup
 ./install.sh
 ```
 
