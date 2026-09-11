@@ -1,0 +1,256 @@
+#!/bin/sh
+set -eu
+
+action="${1:-}"
+
+find_cliamp() {
+    if command -v cliamp >/dev/null 2>&1; then
+        command -v cliamp
+        return
+    fi
+    for path in "$HOME/.local/bin/cliamp" /usr/local/bin/cliamp /usr/bin/cliamp; do
+        if [ -x "$path" ]; then
+            printf '%s\n' "$path"
+            return
+        fi
+    done
+    return 1
+}
+
+# Plugin-managed CLIAMP instances use the enriched bridge as their sole MPRIS
+# publisher on the desktop session. A private D-Bus lets CLIAMP initialize its
+# foreground media-control event loop normally without exposing native MPRIS to
+# DMS. CLIAMP launched normally from a terminal keeps native session MPRIS.
+plugin_cliamp() {
+    command -v dbus-run-session >/dev/null 2>&1 || { printf '%s\n' "dbus-run-session is required for isolated CLIAMP MPRIS" >&2; exit 127; }
+    exec dbus-run-session -- "$@"
+}
+
+terminal_run() {
+    preferred="$1"
+    shift
+    if [ -n "$preferred" ] && command -v "$preferred" >/dev/null 2>&1; then
+        case "$preferred" in
+            kitty|foot|alacritty|wezterm) exec "$preferred" -e "$@" ;;
+            gnome-terminal|kgx) exec "$preferred" -- "$@" ;;
+        esac
+    fi
+    for candidate in kitty foot alacritty wezterm gnome-terminal kgx; do
+        if command -v "$candidate" >/dev/null 2>&1; then
+            case "$candidate" in
+                kitty|foot|alacritty|wezterm) exec "$candidate" -e "$@" ;;
+                *) exec "$candidate" -- "$@" ;;
+            esac
+        fi
+    done
+    printf '%s\n' "No supported terminal found" >&2
+    exit 127
+}
+
+valid_provider() {
+    case "$1" in
+        radio|navidrome|plex|jellyfin|emby|spotify|qobuz|soundcloud|netease|ytmusic) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+launch_cliamp() {
+    provider="$1"
+    preferred="$2"
+    background="$3"
+    volume="$4"
+    cliamp_bin="$(find_cliamp)" || { printf '%s\n' "CLIAMP executable not found" >&2; exit 127; }
+    script_dir="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+    radio_playlist="$script_dir/../assets/cliamp-dms-radio.m3u"
+    [ "$provider" != "radio" ] || [ -r "$radio_playlist" ] || { printf '%s\n' "HTTPS radio playlist is missing" >&2; exit 2; }
+    if [ "$background" = "1" ]; then
+        if command -v systemd-run >/dev/null 2>&1 && systemctl --user show-environment >/dev/null 2>&1; then
+            systemctl --user reset-failed cliamp-dms-background.service >/dev/null 2>&1 || true
+            if [ "$provider" = "radio" ]; then
+                if [ -n "$volume" ]; then
+                    exec systemd-run --user --unit=cliamp-dms-background --collect --quiet \
+                        env -u NO_COLOR dbus-run-session -- "$cliamp_bin" --daemon --provider radio --vol "$volume" --auto-play "$radio_playlist"
+                fi
+                exec systemd-run --user --unit=cliamp-dms-background --collect --quiet \
+                    env -u NO_COLOR dbus-run-session -- "$cliamp_bin" --daemon --provider radio --auto-play "$radio_playlist"
+            fi
+            if [ -n "$volume" ]; then
+                exec systemd-run --user --unit=cliamp-dms-background --collect --quiet \
+                    env -u NO_COLOR dbus-run-session -- "$cliamp_bin" --daemon --provider "$provider" --vol "$volume"
+            fi
+            exec systemd-run --user --unit=cliamp-dms-background --collect --quiet \
+                env -u NO_COLOR dbus-run-session -- "$cliamp_bin" --daemon --provider "$provider"
+        fi
+        if command -v setsid >/dev/null 2>&1; then
+            if [ "$provider" = "radio" ]; then
+                if [ -n "$volume" ]; then
+                    exec setsid -f env -u NO_COLOR dbus-run-session -- "$cliamp_bin" --daemon --provider radio --vol "$volume" --auto-play "$radio_playlist"
+                fi
+                exec setsid -f env -u NO_COLOR dbus-run-session -- "$cliamp_bin" --daemon --provider radio --auto-play "$radio_playlist"
+            fi
+            if [ -n "$volume" ]; then
+                exec setsid -f env -u NO_COLOR dbus-run-session -- "$cliamp_bin" --daemon --provider "$provider" --vol "$volume"
+            fi
+            exec setsid -f env -u NO_COLOR dbus-run-session -- "$cliamp_bin" --daemon --provider "$provider"
+        fi
+        if [ "$provider" = "radio" ]; then
+            plugin_cliamp env -u NO_COLOR "$cliamp_bin" --daemon --provider radio --auto-play "$radio_playlist"
+        fi
+        plugin_cliamp env -u NO_COLOR "$cliamp_bin" --daemon --provider "$provider"
+    fi
+    if [ "$provider" = "radio" ]; then
+        terminal_run "$preferred" env -u NO_COLOR dbus-run-session -- "$cliamp_bin" --provider radio "$radio_playlist"
+    fi
+    terminal_run "$preferred" env -u NO_COLOR dbus-run-session -- "$cliamp_bin" --provider "$provider"
+}
+
+case "$action" in
+    mpris-start)
+        bridge="${2:-}"
+        [ -x "$bridge" ] || { printf '%s\n' "MPRIS bridge is not executable" >&2; exit 2; }
+        systemctl --user reset-failed cliamp-dms-mpris.service >/dev/null 2>&1 || true
+        if systemctl --user is-active --quiet cliamp-dms-mpris.service; then exit 0; fi
+        exec systemd-run --user --unit=cliamp-dms-mpris --collect --quiet "$bridge"
+        ;;
+    mpris-stop)
+        systemctl --user stop cliamp-dms-mpris.service >/dev/null 2>&1 || true
+        ;;
+    mpris-update)
+        payload="${2-}"
+        [ -n "$payload" ] || payload='{}'
+        exec gdbus call --session --dest org.mpris.MediaPlayer2.cliampDms --object-path /org/mpris/MediaPlayer2 \
+            --method org.danklinux.CliampDms.Update "$payload"
+        ;;
+    ipc-request)
+        payload="${2-}"
+        [ -n "$payload" ] || { printf '%s\n' "IPC request is required" >&2; exit 2; }
+        socket="${XDG_CONFIG_HOME:-$HOME/.config}/cliamp/cliamp.sock"
+        [ -S "$socket" ] || { printf '%s\n' "CLIAMP is offline" >&2; exit 1; }
+        command -v socat >/dev/null 2>&1 || { printf '%s\n' "socat is required for CLIAMP library search" >&2; exit 127; }
+        printf '%s\n' "$payload" | exec socat -t 35 - "UNIX-CONNECT:$socket"
+        ;;
+    youtube-search)
+        query="${2-}"
+        [ -n "$query" ] || { printf '%s\n' "Search query is required" >&2; exit 2; }
+        command -v yt-dlp >/dev/null 2>&1 || { printf '%s\n' "yt-dlp is required for YouTube search" >&2; exit 127; }
+        exec yt-dlp --flat-playlist --dump-single-json --playlist-end 20 "ytsearch20:$query"
+        ;;
+    bridge-status)
+        plugin_dir="${XDG_CONFIG_HOME:-$HOME/.config}/cliamp/plugins"
+        plugin_file="$plugin_dir/cliamp-dms-bridge.lua"
+        trust_file="$plugin_dir/.trust.json"
+        [ -r "$plugin_file" ] && [ -r "$trust_file" ] || exit 1
+        plugin_hash="$(sha256sum "$plugin_file" | awk '{print $1}')"
+        grep -Eq '"cliamp-dms-bridge"[[:space:]]*:[[:space:]]*"'"$plugin_hash"'"' "$trust_file"
+        ;;
+    providers)
+        config_file="${XDG_CONFIG_HOME:-$HOME/.config}/cliamp/config.toml"
+        configured=""
+        if [ -r "$config_file" ]; then
+            configured="$(sed -n 's/^[[:space:]]*\[\([^].]*\)\][[:space:]]*$/\1/p' "$config_file" | tr '[:upper:]' '[:lower:]')"
+        fi
+        for provider in radio navidrome plex jellyfin emby spotify qobuz soundcloud netease ytmusic; do
+            if [ "$provider" = radio ] || printf '%s\n' "$configured" | grep -qx "$provider"; then
+                printf '%s|1\n' "$provider"
+            else
+                printf '%s|0\n' "$provider"
+            fi
+        done
+        ;;
+    ensure-radio-playlist)
+        cliamp_bin="$(find_cliamp)" || { printf '%s\n' "CLIAMP executable not found" >&2; exit 127; }
+        script_dir="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+        radio_playlist="$script_dir/../assets/cliamp-dms-radio.m3u"
+        [ -r "$radio_playlist" ] || { printf '%s\n' "HTTPS radio playlist is missing" >&2; exit 2; }
+        if "$cliamp_bin" playlist show "CLIAMP Streams" >/dev/null 2>&1; then
+            exit 0
+        fi
+        exec "$cliamp_bin" playlist import "$radio_playlist" --name "CLIAMP Streams"
+        ;;
+    setup)
+        cliamp_bin="$(find_cliamp)" || { printf '%s\n' "CLIAMP executable not found" >&2; exit 127; }
+        terminal_run "${2:-}" "$cliamp_bin" setup
+        ;;
+    launch)
+        provider="${2:-radio}"
+        preferred="${3:-}"
+        background="${4:-0}"
+        volume="${5:-}"
+        valid_provider "$provider" || { printf '%s\n' "Invalid provider" >&2; exit 2; }
+        launch_cliamp "$provider" "$preferred" "$background" "$volume"
+        ;;
+    switch-provider)
+        provider="${2:-radio}"
+        preferred="${3:-}"
+        background="${4:-0}"
+        volume="${5:-}"
+        valid_provider "$provider" || { printf '%s\n' "Invalid provider" >&2; exit 2; }
+        pid_file="${XDG_CONFIG_HOME:-$HOME/.config}/cliamp/cliamp.sock.pid"
+        [ -r "$pid_file" ] || { printf '%s\n' "CLIAMP is offline" >&2; exit 1; }
+        pid="$(cat "$pid_file")"
+        case "$pid" in *[!0-9]*|'') printf '%s\n' "Invalid CLIAMP PID" >&2; exit 1 ;; esac
+        [ -r "/proc/$pid/environ" ] || { printf '%s\n' "CLIAMP process is gone" >&2; exit 1; }
+        process_bus="$(tr '\000' '\n' < "/proc/$pid/environ" | sed -n 's/^DBUS_SESSION_BUS_ADDRESS=//p' | head -n 1)"
+        current_bus="${DBUS_SESSION_BUS_ADDRESS:-}"
+        [ -n "$process_bus" ] && [ "$process_bus" != "$current_bus" ] || {
+            printf '%s\n' "Refusing to replace a manually launched CLIAMP instance" >&2
+            exit 3
+        }
+        kill -TERM "$pid"
+        attempts=0
+        while kill -0 "$pid" 2>/dev/null && [ "$attempts" -lt 50 ]; do
+            sleep 0.1
+            attempts=$((attempts + 1))
+        done
+        kill -0 "$pid" 2>/dev/null && { printf '%s\n' "CLIAMP did not stop" >&2; exit 1; }
+        launch_cliamp "$provider" "$preferred" "$background" "$volume"
+        ;;
+    background-radio)
+        provider="${2:-radio}"
+        url="${3:-}"
+        volume="${4:-}"
+        case "$provider" in
+            radio|navidrome|plex|jellyfin|emby|spotify|qobuz|soundcloud|netease|ytmusic) ;;
+            *) printf '%s\n' "Invalid provider" >&2; exit 2 ;;
+        esac
+        case "$url" in
+            http://*|https://*) ;;
+            *) printf '%s\n' "Invalid radio URL" >&2; exit 2 ;;
+        esac
+        cliamp_bin="$(find_cliamp)" || { printf '%s\n' "CLIAMP executable not found" >&2; exit 127; }
+        if command -v systemd-run >/dev/null 2>&1 && systemctl --user show-environment >/dev/null 2>&1; then
+            systemctl --user stop cliamp-dms-background.service >/dev/null 2>&1 || true
+            systemctl --user reset-failed cliamp-dms-background.service >/dev/null 2>&1 || true
+            if [ -n "$volume" ]; then
+                exec systemd-run --user --unit=cliamp-dms-background --collect --quiet \
+                    dbus-run-session -- "$cliamp_bin" --daemon --provider "$provider" --vol "$volume" --auto-play "$url"
+            fi
+            exec systemd-run --user --unit=cliamp-dms-background --collect --quiet \
+                dbus-run-session -- "$cliamp_bin" --daemon --provider "$provider" --auto-play "$url"
+        fi
+        printf '%s\n' "Background radio switching requires a systemd user session" >&2
+        exit 1
+        ;;
+    stream-metadata)
+        url="${2:-}"
+        case "$url" in
+            http://*|https://*) ;;
+            *) printf '%s\n' "Invalid stream URL" >&2; exit 2 ;;
+        esac
+        command -v ffprobe >/dev/null 2>&1 || exit 127
+        exec ffprobe -v error -rw_timeout 5000000 -icy 1 -show_entries format_tags -of json "$url"
+        ;;
+    install-bridge)
+        source_file="$2"
+        target_dir="${XDG_CONFIG_HOME:-$HOME/.config}/cliamp/plugins"
+        mkdir -p "$target_dir"
+        install -m 0600 "$source_file" "$target_dir/cliamp-dms-bridge.lua"
+        cliamp_bin="$(find_cliamp)" || { printf '%s\n' "CLIAMP executable not found" >&2; exit 127; }
+        "$cliamp_bin" plugins trust --yes cliamp-dms-bridge
+        "$0" bridge-status
+        ;;
+    *)
+        printf '%s\n' "Usage: cliamp-dms-helper mpris-start|mpris-stop|mpris-update|ipc-request|youtube-search|bridge-status|providers|ensure-radio-playlist|setup|launch|switch-provider|background-radio|stream-metadata|install-bridge" >&2
+        exit 2
+        ;;
+esac

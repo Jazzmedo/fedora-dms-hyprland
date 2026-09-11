@@ -28,7 +28,8 @@ for b in dms quickshell qs matugen; do
   p=$(command -v "$b" 2>/dev/null)
   kv "$b" "${p:-NOT ON PATH}"
 done
-kv "dms version"        "$(dms --version 2>/dev/null | head -1)"
+dmsv=$(dms --version 2>/dev/null | head -1); [[ -n $dmsv ]] || dmsv=$(dms version 2>/dev/null | head -1)
+kv "dms version"        "$dmsv"
 # The single most common cause: a distro quickshell older than the QML the
 # shell is written against. DMS ships its own build when none is present, and
 # skips doing so when an older rpm already is.
@@ -56,14 +57,18 @@ else
   printf '  %sthe shell is NOT answering IPC — this is the fault%s\n' "$C" "$O"
 fi
 
-# What the supervisor launches. Fetched separately from the binary, so it can
-# be absent on a machine where `dms --version` works perfectly.
+# From 1.6 the QML is compiled into the binary and ~/.config/quickshell/dms is
+# no longer auto-discovered. Before that it was fetched separately and could be
+# absent on a machine where `dms --version` works perfectly.
 root="$HOME/.config/quickshell/dms"
 entry=""
 for c in "$root/quickshell/shell.qml" "$root/shell.qml"; do
   [[ -f $c ]] && { entry=$c; break; }
 done
-if [[ -n $entry ]]; then
+if [[ $dmsv =~ ([0-9]+\.[0-9]+\.[0-9]+) ]] && printf '1.6.0\n%s\n' "${BASH_REMATCH[1]}" | sort -V -C; then
+  kv "shell QML" "carried inside the dms binary"
+  [[ -n $entry ]] && kv "stale checkout" "${root/#$HOME/\~} is present but ignored"
+elif [[ -n $entry ]]; then
   kv "shell QML" "${entry/#$HOME/\~}"
 else
   printf '  %-26s %sMISSING from %s%s\n' "shell QML" "$C" "${root/#$HOME/\~}" "$O"
@@ -100,6 +105,9 @@ PY
 else
   printf '  settings.json missing\n'
 fi
+# 1.6 keeps only non-default values in settings.json and moved machine-specific
+# state to session.json, so a file written for 1.5 may be half-ignored.
+kv "session.json" "$([[ -f $HOME/.config/DankMaterialShell/session.json ]] && echo present || echo 'absent (pre-1.6 layout)')"
 
 sec "plugins"
 p="$HOME/.config/DankMaterialShell/plugins"

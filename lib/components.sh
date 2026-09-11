@@ -296,13 +296,15 @@ select_gpu() {
 # DMS plugins that are always installed, regardless of selection.
 DMS_BASE_PLUGINS=(
   dmsThemeSync nothingClock wallpaperCarousel emojiLauncher quickCapture
-  dankKDEConnect extendedNetworkToggle aiOverviewControl
+  dankKDEConnect
 )
-# Present in the backup's settings.json but with no plugin directory. Removed
-# from plugin_settings.json and from the bar so DMS does not log for them.
+# Removed from plugin_settings.json and from the bar so DMS does not log for
+# them: either present in the backup's settings.json with no plugin directory
+# at all, or deliberately dropped.
 DMS_DEAD_PLUGINS=(
   ocrScanner todoLauncher audioPortSwitcher gpuMonitor
   screenRecorder screenRecorderLH screenRecorderX wifiHotspot
+  extendedNetworkToggle aiOverviewControl
 )
 
 selected_dms_plugins() {

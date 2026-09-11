@@ -1,0 +1,120 @@
+#!/usr/bin/gjs
+
+const { Gio, GLib } = imports.gi;
+
+// Use a dedicated identity so foreground CLIAMP can keep publishing its native
+// stream metadata while this service adds album/artist/artwork enrichment.
+const BUS_NAME = 'org.mpris.MediaPlayer2.cliampDms';
+const OBJECT_PATH = '/org/mpris/MediaPlayer2';
+const CLIAMP = GLib.find_program_in_path('cliamp') || GLib.build_filenamev([GLib.get_home_dir(), '.local', 'bin', 'cliamp']);
+
+const xml = `<node>
+  <interface name="org.mpris.MediaPlayer2">
+    <method name="Raise"/><method name="Quit"/>
+    <property name="CanQuit" type="b" access="read"/><property name="CanRaise" type="b" access="read"/>
+    <property name="HasTrackList" type="b" access="read"/><property name="Identity" type="s" access="read"/>
+    <property name="DesktopEntry" type="s" access="read"/><property name="SupportedUriSchemes" type="as" access="read"/>
+    <property name="SupportedMimeTypes" type="as" access="read"/>
+  </interface>
+  <interface name="org.mpris.MediaPlayer2.Player">
+    <method name="Next"/><method name="Previous"/><method name="Pause"/><method name="PlayPause"/>
+    <method name="Stop"/><method name="Play"/><method name="Seek"><arg direction="in" type="x" name="Offset"/></method>
+    <method name="SetPosition"><arg direction="in" type="o" name="TrackId"/><arg direction="in" type="x" name="Position"/></method>
+    <method name="OpenUri"><arg direction="in" type="s" name="Uri"/></method><signal name="Seeked"><arg type="x" name="Position"/></signal>
+    <property name="PlaybackStatus" type="s" access="read"/><property name="LoopStatus" type="s" access="readwrite"/>
+    <property name="Rate" type="d" access="readwrite"/><property name="Shuffle" type="b" access="readwrite"/>
+    <property name="Metadata" type="a{sv}" access="read"/><property name="Volume" type="d" access="readwrite"/>
+    <property name="Position" type="x" access="read"/><property name="MinimumRate" type="d" access="read"/>
+    <property name="MaximumRate" type="d" access="read"/><property name="CanGoNext" type="b" access="read"/>
+    <property name="CanGoPrevious" type="b" access="read"/><property name="CanPlay" type="b" access="read"/>
+    <property name="CanPause" type="b" access="read"/><property name="CanSeek" type="b" access="read"/>
+    <property name="CanControl" type="b" access="read"/>
+  </interface>
+  <interface name="org.danklinux.CliampDms"><method name="Update"><arg direction="in" type="s" name="Json"/></method></interface>
+</node>`;
+
+let state = { state: 'stopped', title: 'Cliamp', artist: '', album: '', path: '', artUrl: '', position: 0, duration: 0, volume: -30 };
+let positionUpdatedUs = GLib.get_monotonic_time();
+let activePublisherId = '';
+let activePublisherUpdatedUs = 0;
+
+function command(...args) {
+    try { Gio.Subprocess.new([CLIAMP, ...args], Gio.SubprocessFlags.NONE); } catch (_) {}
+}
+
+function metadata() {
+    const result = {
+        'mpris:trackid': new GLib.Variant('o', String(state.trackId || '/org/mpris/MediaPlayer2/Track/1')),
+        'xesam:title': new GLib.Variant('s', String(state.title || 'Cliamp')),
+        'xesam:artist': new GLib.Variant('as', state.artist ? [String(state.artist)] : []),
+        'xesam:album': new GLib.Variant('s', String(state.album || '')),
+        'xesam:url': new GLib.Variant('s', String(state.path || '')),
+        'mpris:length': new GLib.Variant('x', Math.round(Number(state.duration || 0) * 1000000)),
+    };
+    if (state.artUrl) result['mpris:artUrl'] = new GLib.Variant('s', String(state.artUrl));
+    return result;
+}
+
+const service = {
+    CanQuit: false, CanRaise: false, HasTrackList: false, Identity: 'Cliamp Enriched', DesktopEntry: 'cliamp-dms',
+    SupportedUriSchemes: ['file', 'http', 'https'], SupportedMimeTypes: ['audio/mpeg', 'audio/flac', 'audio/ogg'],
+    get PlaybackStatus() { const s = String(state.state || '').toLowerCase(); return s === 'playing' ? 'Playing' : s === 'paused' ? 'Paused' : 'Stopped'; },
+    LoopStatus: 'None', Rate: 1.0, Shuffle: false,
+    get Metadata() { return metadata(); },
+    get Volume() { return Math.max(0, Math.min(1, (Number(state.volume || -50) + 50) / 56)); },
+    set Volume(value) { command('volume', String(-50 + Math.max(0, Math.min(1, value)) * 56)); },
+    get Position() {
+        const base = Math.round(Number(state.position || 0) * 1000000);
+        return service.PlaybackStatus === 'Playing' ? base + Math.max(0, GLib.get_monotonic_time() - positionUpdatedUs) : base;
+    },
+    MinimumRate: 0.25, MaximumRate: 2.0, CanGoNext: true, CanGoPrevious: true,
+    CanPlay: true, CanPause: true, CanSeek: true, CanControl: true,
+    Raise() {}, Quit() { command('stop'); }, Next() { command('next'); }, Previous() { command('prev'); },
+    Pause() { command('pause'); }, PlayPause() { command('toggle'); }, Stop() { command('stop'); }, Play() { command('play'); },
+    Seek(offset) { command('seek', String(Number(state.position || 0) + Number(offset) / 1000000)); },
+    SetPosition(_track, position) { command('seek', String(Number(position) / 1000000)); },
+    OpenUri(uri) { command('queue', uri); },
+    Update(json) {
+        let incoming;
+        try { incoming = JSON.parse(json); } catch (_) { return; }
+        const nowUs = GLib.get_monotonic_time();
+        const publisherId = String(incoming.publisherId || '');
+        // Multiple DankBar instances load their own widget component. Only one
+        // may drive the shared MPRIS clock, otherwise their independently
+        // detected radio start times make playback and lyrics jump backward.
+        if (publisherId && activePublisherId && publisherId !== activePublisherId
+                && nowUs - activePublisherUpdatedUs < 10000000)
+            return;
+        if (publisherId)
+            activePublisherId = publisherId;
+        activePublisherUpdatedUs = nowUs;
+        const sameTrack = String(incoming.path || '') === String(state.path || '')
+            && String(incoming.title || '') === String(state.title || '')
+            && String(incoming.artist || '') === String(state.artist || '');
+        const liveStream = /^https?:/.test(String(incoming.path || '')) && Number(incoming.duration || 0) <= 0;
+        const preserveLiveClock = sameTrack && liveStream
+            && String(incoming.state || '').toLowerCase() === 'playing'
+            && service.PlaybackStatus === 'Playing';
+        if (preserveLiveClock)
+            delete incoming.position;
+        state = Object.assign({}, state, incoming);
+        if (!preserveLiveClock)
+            positionUpdatedUs = nowUs;
+        playerExport.emit_property_changed('PlaybackStatus', new GLib.Variant('s', service.PlaybackStatus));
+        playerExport.emit_property_changed('Metadata', new GLib.Variant('a{sv}', metadata()));
+        playerExport.emit_property_changed('Position', new GLib.Variant('x', service.Position));
+        if (state.positionReset)
+            playerExport.emit_signal('Seeked', new GLib.Variant('(x)', [service.Position]));
+        playerExport.emit_property_changed('Volume', new GLib.Variant('d', service.Volume));
+    },
+};
+
+const loop = new GLib.MainLoop(null, false);
+const nodeInfo = Gio.DBusNodeInfo.new_for_xml(xml);
+const exports = nodeInfo.interfaces.map(info => Gio.DBusExportedObject.wrapJSObject(info, service));
+const playerExport = exports[nodeInfo.interfaces.findIndex(info => info.name === 'org.mpris.MediaPlayer2.Player')];
+const owner = Gio.bus_own_name(Gio.BusType.SESSION, BUS_NAME,
+    Gio.BusNameOwnerFlags.ALLOW_REPLACEMENT | Gio.BusNameOwnerFlags.REPLACE,
+    connection => exports.forEach(item => item.export(connection, OBJECT_PATH)), null, () => loop.quit());
+loop.run();
+Gio.bus_unown_name(owner);

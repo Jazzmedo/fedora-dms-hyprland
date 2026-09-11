@@ -1,0 +1,15 @@
+{
+  "id": "cliampDms",
+  "name": "CLIAMP Controller",
+  "description": "Control CLIAMP playback, radio, providers, playlists and audio from DankBar.",
+  "version": "0.5.0",
+  "author": "Jazzmedo",
+  "icon": "graphic_eq",
+  "type": "widget",
+  "component": "./CliampWidget.qml",
+  "settings": "./CliampSettings.qml",
+  "startupCheck": "./StartupCheck.qml",
+  "requires_dms": ">=1.4.0",
+  "dependencies": ["curl", "ffprobe", "gjs", "gdbus", "systemd-run"],
+  "permissions": ["settings_read", "settings_write", "process", "network"]
+}

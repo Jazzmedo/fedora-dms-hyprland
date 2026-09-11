@@ -1,0 +1,15 @@
+#!/bin/sh
+set -eu
+
+if command -v cliamp >/dev/null 2>&1; then
+    exec "$(command -v cliamp)" "$@" 2>&1
+fi
+
+for cliamp_path in "$HOME/.local/bin/cliamp" /usr/local/bin/cliamp /usr/bin/cliamp; do
+    if [ -x "$cliamp_path" ]; then
+        exec "$cliamp_path" "$@" 2>&1
+    fi
+done
+
+printf '%s\n' "CLIAMP executable not found in PATH or common install locations" >&2
+exit 127

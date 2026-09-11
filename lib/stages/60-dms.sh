@@ -9,15 +9,22 @@ DMS_CONFIG="$HOME/.config/DankMaterialShell"
 declare -A DMS_PLUGIN_REPO=(
   [nothingClock]="https://github.com/samgrande/Dank-Nothing-Clock|nothingclock|"
   [dankKDEConnect]="https://github.com/AvengeMedia/dms-plugins|DankKDEConnect|"
-  [cliampDms]="https://github.com/Jazzmedo/cliamp-dms|.|playback-offset"
-  [lyricsOnPanel]="https://github.com/Jazzmedo/lyrics-on-panel|dms|niri-enhancments"
 )
 
-# Plugins that must come from the repository above rather than from the DMS
-# plugin registry, because the registry would install upstream over a fork.
+# Plugins that must not come from the DMS plugin registry, because the registry
+# would install upstream over a fork.
 declare -A DMS_PLUGIN_PINNED=(
   [cliampDms]=1
   [lyricsOnPanel]=1
+)
+
+# Both forks live in private repositories, so a clone on a fresh machine fails
+# with an authentication prompt. Their working trees are vendored under
+# assets/dms-plugins instead, uncommitted edits and all; see PROVENANCE.txt
+# there. Format: directory|subpath, matching DMS_PLUGIN_REPO.
+declare -A DMS_PLUGIN_VENDOR=(
+  [cliampDms]="cliamp-dms|."
+  [lyricsOnPanel]="lyrics-on-panel|dms"
 )
 
 stage_dms() {
@@ -54,6 +61,23 @@ fix_dms_service_path() {
 # parser rejects `//@ pragma AppId`, the shell exits 255 before drawing
 # anything, and the supervisor still reports a healthy start.
 QUICKSHELL_FLOOR="0.3.1"
+
+# From 1.6 the shell's QML is compiled into the dms binary and
+# ~/.config/quickshell/dms is no longer auto-discovered, so a checkout there is
+# neither required nor consulted. Below 1.6 it is the shell.
+DMS_EMBEDDED_SHELL_FROM="1.6.0"
+
+dms_version() {
+  local v
+  v=$(dms --version 2>/dev/null || dms version 2>/dev/null) || return 1
+  [[ $v =~ ([0-9]+\.[0-9]+\.[0-9]+) ]] || return 1
+  printf '%s\n' "${BASH_REMATCH[1]}"
+}
+
+dms_embeds_shell() {
+  local v; v=$(dms_version) || return 1
+  printf '%s\n%s\n' "$DMS_EMBEDDED_SHELL_FROM" "$v" | sort -V -C
+}
 
 quickshell_version() {
   local v
@@ -103,7 +127,8 @@ install_dms_runtime() {
   # `dms` being present is not enough: the installer also places quickshell and
   # the shell QML, and a run that got as far as the binary may have stopped
   # before either. Re-run it unless all three are there; it is idempotent.
-  if have dms && ( have quickshell || have qs ) && shell_qml_path >/dev/null; then
+  if have dms && ( have quickshell || have qs ) \
+     && { dms_embeds_shell || shell_qml_path >/dev/null; }; then
     local _v; _v=$(dms --version 2>/dev/null | head -1)
     skip "dms already installed${_v:+ ($_v)}"
     return 0
@@ -137,6 +162,12 @@ shell_qml_path() {
 verify_dms_shell() {
   local root="$HOME/.config/quickshell/dms"
   local entry
+
+  if dms_embeds_shell; then
+    skip "dms $(dms_version) carries its shell internally; nothing to check on disk"
+    return 0
+  fi
+
   if entry=$(shell_qml_path); then
     ok "shell QML present at ${entry/#$HOME/\~}"
     return 0
@@ -168,7 +199,7 @@ install_one_plugin() {
   local name=$1
   local plugins="$DMS_CONFIG/plugins"
 
-  if [[ -e $plugins/$name ]]; then
+  if [[ -e $plugins/$name && -z ${DMS_PLUGIN_VENDOR[$name]:-} ]]; then
     skip "plugin $name present"
     return 0
   fi
@@ -183,24 +214,38 @@ install_one_plugin() {
     fi
   fi
 
-  local spec=${DMS_PLUGIN_REPO[$name]:-}
-  if [[ -z $spec ]]; then
-    soft_fail "plugin $name: no known source, skipped"
-    return 0
-  fi
+  local repo sub branch source dir hash
 
-  local repo sub branch
-  IFS='|' read -r repo sub branch <<< "$spec"
-  local hash; hash=$(printf '%s' "$repo" | sha256sum | cut -c1-16)
-  local dir="$plugins/.repos/$hash"
-
-  if [[ -d $dir/.git ]]; then
-    run git -C "$dir" fetch --depth 1 origin "${branch:-HEAD}" || warn "could not fetch $name"
-    run git -C "$dir" checkout -q FETCH_HEAD || warn "could not update $name"
+  if [[ -n ${DMS_PLUGIN_VENDOR[$name]:-} ]]; then
+    local vdir
+    IFS='|' read -r vdir sub <<< "${DMS_PLUGIN_VENDOR[$name]}"
+    source="$REPO_DIR/assets/dms-plugins/$vdir"
+    [[ -d $source ]] || { soft_fail "plugin $name: $vdir missing from assets/dms-plugins"; return 0; }
+    hash=$(printf 'vendor:%s' "$vdir" | sha256sum | cut -c1-16)
+    dir="$plugins/.repos/$hash"
+    run rm -rf "$dir"
+    run mkdir -p "$dir"
+    run cp -a "$source/." "$dir/"
+    repo="vendored from assets/dms-plugins/$vdir"
+    branch=""
   else
-    local -a clone=(git clone --depth 1)
-    [[ -n $branch ]] && clone+=(--branch "$branch")
-    retry 3 "${clone[@]}" "$repo" "$dir" || { soft_fail "plugin $name: clone failed"; return 0; }
+    local spec=${DMS_PLUGIN_REPO[$name]:-}
+    if [[ -z $spec ]]; then
+      soft_fail "plugin $name: no known source, skipped"
+      return 0
+    fi
+    IFS='|' read -r repo sub branch <<< "$spec"
+    hash=$(printf '%s' "$repo" | sha256sum | cut -c1-16)
+    dir="$plugins/.repos/$hash"
+
+    if [[ -d $dir/.git ]]; then
+      run git -C "$dir" fetch --depth 1 origin "${branch:-HEAD}" || warn "could not fetch $name"
+      run git -C "$dir" checkout -q FETCH_HEAD || warn "could not update $name"
+    else
+      local -a clone=(git clone --depth 1)
+      [[ -n $branch ]] && clone+=(--branch "$branch")
+      retry 3 "${clone[@]}" "$repo" "$dir" || { soft_fail "plugin $name: clone failed"; return 0; }
+    fi
   fi
 
   local target="$dir"
@@ -279,11 +324,15 @@ install_lyrics_backend() {
 
   [[ -d $repo_dir/backend ]] || { soft_fail "lyrics backend missing from the checkout"; return 0; }
 
+  # The sources are refreshed every run, since the vendored copy is what
+  # changes; only the virtualenv is expensive enough to reuse.
+  run mkdir -p "$dest"
+  run rsync -a --exclude='.venv' "$repo_dir/backend/" "$dest/backend/" \
+    || run cp -a "$repo_dir/backend/." "$dest/backend/"
+
   if [[ -x $dest/backend/.venv/bin/python ]]; then
-    skip "lyrics backend already built"
+    skip "lyrics backend virtualenv already built"
   else
-    run mkdir -p "$dest"
-    run cp -a "$repo_dir/backend" "$dest/"
     (( DRY_RUN )) || {
       # dbus-python has no wheel and compiles against dbus-devel and glib2-devel.
       python3 -m venv "$dest/backend/.venv" \
