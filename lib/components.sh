@@ -111,6 +111,7 @@ pkgs "hyprland hyprland-devel hyprpaper hyprlock hypridle hyprpicker \
       quickshell matugen sddm qt6-qtvirtualkeyboard \
       qt6-qtdeclarative qt6-qt5compat qt6-qtsvg qt6-qtmultimedia \
       polkit-kde qt6ct qt5ct kvantum \
+      breeze-icon-theme hicolor-icon-theme \
       cmake meson ninja-build gcc-c++ pkgconf git curl jq \
       ImageMagick brightnessctl playerctl libnotify \
       wl-clipboard cliphist grim slurp wtype \

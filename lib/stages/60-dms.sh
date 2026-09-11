@@ -23,6 +23,7 @@ declare -A DMS_PLUGIN_PINNED=(
 stage_dms() {
   step "DankMaterialShell"
   install_dms_runtime
+  verify_dms_shell
   install_dms_plugins
   deploy_dms_settings
   fix_dms_service_path
@@ -66,6 +67,32 @@ install_dms_runtime() {
   fi
   have dms || die "the DMS installer completed but dms is not on PATH"
   ok "dms installed"
+}
+
+# The `dms` binary is only a supervisor. What draws the bar is a quickshell
+# process it launches against the shell's QML, and that QML is fetched
+# separately by the upstream installer. When the fetch fails -- which it does
+# on a connection that intercepts plain HTTP -- the binary still installs and
+# still reports "daemon started", but nothing ever appears on screen. Checking
+# for the entry point turns that silence into a message.
+verify_dms_shell() {
+  local root="$HOME/.config/quickshell/dms"
+  local entry
+
+  for entry in "$root/quickshell/shell.qml" "$root/shell.qml"; do
+    if [[ -f $entry ]]; then
+      ok "shell QML present at ${entry/#$HOME/\~}"
+      return 0
+    fi
+  done
+
+  (( DRY_RUN )) && { info "would verify the shell QML"; return 0; }
+
+  soft_fail "the dms binary is installed but its shell QML is missing from ${root/#$HOME/\~}.
+     This is why the bar never appears even though \`dms restart\` reports success.
+     Re-run the upstream installer on a connection that is not intercepting HTTP:
+       curl -fsSL https://install.danklinux.com | sh"
+  return 0
 }
 
 # Plugins live in plugins/.repos/<hash>/ with a symlink in plugins/. The backup

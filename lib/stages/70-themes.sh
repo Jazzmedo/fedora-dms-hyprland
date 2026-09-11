@@ -100,11 +100,41 @@ install_toolkit_theming() {
     ok "gsettings: Ndot 57 UI font, Afterglow cursor, dark scheme"
   fi
 
-  # Dolphin reads its palette from kdeglobals, which DMS rewrites; seed it so
-  # the very first launch is not stock Breeze.
-  ini_set "$HOME/.config/kdeglobals" "General"    "ColorScheme" "DankMatugenDark"
-  ini_set "$HOME/.config/kdeglobals" "Icons"      "Theme"       "Cawnonical Mono-Glyph Icon Suite (White)"
-  ini_set "$HOME/.config/kdeglobals" "KDE"        "widgetStyle" "Fusion"
+  seed_kde_palette
   deploy_file "$REPO_DIR/config/apps/dolphinrc" "$HOME/.config/dolphinrc"
-  ok "Dolphin seeded with the DMS palette"
+}
+
+# Dolphin is a KDE application, so it paints itself from the [Colors:*] blocks
+# inside kdeglobals rather than from the Qt palette qt6ct hands it. Naming a
+# scheme in ColorScheme= is not enough: on Plasma it is plasma-apply-colorscheme
+# that copies the scheme's sections into kdeglobals, and under Hyprland nothing
+# does. Without those sections Dolphin renders in stock Breeze light however
+# dark the rest of the desktop is, which is exactly the mismatch this fixes.
+seed_kde_palette() {
+  local scheme="$HOME/.local/share/color-schemes/DankMatugenDark.colors"
+  local kg="$HOME/.config/kdeglobals"
+
+  ini_set "$kg" "Icons" "Theme"       "Cawnonical Mono-Glyph Icon Suite (White)"
+  ini_set "$kg" "KDE"   "widgetStyle" "Fusion"
+
+  if [[ ! -f $scheme ]]; then
+    soft_fail "colour scheme missing, so Dolphin keeps the Breeze palette"
+    return 0
+  fi
+  if (( DRY_RUN )); then
+    info "would merge DankMatugenDark into kdeglobals"
+    return 0
+  fi
+
+  backup_path "$kg"
+  if python3 "$REPO_DIR/lib/kde_palette.py" "$scheme" "$kg"; then
+    ok "Dolphin painted from the DMS palette"
+  else
+    soft_fail "could not merge the colour scheme into kdeglobals"
+  fi
+
+  # KDE caches the palette per application; without this Dolphin keeps the
+  # colours it started with until the next login.
+  have kbuildsycoca6 && run kbuildsycoca6 --noincremental
+  return 0
 }

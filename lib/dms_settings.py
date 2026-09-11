@@ -29,6 +29,7 @@ screen_w = int(os.environ.get("SCREEN_W") or 1920)
 screen_h = int(os.environ.get("SCREEN_H") or 1080)
 
 home = os.path.expanduser("~")
+ICON_THEME = "Cawnonical Mono-Glyph Icon Suite (White)"
 
 
 def load(path):
@@ -94,11 +95,19 @@ for bar in settings.get("barConfigs", []) or []:
         bar["monitors"] = [output]
 
 # --- theme and fonts ---------------------------------------------------------
+# currentThemeCategory is deliberately left as captured: a running 1.5.x
+# install sits at category "registry" with the name "custom" and reads
+# customThemeFile correctly, so "correcting" the pair breaks it.
 settings["currentThemeName"] = "custom"
 settings["customThemeFile"] = f"{home}/.config/DankMaterialShell/themes/nothingMatrix/theme.json"
 settings["fontFamily"] = "Ndot 57"
 settings["monoFontFamily"] = "JetBrainsMono Nerd Font Mono"
 settings["matugenTargetMonitor"] = output
+# The icon theme ships in assets/icons and inherits breeze, which the package
+# list now pulls in; naming it in all three places keeps GTK, Qt and the shell
+# agreeing on one set.
+settings["iconThemeDark"] = ICON_THEME
+settings["lastAppliedIconTheme"] = ICON_THEME
 settings["desktopClockEnabled"] = False      # the Nothing Clock replaces it
 
 # --- the Nothing Clock -------------------------------------------------------
