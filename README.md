@@ -64,6 +64,11 @@ The lock screen, clipboard history, colour picker, emoji picker and screenshot
 tools are all driven by DMS over IPC, backed by hyprlock, cliphist, hyprpicker,
 the emojiLauncher plugin and grim/slurp plus the quickCapture plugin.
 
+Applications come from rpms wherever one exists: Vesktop and Obsidian from the
+rpm their own project publishes, EasyEffects from Fedora. Flatpak is opt-in and
+only Gear Lever, which manages AppImages, actually needs it. Selecting Gear
+Lever turns Flatpak on automatically.
+
 Two plugins are installed from your own forks rather than the DMS registry:
 **cliampDms** from `Jazzmedo/cliamp-dms` on the `playback-offset` branch, which
 also builds the CLIAMP player and stages its Lua bridge, and **lyricsOnPanel**

@@ -25,6 +25,27 @@ stage_dms() {
   install_dms_runtime
   install_dms_plugins
   deploy_dms_settings
+  fix_dms_service_path
+}
+
+# The unit shipped in this repo hardcodes /usr/bin/dms, which is where the
+# captured machine had it. The upstream installer may put it in ~/.local/bin
+# instead, and a unit pointing at the wrong path simply restarts forever.
+fix_dms_service_path() {
+  local unit="$HOME/.config/systemd/user/dms.service"
+  [[ -f $unit ]] || return 0
+  local dms_path; dms_path=$(command -v dms 2>/dev/null || true)
+  if [[ -z $dms_path ]]; then
+    soft_fail "dms is not on PATH, so dms.service was left pointing at /usr/bin/dms"
+    return 0
+  fi
+  if grep -q "ExecStart=$dms_path " "$unit"; then
+    skip "dms.service already points at $dms_path"
+    return 0
+  fi
+  run sed -i -E "s|^ExecStart=.*/dms run|ExecStart=$dms_path run|" "$unit"
+  run systemctl --user daemon-reload
+  ok "dms.service points at $dms_path"
 }
 
 # Upstream's installer knows which quickshell revision it needs; reproducing
@@ -235,7 +256,10 @@ deploy_dms_settings() {
   dead=$(printf '%s,' "${DMS_DEAD_PLUGINS[@]}")
 
   local width height
-  read -r width height < <(detect_resolution)
+  # `read` returns non-zero at EOF without a trailing newline, which under
+  # `set -e` aborted the whole installer here. Hence the newline in
+  # detect_resolution, and the guard.
+  read -r width height < <(detect_resolution) || true
   info "clock geometry computed for ${width}x${height}"
 
   (( DRY_RUN )) && { info "would rewrite settings.json"; return 0; }
@@ -261,8 +285,8 @@ detect_resolution() {
     [[ -n ${TPL_MONITOR:-} && $name != "$TPL_MONITOR" ]] && continue
     read -r first < "$m" 2>/dev/null || continue
     if [[ $first =~ ^([0-9]+)x([0-9]+) ]]; then
-      printf '%s %s' "${BASH_REMATCH[1]}" "${BASH_REMATCH[2]}"; return
+      printf '%s %s\n' "${BASH_REMATCH[1]}" "${BASH_REMATCH[2]}"; return
     fi
   done
-  printf '1920 1080'
+  printf '1920 1080\n'
 }

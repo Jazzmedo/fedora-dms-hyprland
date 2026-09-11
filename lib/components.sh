@@ -100,6 +100,7 @@ copr "sdegler/hyprland ashbuk/Hyprland-Fedora solopasha/hyprland"
 pkgs "hyprland hyprland-devel hyprpaper hyprlock hypridle hyprpicker \
       xdg-desktop-portal-hyprland xdg-desktop-portal-gtk xdg-utils \
       quickshell matugen sddm qt6-qtvirtualkeyboard \
+      qt6-qtdeclarative qt6-qt5compat qt6-qtsvg qt6-qtmultimedia \
       polkit-kde qt6ct qt5ct kvantum \
       cmake meson ninja-build gcc-c++ pkgconf git curl jq \
       ImageMagick brightnessctl playerctl libnotify \
@@ -156,9 +157,7 @@ pkgs "brave-browser"
 # ---------------------------------------------------------------------------
 group apps "Applications"
 
-component vesktop     apps on  "Vesktop"      "Discord client, matugen-themed"
-flatpaks "dev.vencord.Vesktop"
-dms_plugin ""
+component vesktop     apps on  "Vesktop"      "Discord client, official rpm, matugen-themed"
 
 component qbittorrent apps on  "qBittorrent"  "torrent client"
 pkgs "qbittorrent"
@@ -166,8 +165,7 @@ pkgs "qbittorrent"
 component obs         apps on  "OBS Studio"   "screen recording, matugen-themed"
 pkgs "obs-studio"
 
-component obsidian    apps on  "Obsidian"     "notes, matugen-themed snippet"
-flatpaks "md.obsidian.Obsidian"
+component obsidian    apps on  "Obsidian"     "notes, official rpm, matugen-themed snippet"
 
 component cliamp      apps on  "CLIAMP"       "terminal music player + your cliamp-dms bar plugin"
 # ffprobe ships in ffmpeg-free; gjs and gdbus back the plugin's helper scripts,
@@ -182,7 +180,16 @@ pkgs "python3 python3-devel dbus-devel glib2-devel pkgconf gcc"
 dms_plugin "lyricsOnPanel"
 
 component easyeffects apps on  "EasyEffects"  "audio effects, Handfree/Normal presets"
-flatpaks "com.github.wwmm.easyeffects"
+pkgs "easyeffects"
+
+# Packaging preference is rpm first, then an upstream tarball or AppImage.
+# Flatpak is only used where nothing else exists, so it is opt-in and the two
+# apps that used to be flatpaks now come from their projects' own rpms.
+component flatpak     apps off "Flatpak"      "Flathub support; only Gear Lever needs it"
+pkgs "flatpak"
+
+component gearlever   apps off "Gear Lever"   "manage AppImages as normal apps; requires Flatpak"
+flatpaks "it.mijorus.gearlever"
 
 # ---------------------------------------------------------------------------
 group services "Services & sessions"

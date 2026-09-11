@@ -47,11 +47,16 @@ stage_repos() {
         || soft_fail "Cloudflare WARP repository unavailable"
   fi
 
-  if have flatpak; then skip "flatpak present"
-  else as_root dnf install -y flatpak; fi
-  run_visible flatpak remote-add --if-not-exists flathub \
-    https://dl.flathub.org/repo/flathub.flatpakrepo || soft_fail "could not add Flathub"
-  ok "Flathub configured"
+  # Flatpak is opt-in: everything else here comes from rpms, which theme and
+  # integrate better. Only Gear Lever needs it.
+  if is_selected flatpak; then
+    have flatpak || as_root dnf install -y flatpak
+    run_visible flatpak remote-add --if-not-exists flathub \
+      https://dl.flathub.org/repo/flathub.flatpakrepo || soft_fail "could not add Flathub"
+    ok "Flathub configured"
+  else
+    skip "Flatpak not selected"
+  fi
 }
 
 # `dnf copr` lives in a different package depending on which dnf this is.

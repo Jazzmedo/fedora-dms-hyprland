@@ -17,10 +17,20 @@ OUT=${1:-"$LOG_DIR/report-$(date +%Y%m%d-%H%M%S).txt"}
 latest_log=$(ls -1t "$LOG_DIR"/install-*.log 2>/dev/null | head -1)
 
 redact() {
+  # The hostname is only worth hiding when it is actually identifying. On this
+  # machine it was "fedora", and blanket-replacing it turned "Fedora 44" into
+  # "HOST 44" and mangled every repo name in the report.
+  local host; host=$(hostname)
+  local host_rule=''
+  case ${host,,} in
+    fedora|localhost|localhost.localdomain|"${USER,,}") ;;
+    *) [[ ${#host} -ge 4 ]] && host_rule="s/\b${host}\b/HOST/g" ;;
+  esac
+
   sed -E \
     -e "s|$HOME|~|g" \
     -e "s/\b$USER\b/USER/g" \
-    -e "s/\b$(hostname)\b/HOST/g" \
+    ${host_rule:+-e "$host_rule"} \
     -e 's/([A-Za-z0-9_-]*(token|secret|key|passwd|password)[A-Za-z0-9_-]*[[:space:]]*[=:][[:space:]]*"?)[^[:space:]",]+/\1REDACTED/gI' \
     -e 's/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/EMAIL/g'
 }

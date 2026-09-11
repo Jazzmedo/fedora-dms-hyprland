@@ -54,7 +54,9 @@ stage_packages() {
 
   local -a fps
   mapfile -t fps < <(selected_flatpaks)
-  if (( ${#fps[@]} )); then
+  if (( ${#fps[@]} )) && ! is_selected flatpak; then
+    soft_fail "${#fps[@]} flatpak app(s) selected but the Flatpak component is not; skipping them"
+  elif (( ${#fps[@]} )); then
     local f
     for f in "${fps[@]}"; do
       if flatpak info "$f" >/dev/null 2>&1; then

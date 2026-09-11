@@ -11,7 +11,9 @@ stage_apps() {
   ok "kitty configured"
 
   install_zen
-  is_selected helium && install_helium
+  is_selected helium   && install_helium
+  is_selected vesktop  && install_github_rpm Vencord/Vesktop  'vesktop.*\.x86_64\.rpm$' vesktop  Vesktop
+  is_selected obsidian && install_github_rpm obsidianmd/obsidian-releases 'obsidian-[0-9.]+\.rpm$' obsidian Obsidian
   install_app_configs
   write_mimeapps
 }
@@ -70,6 +72,46 @@ install_helium() {
   as_root ln -sfn "$HELIUM_INSTALL_DIR/helium" /usr/local/bin/helium
   rm -rf "$tmp"
   ok "Helium installed to $HELIUM_INSTALL_DIR"
+}
+
+# Install an application from the .rpm its own project publishes. Preferred
+# over Flatpak: the app then shares the system font and theme, is visible to
+# XDG mime handling without portal wiring, and matugen can write into its
+# config directly.
+#
+#   install_github_rpm <owner/repo> <asset regex> <binary> <display name>
+install_github_rpm() {
+  local repo=$1 pattern=$2 binary=$3 label=$4
+
+  if rpm -q --whatprovides "$binary" >/dev/null 2>&1 || have "$binary"; then
+    skip "$label already installed"
+    return 0
+  fi
+  if (( DRY_RUN )); then
+    info "would install $label from the newest $repo release"
+    return 0
+  fi
+
+  local url
+  url=$(curl -fsSL --max-time 30 "https://api.github.com/repos/$repo/releases/latest" 2>/dev/null \
+        | grep -oiE '"browser_download_url":[[:space:]]*"[^"]+"' \
+        | cut -d'"' -f4 \
+        | grep -iE "$pattern" \
+        | head -1)
+
+  if [[ -z $url ]]; then
+    soft_fail "$label: no rpm matching /$pattern/ in the newest $repo release"
+    return 0
+  fi
+
+  local tmp; tmp=$(mktemp -d)
+  if retry 3 curl -fL --progress-bar -o "$tmp/pkg.rpm" "$url"; then
+    as_root dnf install -y "$tmp/pkg.rpm" && ok "$label installed ($(basename "$url"))" \
+      || soft_fail "$label: rpm failed to install"
+  else
+    soft_fail "$label: download failed"
+  fi
+  rm -rf "$tmp"
 }
 
 install_app_configs() {

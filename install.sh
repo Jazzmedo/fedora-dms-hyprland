@@ -82,6 +82,9 @@ LOG_FILE="$HOME/.cache/fedora-nothing/install-$(date +%Y%m%d-%H%M%S).log"
 mkdir -p "$(dirname "$LOG_FILE")"
 : > "$LOG_FILE"
 
+trap 'install_err_trap "$?" "$LINENO" "$BASH_COMMAND"' ERR
+set -o errtrace
+
 # ------------------------------------------------------------------- stages ---
 resolve_stages() {
   local -a wanted=("${ALL_STAGES[@]}")
@@ -102,6 +105,7 @@ resolve_stages() {
 run_stage() {
   local name=$1
   printf '%s\n' " ${STAGES_TO_RUN[*]} " | grep -q " $name " || return 0
+  CURRENT_STAGE=$name
   "stage_${name}"
 }
 
@@ -161,6 +165,13 @@ choose_components() {
   [[ $HYPR_LAYOUT == scrolling || $HYPR_LAYOUT == dwindle ]] \
     || die "unknown layout: $HYPR_LAYOUT (scrolling|dwindle)"
   select_layout "$HYPR_LAYOUT"
+
+  # Gear Lever is only distributed as a Flatpak, so picking it turns Flatpak on
+  # rather than failing later with an app that cannot be installed.
+  if is_selected gearlever && ! is_selected flatpak; then
+    select_component flatpak
+    info "Gear Lever needs Flatpak, so Flatpak was enabled too"
+  fi
 
   # Summarise the displays for the plan; the hyprland stage re-reads them.
   detect_outputs

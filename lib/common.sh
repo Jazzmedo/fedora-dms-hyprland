@@ -2,6 +2,19 @@
 # Logging, command execution, backup and templating primitives.
 # Sourced by install.sh and every stage. Assumes `set -euo pipefail`.
 
+# An unexpected non-zero exit under `set -e` used to end the run silently, so
+# a crash looked exactly like a clean finish. This makes it loud and says where.
+CURRENT_STAGE="startup"
+install_err_trap() {
+  local code=$1 line=$2 cmd=$3
+  printf '\n%s✘ the installer stopped during the "%s" stage%s\n' "$C_RED$C_BOLD" "$CURRENT_STAGE" "$C_OFF" >&2
+  printf '  %sfailing command%s  %s\n' "$C_GREY" "$C_OFF" "$cmd" >&2
+  printf '  %sexit status%s     %s (line %s)\n' "$C_GREY" "$C_OFF" "$code" "$line" >&2
+  [[ -n ${LOG_FILE:-} ]] && printf '  %slog%s             %s\n' "$C_GREY" "$C_OFF" "$LOG_FILE" >&2
+  printf '  %sReport it with:%s ./report.sh\n\n' "$C_GREY" "$C_OFF" >&2
+  _log_raw "FATAL stage=$CURRENT_STAGE line=$line status=$code cmd=$cmd"
+}
+
 # ---------------------------------------------------------------- colours ---
 if [[ -t 1 && ${NO_COLOR:-} == "" ]]; then
   C_RED=$'\e[38;2;215;25;33m'; C_DIM=$'\e[2m'; C_BOLD=$'\e[1m'
