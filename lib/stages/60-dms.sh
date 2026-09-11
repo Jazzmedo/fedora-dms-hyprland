@@ -22,6 +22,7 @@ declare -A DMS_PLUGIN_PINNED=(
 
 stage_dms() {
   step "DankMaterialShell"
+  ensure_quickshell
   install_dms_runtime
   verify_dms_shell
   install_dms_plugins
@@ -49,10 +50,60 @@ fix_dms_service_path() {
   ok "dms.service points at $dms_path"
 }
 
+# The lowest quickshell this shell's QML is known to run on. Below it the
+# parser rejects `//@ pragma AppId`, the shell exits 255 before drawing
+# anything, and the supervisor still reports a healthy start.
+QUICKSHELL_FLOOR="0.3.1"
+
+quickshell_version() {
+  local v
+  v=$(quickshell --version 2>/dev/null || qs --version 2>/dev/null) || return 1
+  [[ $v =~ ([0-9]+\.[0-9]+\.[0-9]+) ]] || return 1
+  printf '%s\n' "${BASH_REMATCH[1]}"
+}
+
+# A quickshell from dnf shadows the one the DMS installer would have placed,
+# and the installer will not replace what it finds. If the shadowing build is
+# too old, it has to go before the installer runs, or the shell never starts.
+ensure_quickshell() {
+  have quickshell || have qs || return 0
+
+  local v; v=$(quickshell_version) || {
+    warn "quickshell is installed but would not report a version"
+    return 0
+  }
+
+  # sort -V -C succeeds when the input is already ascending, so this is true
+  # exactly when v is at or above the floor.
+  if printf '%s\n%s\n' "$QUICKSHELL_FLOOR" "$v" | sort -V -C; then
+    skip "quickshell $v is new enough"
+    return 0
+  fi
+
+  warn "quickshell $v predates $QUICKSHELL_FLOOR and cannot parse this shell's QML"
+
+  if ! rpm_has quickshell; then
+    soft_fail "quickshell $v did not come from an rpm, so it cannot be removed here.
+     Remove it by hand and re-run: the DMS installer then supplies its own build."
+    return 0
+  fi
+
+  info "removing the rpm so the DMS installer can supply the build it expects"
+  if as_root dnf remove -y quickshell; then
+    ok "quickshell $v removed"
+  else
+    soft_fail "could not remove quickshell $v; the shell will fail to start"
+  fi
+  return 0
+}
+
 # Upstream's installer knows which quickshell revision it needs; reproducing
 # that here would rot. Run it, then layer our config on top.
 install_dms_runtime() {
-  if have dms; then
+  # `dms` being present is not enough: the installer also places quickshell and
+  # the shell QML, and a run that got as far as the binary may have stopped
+  # before either. Re-run it unless all three are there; it is idempotent.
+  if have dms && ( have quickshell || have qs ) && shell_qml_path >/dev/null; then
     local _v; _v=$(dms --version 2>/dev/null | head -1)
     skip "dms already installed${_v:+ ($_v)}"
     return 0
@@ -75,16 +126,21 @@ install_dms_runtime() {
 # on a connection that intercepts plain HTTP -- the binary still installs and
 # still reports "daemon started", but nothing ever appears on screen. Checking
 # for the entry point turns that silence into a message.
+shell_qml_path() {
+  local root="$HOME/.config/quickshell/dms" entry
+  for entry in "$root/quickshell/shell.qml" "$root/shell.qml"; do
+    [[ -f $entry ]] && { printf '%s\n' "$entry"; return 0; }
+  done
+  return 1
+}
+
 verify_dms_shell() {
   local root="$HOME/.config/quickshell/dms"
   local entry
-
-  for entry in "$root/quickshell/shell.qml" "$root/shell.qml"; do
-    if [[ -f $entry ]]; then
-      ok "shell QML present at ${entry/#$HOME/\~}"
-      return 0
-    fi
-  done
+  if entry=$(shell_qml_path); then
+    ok "shell QML present at ${entry/#$HOME/\~}"
+    return 0
+  fi
 
   (( DRY_RUN )) && { info "would verify the shell QML"; return 0; }
 

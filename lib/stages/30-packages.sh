@@ -47,10 +47,13 @@ stage_packages() {
       && warn "kitty $kv is older than 0.38; cursor_trail will be ignored"
   fi
 
-  # quickshell is what DankMaterialShell renders with. It is not in every
-  # Fedora release, and the DMS installer pulls its own build when the rpm is
-  # absent, so a missing package here is not fatal.
-  rpm_has quickshell || info "quickshell not packaged for this release; DMS will supply it"
+  # quickshell is what DankMaterialShell renders with, and this installer does
+  # not ask dnf for it: see the note in lib/components.sh. An rpm that arrived
+  # some other way still shadows the build DMS wants, so say so here rather
+  # than let the shell fail three stages later.
+  if rpm_has quickshell; then
+    warn "quickshell came from an rpm ($(rpm -q quickshell)); the DMS stage will check it is new enough"
+  fi
 
   local -a fps
   mapfile -t fps < <(selected_flatpaks)

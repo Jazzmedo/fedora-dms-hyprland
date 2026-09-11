@@ -34,6 +34,17 @@ kv "dms version"        "$(dms --version 2>/dev/null | head -1)"
 # skips doing so when an older rpm already is.
 kv "quickshell version" "$(quickshell --version 2>/dev/null | head -1 || qs --version 2>/dev/null | head -1)"
 kv "quickshell rpm"     "$(rpm -q quickshell 2>/dev/null || echo 'not from rpm')"
+# Below 0.3.1 the QML parser rejects `//@ pragma AppId` and the shell exits 255
+# before it draws anything, while the supervisor reports a healthy start.
+qv=$(quickshell --version 2>/dev/null || qs --version 2>/dev/null)
+if [[ $qv =~ ([0-9]+\.[0-9]+\.[0-9]+) ]]; then
+  if printf '0.3.1\n%s\n' "${BASH_REMATCH[1]}" | sort -V -C; then
+    kv "quickshell verdict" "new enough"
+  else
+    printf '  %-26s %sTOO OLD for this shell — remove the rpm and re-run the DMS installer%s\n' \
+      "quickshell verdict" "$C" "$O"
+  fi
+fi
 
 sec "is the shell actually up"
 # The supervisor forking is not the same as the bar rendering. The only honest

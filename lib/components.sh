@@ -105,10 +105,16 @@ component core        base base "Hyprland + DMS"  "compositor, shell, lock, clip
 # These are tried in order and the first one with a chroot for this release
 # wins. sdegler is first because it also carries matugen, hyprlock, hypridle,
 # hyprpicker, hyprpaper, cliphist and qt6ct.
+#
+# quickshell is deliberately NOT listed. DankMaterialShell is written against a
+# specific quickshell, its installer ships that build, and it skips doing so
+# when any quickshell is already present. Letting dnf win that race installs a
+# COPR build too old for the shell's QML, and the only symptom is the shell
+# exiting 255 on an unrecognized pragma while every command reports success.
 copr "sdegler/hyprland ashbuk/Hyprland-Fedora solopasha/hyprland"
 pkgs "hyprland hyprland-devel hyprpaper hyprlock hypridle hyprpicker \
       xdg-desktop-portal-hyprland xdg-desktop-portal-gtk xdg-utils \
-      quickshell matugen sddm qt6-qtvirtualkeyboard \
+      matugen sddm qt6-qtvirtualkeyboard \
       qt6-qtdeclarative qt6-qt5compat qt6-qtsvg qt6-qtmultimedia \
       polkit-kde qt6ct qt5ct kvantum \
       breeze-icon-theme hicolor-icon-theme \
@@ -117,7 +123,7 @@ pkgs "hyprland hyprland-devel hyprpaper hyprlock hypridle hyprpicker \
       wl-clipboard cliphist grim slurp wtype \
       NetworkManager NetworkManager-wifi nm-connection-editor \
       bluez blueman kdeconnectd cargo"
-detect 'all_of "pkg_installed hyprland" "pkg_installed quickshell" \
+detect 'all_of "pkg_installed hyprland" "have quickshell" \
                "have dms" "[[ -f $HOME/.config/hypr/hyprland.lua ]]" \
                "[[ -f /usr/share/wayland-sessions/hyprland.desktop ]]"' 
 
