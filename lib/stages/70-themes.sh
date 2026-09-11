@@ -89,6 +89,15 @@ install_toolkit_theming() {
   # palette they were built with.
   run ln -sfn dank-colors.css "$HOME/.config/gtk-3.0/gtk.css"
 
+  # Both settings.ini files ask for adw-gtk3-dark. Without it GTK apps fall
+  # back to Adwaita and DMS refuses to refresh the GTK theme at all, logging
+  # "Skipping gtk-theme refresh" and leaving every GTK app off-palette.
+  if [[ -d /usr/share/themes/adw-gtk3-dark ]]; then
+    have gsettings && run gsettings set org.gnome.desktop.interface gtk-theme "adw-gtk3-dark"
+  else
+    soft_fail "adw-gtk3-dark is not installed, so GTK apps will not follow the theme"
+  fi
+
   # GTK reads the font from gsettings, not only from settings.ini.
   if have gsettings; then
     run gsettings set org.gnome.desktop.interface font-name          "Ndot 57 11"
