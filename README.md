@@ -128,6 +128,36 @@ Two mechanisms keep these files portable:
   that component was not selected, so a keybinding for an app you did not
   install simply does not exist.
 
+### Seeing what is already installed
+
+```sh
+./install.sh --status
+```
+
+Reports every component as installed, partial or missing, plus the facts that
+belong to a stage rather than a component: which SDDM theme is configured, the
+default systemd target, your login shell, whether dms is running and where its
+binary is, the default browser, and how many DMS plugins are on disk.
+
+The picker shows the same thing inline, so a re-run reads as repair rather than
+reinstall:
+
+```
+[x] ✓ CLIAMP              already installed
+[x] ~ zsh + oh-my-zsh     partially installed, a re-run completes it
+[x]   Helium              not installed yet
+```
+
+Membership in a package list is not the test. A component can own no rpms at
+all, as Vesktop does, or own them and still be unusable, as zsh is before it
+becomes your login shell, so components declare how to detect themselves in
+`lib/components.sh`. The plan then separates what will be installed from what
+will be repaired from what is already satisfied.
+
+Components already present are re-selected automatically on a re-run, because
+deselecting one would not uninstall it, only stop the installer from checking
+it.
+
 ### Reporting a failed install
 
 ```sh

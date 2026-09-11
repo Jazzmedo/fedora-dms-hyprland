@@ -2,17 +2,26 @@
 # Logging, command execution, backup and templating primitives.
 # Sourced by install.sh and every stage. Assumes `set -euo pipefail`.
 
-# An unexpected non-zero exit under `set -e` used to end the run silently, so
-# a crash looked exactly like a clean finish. This makes it loud and says where.
+# An unexpected non-zero exit under `set -e` used to end the run silently, so a
+# crash looked exactly like a clean finish. Checking at exit rather than
+# trapping ERR is deliberate: with errtrace, every `[[ ]]` that happens to be
+# false inside a loop fires the trap, and the real failure drowns in noise.
 CURRENT_STAGE="startup"
-install_err_trap() {
-  local code=$1 line=$2 cmd=$3
-  printf '\n%s✘ the installer stopped during the "%s" stage%s\n' "$C_RED$C_BOLD" "$CURRENT_STAGE" "$C_OFF" >&2
-  printf '  %sfailing command%s  %s\n' "$C_GREY" "$C_OFF" "$cmd" >&2
-  printf '  %sexit status%s     %s (line %s)\n' "$C_GREY" "$C_OFF" "$code" "$line" >&2
-  [[ -n ${LOG_FILE:-} ]] && printf '  %slog%s             %s\n' "$C_GREY" "$C_OFF" "$LOG_FILE" >&2
-  printf '  %sReport it with:%s ./report.sh\n\n' "$C_GREY" "$C_OFF" >&2
-  _log_raw "FATAL stage=$CURRENT_STAGE line=$line status=$code cmd=$cmd"
+INSTALL_COMPLETED=0
+
+install_exit_trap() {
+  local code=$1
+  (( INSTALL_COMPLETED )) && return 0
+  (( code == 0 )) && return 0        # an intentional early exit, such as --status
+
+  printf '\n%s✘ the installer stopped during the "%s" stage%s\n' \
+    "$C_RED$C_BOLD" "$CURRENT_STAGE" "$C_OFF" >&2
+  printf '  %sexit status%s  %s\n' "$C_GREY" "$C_OFF" "$code" >&2
+  [[ -n ${LOG_FILE:-} ]] && \
+    printf '  %slast log line%s %s\n' "$C_GREY" "$C_OFF" "$(tail -1 "$LOG_FILE" 2>/dev/null)" >&2
+  printf '  %sNothing after this stage ran. Collect details with:%s ./report.sh\n\n' \
+    "$C_GREY" "$C_OFF" >&2
+  _log_raw "FATAL stage=$CURRENT_STAGE status=$code"
 }
 
 # ---------------------------------------------------------------- colours ---

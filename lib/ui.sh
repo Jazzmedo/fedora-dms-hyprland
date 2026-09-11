@@ -81,18 +81,25 @@ _ui_render() {
     else
       mark="[ ]"
     fi
+    # What the machine already has, so a re-run reads as repair, not reinstall.
+    local badge
+    case $(component_state "$key") in
+      installed) badge="${C_OK}✓${C_OFF}" ;;
+      partial)   badge="${C_WARN}~${C_OFF}" ;;
+      *)         badge=" " ;;
+    esac
     local pad=""
     (( ${#name} < 22 )) && printf -v pad '%*s' $(( 22 - ${#name} )) ''
     if (( i == UI_CURSOR )); then
-      printf '  %s❯%s %s %s%s%s%s %s%s%s\n' \
-        "$C_RED" "$C_OFF" "$mark" "$C_BOLD" "$name" "$C_OFF" "$pad" "$C_GREY" "$desc" "$C_OFF"
+      printf '  %s❯%s %s %s %s%s%s%s %s%s%s\n' \
+        "$C_RED" "$C_OFF" "$mark" "$badge" "$C_BOLD" "$name" "$C_OFF" "$pad" "$C_GREY" "$desc" "$C_OFF"
     else
-      printf '    %s %s%s %s%s%s\n' "$mark" "$name" "$pad" "$C_GREY" "$desc" "$C_OFF"
+      printf '    %s %s %s%s %s%s%s\n' "$mark" "$badge" "$name" "$pad" "$C_GREY" "$desc" "$C_OFF"
     fi
   done
   local n; n=$(selected_count)
   printf '\n  %s%s%s\n' "$C_GREY" "$(printf '─%.0s' $(seq 1 "${UI_WIDTH:-72}"))" "$C_OFF"
-  printf '  %s%d optional component(s) selected%s   %s[·] = always installed%s\n' \
+  printf '  %s%d selected%s   %s✓ already installed   ~ partial   [·] always installed%s\n' \
     "$C_BOLD" "$n" "$C_OFF" "$C_GREY" "$C_OFF"
 }
 
@@ -192,12 +199,21 @@ ui_show_plan() {
   printf '  %-14s %s\n' "Displays" "${OUTPUT_SUMMARY:-detected at install time}"
   printf '  %-14s %s\n' "Stages" "${STAGES_TO_RUN[*]}"
   printf '  %-14s %s\n' "Backups" "$( (( NO_BACKUP )) && echo disabled || echo "~/.fedora-nothing-backup/" )"
-  local k names=()
+  local k names=() fresh=() repair=() satisfied=0
   for k in "${COMPONENT_ORDER[@]}"; do
-    component_locked "$k" && continue
-    is_selected "$k" && names+=("${COMPONENT_NAME[$k]}")
+    [[ ${COMPONENT_GROUP[$k]} == gpu || ${COMPONENT_GROUP[$k]} == layout ]] && continue
+    is_selected "$k" || continue
+    component_locked "$k" || names+=("${COMPONENT_NAME[$k]}")
+    case $(component_state "$k") in
+      installed) (( ++satisfied )) ;;
+      partial)   repair+=("${COMPONENT_NAME[$k]}") ;;
+      *)         fresh+=("${COMPONENT_NAME[$k]}") ;;
+    esac
   done
   printf '  %-14s %s\n' "Optional" "${names[*]:-none}"
+  printf '  %-14s %s\n' "Already set" "$satisfied component(s), which will be checked and skipped"
+  printf '  %-14s %s\n' "To install"  "${fresh[*]:-nothing}"
+  printf '  %-14s %s\n' "To repair"   "${repair[*]:-nothing}"
 }
 
 # ---------------------------------------------------------------- identity ---

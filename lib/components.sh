@@ -12,6 +12,7 @@
 
 declare -A COMPONENT_NAME COMPONENT_DESC COMPONENT_GROUP COMPONENT_DEFAULT
 declare -A COMPONENT_PKGS COMPONENT_FLATPAKS COMPONENT_COPR COMPONENT_PLUGIN
+declare -A COMPONENT_DETECT
 declare -A GROUP_LABEL SELECTED
 COMPONENT_ORDER=()
 COMPONENT_GROUPS=()
@@ -34,6 +35,13 @@ flatpaks() { COMPONENT_FLATPAKS[${COMPONENT_ORDER[-1]}]="$*"; }
 copr()     { COMPONENT_COPR[${COMPONENT_ORDER[-1]}]="$*"; }
 dms_plugin() { COMPONENT_PLUGIN[${COMPONENT_ORDER[-1]}]="$*"; }
 
+# How to tell whether this component is already on the machine. The default is
+# "are its rpms installed", which is wrong whenever a component owns no rpms
+# (Vesktop comes from a GitHub rpm) or owns them without being usable (zsh
+# installed but never made the login shell). The snippet must print
+# installed | partial | missing; `all_of` collapses a list of tests for you.
+detect() { COMPONENT_DETECT[${COMPONENT_ORDER[-1]}]="$*"; }
+
 # ------------------------------------------------------------- predicates ---
 is_selected()      { [[ -n ${SELECTED[$1]:-} ]]; }
 component_locked() { [[ ${COMPONENT_DEFAULT[$1]:-} == base ]]; }
@@ -41,13 +49,14 @@ select_component()   { SELECTED[$1]=1; }
 deselect_component() { unset "SELECTED[$1]"; }
 toggle_component() {
   component_locked "$1" && return 0
-  is_selected "$1" && deselect_component "$1" || select_component "$1"
+  if is_selected "$1"; then deselect_component "$1"; else select_component "$1"; fi
 }
 group_members() {
   local k
   for k in "${COMPONENT_ORDER[@]}"; do
     [[ ${COMPONENT_GROUP[$k]} == "$1" ]] && printf '%s\n' "$k"
   done
+  return 0
 }
 selected_count() {
   local k n=0
@@ -107,25 +116,38 @@ pkgs "hyprland hyprland-devel hyprpaper hyprlock hypridle hyprpicker \
       wl-clipboard cliphist grim slurp wtype \
       NetworkManager NetworkManager-wifi nm-connection-editor \
       bluez blueman kdeconnectd cargo"
+detect 'all_of "pkg_installed hyprland" "pkg_installed quickshell" \
+               "have dms" "[[ -f $HOME/.config/hypr/hyprland.lua ]]" \
+               "[[ -f /usr/share/wayland-sessions/hyprland.desktop ]]"' 
 
 component audio       base base "PipeWire"        "pipewire, wireplumber, pavucontrol"
 pkgs "pipewire pipewire-pulseaudio pipewire-alsa pipewire-utils \
       wireplumber pavucontrol alsa-utils"
+detect 'all_of "pkg_installed pipewire" "pkg_installed wireplumber" "pkg_installed pavucontrol"' 
 
 component apps_base   base base "kitty · Zen · Dolphin" "default terminal, browser, file manager"
 pkgs "kitty dolphin kf6-kio kf6-kservice ffmpegthumbs kdegraphics-thumbnailers"
+detect 'all_of "pkg_installed kitty" "pkg_installed dolphin" "[[ -x /opt/zen/zen ]]" \
+               "[[ -f $HOME/.config/mimeapps.list ]]"' 
 
 component fonts       base base "Nothing fonts"   "Ndot 55/57, NType 82, JetBrainsMono Nerd Font"
 pkgs "fontconfig google-noto-sans-fonts google-noto-emoji-fonts"
+detect 'all_of "fc-list | grep -q \"Ndot 57\"" \
+               "fc-list | grep -q \"JetBrainsMono Nerd Font\"" \
+               "[[ -f /etc/fonts/local.conf ]] && grep -q \"Ndot 57\" /etc/fonts/local.conf"' 
 
 # ---------------------------------------------------------------------------
 group shell "Shell & development"
 
 component zsh         shell on  "zsh + oh-my-zsh"  "zsh, oh-my-zsh, autosuggestions, syntax highlighting"
 pkgs "zsh util-linux-user"
+detect 'all_of "pkg_installed zsh" "[[ -d $HOME/.oh-my-zsh ]]" \
+               "[[ -d $HOME/.config/zsh/zshrc.d ]]" \
+               "[[ $(getent passwd \"$USER\" | cut -d: -f7) == */zsh ]]"' 
 
 component prompt      shell on  "starship"         "prompt, matugen-themed from the DMS palette"
 pkgs "starship"
+detect 'all_of "pkg_installed starship" "[[ -f $HOME/.config/starship.toml ]]"' 
 
 component cli         shell on  "modern CLI tools" "eza, bat, ripgrep, fd, fzf, trash-cli, grc"
 pkgs "eza bat ripgrep fd-find fzf trash-cli grc tree unzip p7zip p7zip-plugins"
@@ -138,11 +160,16 @@ pkgs "yazi"
 
 component editor      shell on  "Neovim + LazyVim" "editor, plugins pinned by lazy-lock.json"
 pkgs "neovim python3-neovim gcc make gettext"
+detect 'all_of "pkg_installed neovim" "[[ -f $HOME/.config/nvim/init.lua ]]" \
+               "[[ -d $HOME/.local/share/nvim/lazy ]]"' 
 
 component mux         shell on  "tmux"             "terminal multiplexer, matugen-themed"
 pkgs "tmux"
+detect 'all_of "pkg_installed tmux" "[[ -d $HOME/.config/tmux ]]"' 
 
 component devtools    shell on  "language runtimes" "podman, pyenv, nvm, rustup, go, yt-dlp"
+detect 'all_of "pkg_installed podman" "[[ -d $HOME/.nvm ]]" "[[ -d $HOME/.pyenv ]]" \
+               "have cargo" "pkg_installed golang"' 
 pkgs "podman podman-compose golang yt-dlp python3-pip \
       openssl-devel readline-devel zlib-devel bzip2-devel libffi-devel \
       sqlite-devel xz-devel tk-devel"
@@ -151,6 +178,7 @@ pkgs "podman podman-compose golang yt-dlp python3-pip \
 group browsers "Browsers (Zen is in the base group)"
 
 component helium      browsers on  "Helium"      "Chromium fork, AppImage-free install to /opt"
+detect 'all_of "[[ -x /opt/helium/helium ]]"' 
 component brave       browsers on  "Brave Origin" "de-Googled Brave build, third-party repo"
 pkgs "brave-browser"
 
@@ -158,6 +186,7 @@ pkgs "brave-browser"
 group apps "Applications"
 
 component vesktop     apps on  "Vesktop"      "Discord client, official rpm, matugen-themed"
+detect 'all_of "have vesktop" "[[ -d $HOME/.config/vesktop ]]"' 
 
 component qbittorrent apps on  "qBittorrent"  "torrent client"
 pkgs "qbittorrent"
@@ -166,14 +195,18 @@ component obs         apps on  "OBS Studio"   "screen recording, matugen-themed"
 pkgs "obs-studio"
 
 component obsidian    apps on  "Obsidian"     "notes, official rpm, matugen-themed snippet"
+detect 'all_of "have obsidian"' 
 
 component cliamp      apps on  "CLIAMP"       "terminal music player + your cliamp-dms bar plugin"
+detect 'all_of "have cliamp" "[[ -e $HOME/.config/DankMaterialShell/plugins/cliampDms ]]"' 
 # ffprobe ships in ffmpeg-free; gjs and gdbus back the plugin's helper scripts,
 # and alsa-lib-devel is what the player links against when Go builds it.
 pkgs "curl ffmpeg-free gjs glib2 alsa-lib-devel"
 dms_plugin "cliampDms"
 
 component lyrics      apps on  "Lyrics on Panel" "your lyrics-on-panel fork plus its MPRIS backend"
+detect 'all_of "[[ -e $HOME/.config/DankMaterialShell/plugins/lyricsOnPanel ]]" \
+               "[[ -x $HOME/.local/share/lyrics-on-panel/backend/.venv/bin/python ]]"' 
 # The backend is a Python service that reads MPRIS over D-Bus; dbus-devel and
 # the compiler are needed because dbus-python builds from source.
 pkgs "python3 python3-devel dbus-devel glib2-devel pkgconf gcc"
@@ -181,6 +214,7 @@ dms_plugin "lyricsOnPanel"
 
 component easyeffects apps on  "EasyEffects"  "audio effects, Handfree/Normal presets"
 pkgs "easyeffects"
+detect 'all_of "pkg_installed easyeffects" "[[ -f $HOME/.config/easyeffects/output/Normal.json ]]"' 
 
 # Packaging preference is rpm first, then an upstream tarball or AppImage.
 # Flatpak is only used where nothing else exists, so it is opt-in and the two
@@ -190,24 +224,32 @@ pkgs "flatpak"
 
 component gearlever   apps off "Gear Lever"   "manage AppImages as normal apps; requires Flatpak"
 flatpaks "it.mijorus.gearlever"
+detect 'all_of "flatpak_installed it.mijorus.gearlever"' 
 
 # ---------------------------------------------------------------------------
 group services "Services & sessions"
 
 component tailscale   services off "Tailscale"      "mesh VPN, enables the dankscale bar plugin"
 pkgs "tailscale"
+detect 'all_of "pkg_installed tailscale" "systemctl is-enabled tailscaled"' 
 dms_plugin "dankscale"
 
 component warp        services off "Cloudflare WARP" "enables the warpToggle bar plugin"
 pkgs "cloudflare-warp"
+detect 'all_of "pkg_installed cloudflare-warp" "systemctl is-enabled warp-svc"' 
 dms_plugin "warpToggle"
 
 component niri        services off "niri session"    "second Wayland session at the login screen"
 pkgs "niri"
+detect 'all_of "pkg_installed niri" "[[ -f $HOME/.config/niri/config.kdl ]]"' 
 
 component searxng     services off "SearXNG"         "self-hosted search via podman-compose"
+detect 'all_of "[[ -f $HOME/SelfHosted/searxng/docker-compose.yml ]]"' 
 
 component tweaks      services off "System tweaks"   "SearXNG search policy, mDNS resolution, writeback cap"
+detect 'all_of "[[ -f /etc/sysctl.d/99-usb-copy-fix.conf ]]" \
+               "grep -q mdns4_minimal /etc/nsswitch.conf" \
+               "[[ -f /etc/zen/policies/policies.json ]]"' 
 
 # ---------------------------------------------------------------------------
 group layout "Tiling layout (pick one)"

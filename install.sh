@@ -27,6 +27,7 @@ GPU_VENDOR=""
 HYPR_LAYOUT="scrolling"
 ONLY=""
 SKIP=""
+SHOW_STATUS=0
 
 ALL_STAGES=(preflight repos gpu packages fonts hyprland dms themes apps shell tweaks sddm optional)
 STAGES_TO_RUN=()
@@ -44,6 +45,7 @@ Options:
   --skip=A,B            run everything except these stages
   --dry-run             print what would happen, change nothing
   --no-backup           do not copy replaced files aside
+  --status              report what is already installed, then exit
   --list-stages         print the stage names and exit
   --help, -h            this text
 EOF
@@ -61,6 +63,7 @@ for arg in "$@"; do
     --only=*)        ONLY=${arg#*=} ;;
     --skip=*)        SKIP=${arg#*=} ;;
     --list-stages)   printf '%s\n' "${ALL_STAGES[@]}"; exit 0 ;;
+    --status)        SHOW_STATUS=1 ;;
     -h|--help)       usage; exit 0 ;;
     *)               printf 'unknown option: %s\n\n' "$arg" >&2; usage; exit 2 ;;
   esac
@@ -71,6 +74,8 @@ done
 source "$REPO_DIR/lib/common.sh"
 # shellcheck source=lib/components.sh
 source "$REPO_DIR/lib/components.sh"
+# shellcheck source=lib/detect.sh
+source "$REPO_DIR/lib/detect.sh"
 # shellcheck source=lib/ui.sh
 source "$REPO_DIR/lib/ui.sh"
 for f in "$REPO_DIR"/lib/stages/*.sh; do
@@ -82,8 +87,7 @@ LOG_FILE="$HOME/.cache/fedora-nothing/install-$(date +%Y%m%d-%H%M%S).log"
 mkdir -p "$(dirname "$LOG_FILE")"
 : > "$LOG_FILE"
 
-trap 'install_err_trap "$?" "$LINENO" "$BASH_COMMAND"' ERR
-set -o errtrace
+trap 'install_exit_trap "$?"' EXIT
 
 # ------------------------------------------------------------------- stages ---
 resolve_stages() {
@@ -154,6 +158,9 @@ choose_components() {
     info "preset: $PRESET"
   elif load_selection; then
     info "reusing the selection from ${SELECTION_FILE/#$HOME/\~}"
+    # Anything already on the machine is worth keeping selected, so a re-run
+    # verifies it instead of silently leaving it out.
+    reselect_installed
   elif ui_identity_prompt; then
     : # owner mode already applied the full preset
   else
@@ -182,8 +189,28 @@ choose_components() {
   OUTPUT_SUMMARY=$(printf '%s, ' "${parts[@]}"); OUTPUT_SUMMARY=${OUTPUT_SUMMARY%, }
 }
 
+# A component that is already installed stays selected even if it is absent
+# from the saved selection, because deselecting it would not remove it anyway;
+# it would only stop the installer from checking it.
+reselect_installed() {
+  local k n=0
+  for k in "${COMPONENT_ORDER[@]}"; do
+    [[ ${COMPONENT_GROUP[$k]} == gpu || ${COMPONENT_GROUP[$k]} == layout ]] && continue
+    is_selected "$k" && continue
+    [[ $(component_state "$k") == installed ]] || continue
+    select_component "$k"; (( ++n ))
+  done
+  (( n )) && info "$n component(s) already installed were re-selected so they get verified"
+  return 0
+}
+
 # -------------------------------------------------------------------- main ---
 main() {
+  if (( SHOW_STATUS )); then
+    show_status
+    INSTALL_COMPLETED=1
+    exit 0
+  fi
   resolve_stages
   choose_components
   ui_show_plan
@@ -209,6 +236,7 @@ main() {
   run_stage sddm
   run_stage optional
 
+  INSTALL_COMPLETED=1
   summary $(( SECONDS - start ))
 }
 
