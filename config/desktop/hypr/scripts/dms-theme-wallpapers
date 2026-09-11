@@ -49,8 +49,15 @@ collection=""
 
 # Wallpaper changes also rewrite settings.json. Only a genuine theme change
 # should select a new collection; follow-up settings writes must be no-ops.
+# A recorded theme means nothing if no wallpaper actually reached a monitor.
+# The state file is written before the IPC calls, to stop those calls
+# retriggering this service, so a first run that records the theme and then
+# fails to apply it would otherwise suppress every retry from then on.
+any_set=0
+[[ -n "$(dms ipc call wallpaper get 2>/dev/null)" ]] && any_set=1
+
 last_theme="$(cat "$theme_state" 2>/dev/null || true)"
-[[ "$last_theme" != "$identity" ]] || exit 0
+[[ "$last_theme" != "$identity" || $any_set -eq 0 ]] || exit 0
 
 while IFS= read -r -d '' candidate; do
   candidate_slug="$(slugify "$(basename "$candidate")")"
@@ -120,6 +127,7 @@ if [[ ${#outputs[@]} -eq 0 ]]; then
   outputs=("@@MONITOR@@ 1920 1080 0")
 fi
 
+applied=0
 for spec in "${outputs[@]}"; do
   read -r name width height transform <<<"$spec"
   # Transforms 1 and 3 are the 90/270-degree rotations, which swap the axes.
@@ -133,10 +141,24 @@ for spec in "${outputs[@]}"; do
   fi
   [[ -n "$wanted" ]] || continue
   current="$(dms ipc call wallpaper getFor "$name" 2>/dev/null || true)"
-  [[ "$current" == "$wanted" ]] && continue
+  [[ "$current" == "$wanted" ]] && { applied=$((applied + 1)); continue; }
   # Reported rather than swallowed: if a DMS release renames this call, the
   # only symptom is a wallpaper that quietly stops following the theme.
-  if ! err="$(dms ipc call wallpaper setFor "$name" "$wanted" 2>&1 >/dev/null)"; then
-    printf 'dms-theme-wallpapers: setFor %s failed: %s\n' "$name" "$err" >&2
+  if err="$(dms ipc call wallpaper setFor "$name" "$wanted" 2>&1 >/dev/null)"; then
+    applied=$((applied + 1))
+  elif err2="$(dms ipc call wallpaper set "$wanted" 2>&1 >/dev/null)"; then
+    # Older and single-output builds take the path without a monitor name.
+    applied=$((applied + 1))
+  else
+    printf 'dms-theme-wallpapers: could not set %s on %s: %s / %s\n' \
+      "$wanted" "$name" "$err" "$err2" >&2
   fi
 done
+
+# Nothing applied means the theme must not stay recorded, or the guard above
+# turns a transient failure into a permanent one.
+if (( applied == 0 )); then
+  rm -f "$theme_state"
+  printf 'dms-theme-wallpapers: no wallpaper applied; will retry\n' >&2
+  exit 1
+fi
