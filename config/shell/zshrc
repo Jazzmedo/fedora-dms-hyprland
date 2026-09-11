@@ -1,0 +1,8 @@
+# Loader. Everything real lives in ~/.config/zsh/zshrc.d/, one concern per file,
+# sourced in filename order. Add a fragment, do not grow this file.
+ZSHRC_D="${XDG_CONFIG_HOME:-$HOME/.config}/zsh/zshrc.d"
+if [[ -d $ZSHRC_D ]]; then
+  for _frag in "$ZSHRC_D"/*.zsh(N); do source "$_frag"; done
+  unset _frag
+fi
+unset ZSHRC_D

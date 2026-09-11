@@ -1,0 +1,74 @@
+#!/bin/sh
+# Move the focused window to another workspace without resetting its scrolling
+# column to scrolling:column_width. Hyprland does not currently carry a
+# column's width across this operation, so measure and restore it explicitly.
+
+target="$1"
+
+if [ -z "$target" ]; then
+	exit 2
+fi
+
+window="$(hyprctl activewindow -j 2>/dev/null)" || exit 1
+
+# Floating windows have no scrolling-column width to preserve.
+if [ "$(printf '%s' "$window" | jq -r '.floating')" = "true" ]; then
+	hyprctl dispatch "hl.dsp.window.move({ workspace = \"$target\" })"
+	exit $?
+fi
+
+monitor_id="$(printf '%s' "$window" | jq -r '.monitor')"
+monitor="$(hyprctl monitors -j 2>/dev/null | jq -c --argjson id "$monitor_id" '.[] | select(.id == $id)')"
+[ -n "$monitor" ] || exit 1
+
+transform="$(printf '%s' "$monitor" | jq -r '.transform')"
+window_width="$(printf '%s' "$window" | jq -r '.size[0]')"
+window_height="$(printf '%s' "$window" | jq -r '.size[1]')"
+monitor_width="$(printf '%s' "$monitor" | jq -r '.width / .scale')"
+monitor_height="$(printf '%s' "$monitor" | jq -r '.height / .scale')"
+
+# Odd transforms swap the monitor's logical width and height. Workspaces 1-5
+# scroll right; workspaces 6-10 scroll down.
+if [ $((transform % 2)) -eq 1 ]; then
+	logical_height="$monitor_width"
+else
+	logical_height="$monitor_height"
+fi
+
+workspace_id="$(printf '%s' "$window" | jq -r '.workspace.id')"
+if [ "$workspace_id" -gt 5 ] && [ "$workspace_id" -le 10 ]; then
+	axis_size="$window_height"
+	monitor_axis="$logical_height"
+else
+	axis_size="$window_width"
+	if [ $((transform % 2)) -eq 1 ]; then
+		monitor_axis="$monitor_height"
+	else
+		monitor_axis="$monitor_width"
+	fi
+fi
+
+# The tiled size excludes gaps, so snap the measured ratio to either one of the
+# configured thirds or the nearest 5% step used by Super+-/Super+=. This avoids
+# pixel-rounding drift without losing manually adjusted widths.
+width="$(awk -v size="$axis_size" -v axis="$monitor_axis" '
+	BEGIN {
+		ratio = size / axis
+		split("0.33333 0.66667", values, " ")
+		best = 0.05
+		diff = ratio - best; if (diff < 0) diff = -diff
+		for (i = 1; i <= 2; i++) {
+			d = ratio - values[i]; if (d < 0) d = -d
+			if (d < diff) { best = values[i]; diff = d }
+		}
+		for (i = 1; i <= 20; i++) {
+			candidate = i * 0.05
+			d = ratio - candidate; if (d < 0) d = -d
+			if (d < diff) { best = candidate; diff = d }
+		}
+		print best
+	}'
+)"
+
+hyprctl dispatch "hl.dsp.window.move({ workspace = \"$target\" })" >/dev/null || exit 1
+hyprctl dispatch "hl.dsp.layout(\"colresize $width\")"

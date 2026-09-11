@@ -1,0 +1,35 @@
+#!/bin/bash
+
+# 1. Define the directory where EasyEffects stores output presets
+PRESET_DIR="$HOME/.config/easyeffects/output"
+
+# 2. Automatically find all .json files and strip the extension to get preset names
+# This handles spaces in filenames correctly
+mapfile -t PRESETS < <(find "$PRESET_DIR" -maxdepth 1 -name "*.json" -exec basename {} .json \; | sort)
+
+# Check if any presets were found
+if [ ${#PRESETS[@]} -eq 0 ]; then
+    notify-send "EasyEffects" "No output presets found in $PRESET_DIR"
+    exit 1
+fi
+
+# 3. Get the currently loaded OUTPUT preset
+# We use 'sink_effects' to ensure we are only looking at the output side
+CURRENT=$(gsettings get com.github.wwmm.easyeffects.sink_effects last-applied-preset | tr -d "'")
+
+# 4. Find the index of the current preset
+NEXT_INDEX=0
+for i in "${!PRESETS[@]}"; do
+   if [[ "${PRESETS[$i]}" == "$CURRENT" ]]; then
+       # Calculate the next index (circularly)
+       NEXT_INDEX=$(( (i + 1) % ${#PRESETS[@]} ))
+       break
+   fi
+done
+
+# 5. Apply the next preset
+NEXT_PRESET="${PRESETS[$NEXT_INDEX]}"
+easyeffects --load-preset "$NEXT_PRESET"
+
+# 6. Show a notification
+notify-send "EasyEffects" "Preset: $NEXT_PRESET" --icon=audio-speakers-symbolic

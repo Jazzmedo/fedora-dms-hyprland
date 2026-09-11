@@ -1,0 +1,67 @@
+/* DMS/Matugen colors over Discord's native layout. */
+:root,
+.theme-dark,
+.theme-light {
+  color-scheme: dark !important;
+  --brand-500: {{colors.primary.default.hex}} !important;
+  --brand-560: {{colors.primary_container.default.hex}} !important;
+  --brand-600: {{colors.primary_container.default.hex}} !important;
+  --background-primary: {{colors.surface.default.hex}} !important;
+  --background-secondary: {{colors.surface_container.default.hex}} !important;
+  --background-secondary-alt: {{colors.surface_container_low.default.hex}} !important;
+  --background-tertiary: {{colors.surface_container_lowest.default.hex}} !important;
+  --background-floating: {{colors.surface_container_high.default.hex}} !important;
+  --background-modifier-hover: {{colors.surface_bright.default.hex}} !important;
+  --background-modifier-active: {{colors.primary_container.default.hex}} !important;
+  --background-modifier-selected: {{colors.surface_container_highest.default.hex}} !important;
+  --background-modifier-accent: {{colors.outline_variant.default.hex}} !important;
+  --channeltextarea-background: {{colors.surface_container_highest.default.hex}} !important;
+  --modal-background: {{colors.surface_container.default.hex}} !important;
+  --modal-footer-background: {{colors.surface_container_low.default.hex}} !important;
+  --text-normal: {{colors.on_surface.default.hex}} !important;
+  --text-muted: {{colors.on_surface_variant.default.hex}} !important;
+  --header-primary: {{colors.on_surface.default.hex}} !important;
+  --header-secondary: {{colors.on_surface_variant.default.hex}} !important;
+  --interactive-normal: {{colors.on_surface_variant.default.hex}} !important;
+  --interactive-hover: {{colors.on_surface.default.hex}} !important;
+  --interactive-active: {{colors.primary.default.hex}} !important;
+  --interactive-muted: {{colors.outline.default.hex}} !important;
+  --channels-default: {{colors.on_surface_variant.default.hex}} !important;
+
+  /* Discord's current design-system tokens. Keep these beside the legacy
+     names above because Vesktop can receive either Discord UI generation. */
+  --background-base-lowest: {{colors.surface_container_lowest.default.hex}} !important;
+  --background-base-lower: {{colors.surface_container_low.default.hex}} !important;
+  --background-base-low: {{colors.surface_container.default.hex}} !important;
+  --background-base-high: {{colors.surface_container_high.default.hex}} !important;
+  --background-base-higher: {{colors.surface_container_highest.default.hex}} !important;
+  --background-surface-high: {{colors.surface_container_high.default.hex}} !important;
+  --background-surface-higher: {{colors.surface_container_highest.default.hex}} !important;
+  --background-mod-subtle: {{colors.surface_bright.default.hex}} !important;
+  --background-mod-normal: {{colors.surface_container_high.default.hex}} !important;
+  --background-mod-strong: {{colors.surface_container_highest.default.hex}} !important;
+  --card-background-default: {{colors.surface_container.default.hex}} !important;
+  --input-background-default: {{colors.surface_container_lowest.default.hex}} !important;
+  --input-border-default: {{colors.outline_variant.default.hex}} !important;
+  --border-subtle: {{colors.outline_variant.default.hex}} !important;
+  --border-muted: {{colors.outline_variant.default.hex}} !important;
+  --border-normal: {{colors.outline.default.hex}} !important;
+  --border-strong: {{colors.on_surface_variant.default.hex}} !important;
+  --border-focus: {{colors.primary.default.hex}} !important;
+  --text-default: {{colors.on_surface.default.hex}} !important;
+  --text-strong: {{colors.on_surface.default.hex}} !important;
+  --text-subtle: {{colors.on_surface_variant.default.hex}} !important;
+  --text-brand: {{colors.primary.default.hex}} !important;
+  --text-link: {{colors.primary.default.hex}} !important;
+  --interactive-icon-default: {{colors.on_surface_variant.default.hex}} !important;
+  --interactive-icon-hover: {{colors.on_surface.default.hex}} !important;
+  --interactive-icon-active: {{colors.primary.default.hex}} !important;
+  --control-primary-background-default: {{colors.primary.default.hex}} !important;
+  --control-primary-background-hover: {{colors.primary_container.default.hex}} !important;
+  --control-primary-border-default: {{colors.primary.default.hex}} !important;
+  --control-primary-text-default: {{colors.on_primary.default.hex}} !important;
+  --control-secondary-background-default: {{colors.surface_container_high.default.hex}} !important;
+  --control-secondary-background-hover: {{colors.surface_container_highest.default.hex}} !important;
+  --control-secondary-border-default: {{colors.outline_variant.default.hex}} !important;
+  --control-secondary-text-default: {{colors.on_surface.default.hex}} !important;
+}

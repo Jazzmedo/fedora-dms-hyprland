@@ -1,0 +1,23 @@
+[[station]]
+name = "Radio Quran"
+url = "https://stream.radiojar.com/8s5u5tpdtwzuv"
+country = "Egypt"
+codec = "MP3"
+homepage = "https://surahquran.com/Radio-Quran-Cairo.html"
+
+[[station]]
+name = "Saudi Quran"
+url = "http://stream.radiojar.com/0tpy1h0kxtzuv"
+country = "Saudi Arabia"
+codec = "MP3"
+tags = "life guide"
+homepage = "https://www.aloula.sa/ar/live/quranradio"
+
+[[station]]
+name = "100hitz - Top 40"
+url = "http://pureplay.cdnstream1.com/6025_128.mp3?DIST=TuneIn&TGT=TuneIn&maxServers=2&gdpr=0&us_privacy=1YNY&partnertok=eyJhbGciOiJIUzI1NiIsImtpZCI6InR1bmVpbiIsInR5cCI6IkpXVCJ9.eyJ0cnVzdGVkX3BhcnRuZXIiOnRydWUsImlhdCI6MTYzMzk1NTI4MSwiaXNzIjoidGlzcnYifQ.cUMfsrk262BNjQXnfXkKBefQOqoRn2nweLrx5obNPhM"
+country = "The United States Of America"
+bitrate = 128
+codec = "MP3"
+tags = "top 40,us"
+homepage = "https://100hitz.com/"

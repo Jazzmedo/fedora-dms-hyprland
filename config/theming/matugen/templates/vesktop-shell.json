@@ -1,0 +1,7 @@
+{
+  "discordBranch": "canary",
+  "minimizeToTray": true,
+  "arRPC": true,
+  "splashColor": "{{colors.on_surface.default.hex}}",
+  "splashBackground": "{{colors.surface.default.hex}}"
+}

@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# Cycle the wallpaper on the focused monitor.
+# Falls back to the global command when DMS is not in per-monitor mode.
+set -u
+
+action="${1:-next}"
+
+case "$action" in
+  next|prev) ;;
+  *) exit 2 ;;
+esac
+
+monitor="$(hyprctl -j monitors | jq -r 'first(.[] | select(.focused) | .name) // empty')"
+
+if [ -z "$monitor" ]; then
+  dms ipc call wallpaper "$action" >/dev/null
+  exit $?
+fi
+
+if ! dms ipc call wallpaper "${action}For" "$monitor" >/dev/null 2>&1; then
+  dms ipc call wallpaper "$action" >/dev/null
+fi

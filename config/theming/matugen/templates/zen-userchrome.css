@@ -1,0 +1,177 @@
+/* DMS Matugen Zen Browser Theme */
+
+/* Hyprland supplies window management; keep browser caption buttons hidden. */
+.titlebar-buttonbox-container,
+.titlebar-buttonbox,
+#zen-window-buttons,
+#zen-sidebar-top-buttons-customization-target > .titlebar-buttonbox-container {
+  display: none !important;
+}
+
+:root {
+  /* DMS is the single source of truth for every Zen surface and state. */
+  --zen-colors-primary: {{colors.surface_container.default.hex}} !important;
+  --zen-colors-secondary: {{colors.surface_container_high.default.hex}} !important;
+  --zen-colors-tertiary: {{colors.surface_container_low.default.hex}} !important;
+  --zen-colors-border: {{colors.outline_variant.default.hex}} !important;
+  --zen-primary-color: {{colors.primary_container.default.hex}} !important;
+  --toolbarbutton-icon-fill: {{colors.primary.default.hex}} !important;
+  --toolbar-field-color: {{colors.on_background.default.hex}} !important;
+  --tab-selected-textcolor: {{colors.primary.default.hex}} !important;
+  --toolbar-color: {{colors.on_background.default.hex}} !important;
+  --arrowpanel-color: {{colors.on_background.default.hex}} !important;
+  --arrowpanel-background: {{colors.surface_container.default.hex}} !important;
+  --sidebar-text-color: {{colors.on_background.default.hex}} !important;
+  --zen-main-browser-background: {{colors.background.default.hex}} !important;
+  --zen-main-browser-background-toolbar: {{colors.background.default.hex}} !important;
+  /* Standard Firefox/LibreWolf chrome variables. */
+  --lwt-accent-color: {{colors.background.default.hex}} !important;
+  --lwt-text-color: {{colors.on_background.default.hex}} !important;
+  --toolbar-bgcolor: {{colors.background.default.hex}} !important;
+  --toolbar-color: {{colors.on_background.default.hex}} !important;
+  --toolbar-field-background-color: {{colors.surface_container.default.hex}} !important;
+  --toolbar-field-focus-background-color: {{colors.surface_container_high.default.hex}} !important;
+  --toolbar-field-focus-color: {{colors.on_surface.default.hex}} !important;
+  --toolbar-field-border-color: {{colors.outline_variant.default.hex}} !important;
+  --toolbar-field-color: {{colors.on_background.default.hex}} !important;
+  --tabpanel-background-color: {{colors.background.default.hex}} !important;
+  --sidebar-background-color: {{colors.surface_container.default.hex}} !important;
+  --sidebar-color: {{colors.on_background.default.hex}} !important;
+  --lwt-sidebar-background-color: {{colors.surface_container.default.hex}} !important;
+  --lwt-sidebar-text-color: {{colors.on_surface.default.hex}} !important;
+  --button-bgcolor: {{colors.surface_container_high.default.hex}} !important;
+  --button-hover-bgcolor: {{colors.secondary_container.default.hex}} !important;
+  --button-active-bgcolor: {{colors.primary_container.default.hex}} !important;
+  --focus-outline-color: {{colors.primary.default.hex}} !important;
+  --attention-icon-color: {{colors.tertiary.default.hex}} !important;
+  --theme-better_find_bar-custom_background: {{colors.surface_container_high.default.hex}} !important;
+  --better-findbar-background-color: {{colors.surface_container_high.default.hex}} !important;
+  --mod-sameerasw-zen_transparency_color: {{colors.background.default.hex}} !important;
+}
+
+#sidebar-box,
+#sidebar-main {
+  background-color: var(--toolbar-bgcolor) !important;
+  color: var(--toolbar-color) !important;
+}
+
+#zen-browser-background {
+  --zen-main-browser-background: {{colors.background.default.hex}} !important;
+  --zen-background-opacity: 1 !important;
+}
+
+#zen-toolbar-background {
+  --zen-main-browser-background-toolbar: {{colors.background.default.hex}} !important;
+  --zen-background-opacity: 1 !important;
+}
+
+/* Let Zen and Transparent Zen own the tab bar's geometry and compositor
+ * layers. Overriding those animated pseudo-elements makes compact mode stutter.
+ * Keep its transitions quick without changing the layout animation itself. */
+:root:has([mod-sameerasw_zen_animations]) {
+  --mod-sameerasw-zen-animation-smoothness:
+    transform 90ms ease-out,
+    scale 90ms ease-out,
+    opacity 90ms ease-out,
+    filter 90ms ease-out !important;
+}
+
+.sidebar-placesTree {
+  background-color: {{colors.surface_container.default.hex}} !important;
+}
+
+#zen-workspaces-button {
+  background-color: {{colors.surface_container.default.hex}} !important;
+}
+
+#TabsToolbar {
+  background-color: {{colors.background.default.hex}} !important;
+}
+
+.urlbar-background {
+  background-color: {{colors.surface_container.default.hex}} !important;
+}
+
+.urlbar-input::selection {
+  color: {{colors.on_primary.default.hex}} !important;
+  background-color: {{colors.primary.default.hex}} !important;
+}
+
+.urlbarView-url {
+  color: {{colors.on_surface_variant.default.hex}} !important;
+}
+
+toolbar .toolbarbutton-1 {
+  &:not([disabled]) {
+    &:is([open], [checked])
+      > :is(
+        .toolbarbutton-icon,
+        .toolbarbutton-text,
+        .toolbarbutton-badge-stack
+      ) {
+      fill: {{colors.primary.default.hex}}
+    }
+  }
+}
+
+.identity-color-blue {
+  --identity-tab-color: {{dank16.color12.default.hex}} !important;
+  --identity-icon-color: {{dank16.color12.default.hex}} !important;
+}
+
+.identity-color-turquoise {
+  --identity-tab-color: {{dank16.color6.default.hex}} !important;
+  --identity-icon-color: {{dank16.color6.default.hex}} !important;
+}
+
+.identity-color-green {
+  --identity-tab-color: {{dank16.color10.default.hex}} !important;
+  --identity-icon-color: {{dank16.color10.default.hex}} !important;
+}
+
+.identity-color-yellow {
+  --identity-tab-color: {{dank16.color11.default.hex}} !important;
+  --identity-icon-color: {{dank16.color11.default.hex}} !important;
+}
+
+.identity-color-orange {
+  --identity-tab-color: {{dank16.color3.default.hex}} !important;
+  --identity-icon-color: {{dank16.color3.default.hex}} !important;
+}
+
+.identity-color-red {
+  --identity-tab-color: {{dank16.color9.default.hex}} !important;
+  --identity-icon-color: {{dank16.color9.default.hex}} !important;
+}
+
+.identity-color-pink {
+  --identity-tab-color: {{dank16.color13.default.hex}} !important;
+  --identity-icon-color: {{dank16.color13.default.hex}} !important;
+}
+
+.identity-color-purple {
+  --identity-tab-color: {{dank16.color5.default.hex}} !important;
+  --identity-icon-color: {{dank16.color5.default.hex}} !important;
+}
+
+#zen-appcontent-navbar-container {
+  background-color: {{colors.background.default.hex}} !important;
+}
+
+#PanelUI-menu-button .toolbarbutton-icon,
+#downloads-button .toolbarbutton-icon,
+#unified-extensions-button .toolbarbutton-icon {
+  fill: {{colors.primary.default.hex}} !important;
+  color: {{colors.primary.default.hex}} !important;
+}
+
+#PanelUI-menu-button .toolbarbutton-badge-stack,
+#downloads-button .toolbarbutton-badge-stack,
+#unified-extensions-button .toolbarbutton-badge-stack {
+  fill: {{colors.primary.default.hex}} !important;
+  color: {{colors.primary.default.hex}} !important;
+}
+
+toolbar .toolbarbutton-1 > .toolbarbutton-icon {
+  fill: {{colors.primary.default.hex}} !important;
+}

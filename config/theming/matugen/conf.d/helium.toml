@@ -1,0 +1,3 @@
+[templates.helium_dms_launcher]
+input_path = '~/.config/matugen/templates/helium-dms'
+output_path = '~/.local/bin/helium-dms'

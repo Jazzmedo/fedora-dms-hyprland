@@ -1,0 +1,10 @@
+[Unit]
+Description=Watch DMS theme selection for matching wallpaper collections
+StartLimitIntervalSec=0
+
+[Path]
+PathChanged=%h/.config/DankMaterialShell/settings.json
+Unit=dms-theme-wallpapers.service
+
+[Install]
+WantedBy=default.target

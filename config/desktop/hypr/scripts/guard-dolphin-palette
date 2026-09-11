@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+set -u
+
+# DMS writes the generated KColorScheme asynchronously.  Dolphin can receive
+# the intermediate palette before Theme Sync's normal apply finishes.  Repair
+# only an unreadable View foreground, then broadcast the final palette again.
+scheme="${XDG_DATA_HOME:-$HOME/.local/share}/color-schemes/DankMatugen.colors"
+[[ -f $scheme ]] || exit 0
+
+exec 9>"${XDG_RUNTIME_DIR:-/tmp}/dms-dolphin-palette.lock"
+flock 9
+sleep 1
+
+tmp="${scheme}.guard.$$"
+awk '
+  function lum(rgb, a) {
+    split(rgb, a, ",")
+    return 0.2126*a[1] + 0.7152*a[2] + 0.0722*a[3]
+  }
+  /^\[/ { section=$0 }
+  section == "[Colors:View]" && /^BackgroundNormal=/ {
+    bg=substr($0, index($0,"=")+1)
+  }
+  section == "[Colors:View]" && /^ForegroundNormal=/ {
+    fg=substr($0, index($0,"=")+1)
+    if (bg != "" && (lum(bg) - lum(fg) < 72) && (lum(fg) - lum(bg) < 72)) {
+      replacement=(lum(bg) < 128 ? "235,235,235" : "24,24,24")
+      $0="ForegroundNormal=" replacement
+      repaired=1
+    }
+  }
+  { print }
+  END { if (repaired) exit 10 }
+' "$scheme" > "$tmp"
+status=$?
+
+if [[ $status -eq 10 ]]; then
+  chmod --reference="$scheme" "$tmp"
+  mv "$tmp" "$scheme"
+else
+  rm -f "$tmp"
+fi
+
+# KColorScheme-backed applications do not paint directly from the .colors
+# file. They read the copied [Colors:*] and [ColorEffects:*] sections in
+# kdeglobals. DMS regenerates the source asynchronously, so keep that copy and
+# KDE's global accent in the same transaction after generation has settled.
+kdeglobals="${XDG_CONFIG_HOME:-$HOME/.config}/kdeglobals"
+if [[ -f $kdeglobals ]]; then
+  kde_tmp="${kdeglobals}.guard.$$"
+  {
+    awk '
+      /^\[/ { drop = ($0 ~ /^\[Colors:/ || $0 ~ /^\[ColorEffects:/) }
+      !drop { print }
+    ' "$kdeglobals"
+    awk '
+      /^\[/ { keep = ($0 ~ /^\[Colors:/ || $0 ~ /^\[ColorEffects:/) }
+      keep { print }
+    ' "$scheme"
+  } > "$kde_tmp"
+  chmod --reference="$kdeglobals" "$kde_tmp"
+  mv "$kde_tmp" "$kdeglobals"
+
+  accent="$(awk '
+    /^\[/ { selection = ($0 == "[Colors:Selection]") }
+    selection && /^BackgroundNormal=/ { print substr($0, index($0, "=") + 1); exit }
+  ' "$scheme")"
+  kwriteconfig6 --file kdeglobals --group General --key ColorScheme DankMatugen
+  kwriteconfig6 --file kdeglobals --group General --key AccentColor "$accent"
+  kwriteconfig6 --file kdeglobals --group General --key LastUsedCustomAccentColor "$accent"
+  kwriteconfig6 --file kdeglobals --group General --key ColorSchemeHash --delete
+fi
+
+# Re-announce even when the file was already correct: this replaces any bad
+# process-local palette Dolphin captured during the generation window.
+dbus-send --session --type=signal /KGlobalSettings \
+  org.kde.KGlobalSettings.notifyChange int32:0 int32:0 2>/dev/null || true
+dbus-send --session --type=signal /KGlobalSettings \
+  org.kde.KGlobalSettings.notifyChange int32:1 int32:0 2>/dev/null || true
+[[ -e $HOME/.config/qt6ct/qt6ct.conf ]] && touch "$HOME/.config/qt6ct/qt6ct.conf"

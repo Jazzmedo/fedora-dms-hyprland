@@ -1,0 +1,54 @@
+@OBSThemeMeta {
+    name: 'DMS';
+    id: 'com.hanafi.DMS';
+    extends: 'com.obsproject.Yami';
+    author: 'hanafi';
+    dark: 'true';
+}
+
+/* Keep every Yami control/layout rule; replace only its semantic colors. */
+@OBSThemeVars {
+    --bg_window: #1f2335;
+    --bg_base: #1f2335;
+    --bg_preview: #1b1e2e;
+    --primary: #f935b1;
+    --primary_light: #73daca;
+    --primary_lighter: #73daca;
+    --primary_dark: #4d1a3c;
+    --primary_darker: #2d1628;
+    --warning: #ffce22;
+    --danger: #f935b1;
+    --text: #a9b1d6;
+    --text_light: #a9b1d6;
+    --text_muted: #c0caf5;
+    --text_disabled: #868eb7;
+    --text_inactive: #c0caf5;
+    --scrollbar_bg: #1f2335;
+    --scrollbar_handle: #868eb7;
+    --scrollbar_hover: #3b4261;
+    --scrollbar_down: #f935b1;
+    --scrollbar_border: #24283b;
+    --border_color: #24283b;
+    --input_bg: #3b4261;
+    --input_bg_hover: #24283b;
+    --input_bg_focus: #1f2335;
+    --input_border: #24283b;
+    --input_border_hover: #868eb7;
+    --input_border_focus: #f935b1;
+    --button_bg: #3b4261;
+    --button_bg_hover: #3b4261;
+    --button_bg_down: #4d1a3c;
+    --button_border: #24283b;
+    --button_border_hover: #868eb7;
+    --button_border_focus: #f935b1;
+    --highlight_color: #f935b1;
+    --palette_window: #1f2335;
+    --palette_windowText: #a9b1d6;
+    --palette_base: #1f2335;
+    --palette_alternateBase: #1f2335;
+    --palette_text: #a9b1d6;
+    --palette_button: #3b4261;
+    --palette_buttonText: #a9b1d6;
+    --palette_highlight: #f935b1;
+    --palette_highlightedText: #1b1e2e;
+}

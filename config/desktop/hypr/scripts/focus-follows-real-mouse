@@ -1,0 +1,158 @@
+#!/usr/bin/env python3
+"""Niri-like focus-follows-mouse for Hyprland scrolling layouts.
+
+Hyprland follow_mouse=1 may refocus on surface/title damage even when the
+pointer did not move.  Poll only the pointer position and focus the topmost
+client it genuinely enters.  Layer-shell popups are excluded so DMS bar
+widgets do not focus the client underneath them.
+"""
+
+import json
+import glob
+import os
+import socket
+import time
+
+
+def hypr_socket():
+    runtime_dir = os.environ.get("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}")
+    signature = os.environ.get("HYPRLAND_INSTANCE_SIGNATURE", "")
+    configured = os.path.join(runtime_dir, "hypr", signature, ".socket.sock")
+    if signature and os.path.exists(configured):
+        return configured
+
+    # systemd may start us before Hyprland's environment has been imported.
+    # Discover the compositor socket instead of exiting permanently.
+    candidates = glob.glob(os.path.join(runtime_dir, "hypr", "*", ".socket.sock"))
+    return max(candidates, key=os.path.getmtime) if candidates else None
+
+
+def hypr_request(command):
+    socket_path = hypr_socket()
+    if not socket_path:
+        return ""
+    try:
+        with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as connection:
+            connection.settimeout(0.4)
+            connection.connect(socket_path)
+            connection.sendall(command.encode())
+            chunks = []
+            while True:
+                chunk = connection.recv(65536)
+                if not chunk:
+                    break
+                chunks.append(chunk)
+        return b"".join(chunks).decode()
+    except (OSError, UnicodeError):
+        return ""
+
+
+def hypr_json(*args):
+    try:
+        return json.loads(hypr_request("j/" + " ".join(args)))
+    except json.JSONDecodeError:
+        return None
+
+
+def contains(item, x, y):
+    if "at" in item and "size" in item:
+        left, top = item["at"]
+        width, height = item["size"]
+    else:
+        left, top = item.get("x", 0), item.get("y", 0)
+        # Monitor JSON uses width/height; a few surface/client records use
+        # the shorter w/h fields instead.
+        width = item.get("width", item.get("w", 0))
+        height = item.get("height", item.get("h", 0))
+    return left <= x < left + width and top <= y < top + height
+
+
+def pointer_over_overlay(x, y):
+    layers = hypr_json("layers") or {}
+    for monitor in layers.values():
+        for level, surfaces in monitor.get("levels", {}).items():
+            if int(level) < 2:
+                continue
+            for surface in surfaces:
+                if surface.get("alpha", 1) > 0 and contains(surface, x, y):
+                    return True
+    return False
+
+
+def focus_monitor_at(monitors, x, y):
+    """Give the output under the real pointer keyboard focus.
+
+    A workspace can legitimately have no client beneath the pointer.  In that
+    case client-only focus-following leaves the previously focused monitor
+    active, so keyboard input and monitor-local bindings go to the wrong
+    output.  Hyprland can focus an output directly, independently of clients.
+    """
+    monitor = next((m for m in monitors if contains(m, x, y)), None)
+    if not monitor or monitor.get("focused"):
+        return
+    name = monitor.get("name")
+    if name:
+        hypr_request(f'dispatch hl.dsp.focus({{ monitor = "{name}" }})')
+
+
+def focus_at(x, y):
+    if pointer_over_overlay(x, y):
+        return
+    clients = hypr_json("clients") or []
+    monitors = hypr_json("monitors") or []
+    focus_monitor_at(monitors, x, y)
+    active_workspaces = {m.get("activeWorkspace", {}).get("id") for m in monitors}
+
+    visible = [
+        c for c in clients
+        if c.get("mapped", True)
+        and not c.get("hidden", False)
+        and c.get("workspace", {}).get("id") in active_workspaces
+    ]
+    candidates = [c for c in visible if contains(c, x, y)]
+    if not candidates:
+        return
+    # Floating/overlapping clients with the most recent focus history are on top.
+    target = min(candidates, key=lambda c: c.get("focusHistoryID", 10**9))
+    active = hypr_json("activewindow") or {}
+    if active.get("address") == target.get("address"):
+        return
+    address = target.get("address")
+    if address:
+        # Prevent pointer focus from pulling a clipped window into view.  Restore
+        # normal follow-focus immediately so keyboard navigation still scrolls.
+        expression = f'hl.dsp.focus({{ window = "address:{address}" }})'
+        # Hover focus must neither scroll the tape nor warp the real pointer.
+        # Keyboard dispatchers run outside this short guard and retain warping.
+        hypr_request(
+            "eval hl.config({ scrolling = { follow_focus = false }, "
+            "cursor = { no_warps = true } })"
+        )
+        try:
+            hypr_request("dispatch " + expression)
+        finally:
+            hypr_request(
+                "eval hl.config({ scrolling = { follow_focus = true }, "
+                "cursor = { no_warps = false } })"
+            )
+
+
+def main():
+    previous = None
+    while True:
+        position = hypr_json("cursorpos")
+        if isinstance(position, dict):
+            current = (round(position.get("x", 0)), round(position.get("y", 0)))
+        elif isinstance(position, list) and len(position) >= 2:
+            current = (round(position[0]), round(position[1]))
+        else:
+            time.sleep(0.1)
+            continue
+        if previous is not None and current != previous:
+            focus_at(*current)
+        previous = current
+        time.sleep(0.05)
+
+
+if __name__ == "__main__":
+    main()

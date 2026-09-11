@@ -1,0 +1,7 @@
+[templates.vesktop_dms]
+input_path = '~/.config/matugen/templates/vesktop-dms.css'
+output_path = '~/.config/vesktop/settings/quickCss.css'
+
+[templates.vesktop_shell]
+input_path = '~/.config/matugen/templates/vesktop-shell.json'
+output_path = '~/.config/vesktop/settings.json'

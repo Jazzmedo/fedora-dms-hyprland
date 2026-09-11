@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+# Matugen has finished writing its palettes. Reload applications which provide
+# a safe live configuration reload; KDE/Qt notifications are handled by the
+# DMS Theme Sync plugin separately.
+pkill -USR1 -x kitty 2>/dev/null || true
+
+# cliamp loads custom themes from ~/.config/cliamp/themes. Matugen has just
+# regenerated the dms theme, so ask a running TUI instance to re-read it.
+# Its CLI returns an error when no instance is running; that is harmless.
+if [[ -S "${XDG_CONFIG_HOME:-$HOME/.config}/cliamp/cliamp.sock" ]]; then
+  cliamp theme dms >/dev/null 2>&1 || true
+fi
+
+# Matugen has regenerated tmux's DMS palette. Apply it to every running tmux
+# client immediately; new servers source the same file from ~/.tmux.conf.
+tmux source-file "${XDG_CONFIG_HOME:-$HOME/.config}/tmux/dms-theme.conf" 2>/dev/null || true
+
+# DMS's KDE template currently paints accents with Material's inverse_primary
+# role. Normalize it from DMS's newly generated current primary color. Do not
+# read kdeglobals here: it still contains the previous theme while Matugen is
+# running, which used to copy Catppuccin lavender into Deep Sage.
+kcolorscheme="$HOME/.local/share/color-schemes/DankMatugen.colors"
+colors_json="$HOME/.cache/DankMaterialShell/dms-colors.json"
+mode=dark
+if [[ $(gsettings get org.gnome.desktop.interface color-scheme 2>/dev/null) == *light* ]]; then
+  mode=light
+fi
+accent_hex="$(jq -r --arg mode "$mode" '.colors[$mode].primary // empty' "$colors_json" 2>/dev/null)"
+accent=""
+if [[ $accent_hex =~ ^#[0-9a-fA-F]{6}$ ]]; then
+  accent="$((16#${accent_hex:1:2})),$((16#${accent_hex:3:2})),$((16#${accent_hex:5:2}))"
+fi
+
+if [[ "$accent" =~ ^[0-9]+,[0-9]+,[0-9]+$ && -f "$kcolorscheme" ]]; then
+  corrected="$(mktemp "${kcolorscheme}.XXXXXX")"
+  awk -v accent="$accent" '
+    /^\[/ { section = $0 }
+    /^DecorationFocus=/ || /^DecorationHover=/ {
+      sub(/=.*/, "=" accent)
+    }
+    section == "[Colors:Selection]" && \
+      (/^BackgroundAlternate=/ || /^BackgroundNormal=/) {
+      sub(/=.*/, "=" accent)
+    }
+    { print }
+  ' "$kcolorscheme" > "$corrected"
+  chmod --reference="$kcolorscheme" "$corrected"
+  mv "$corrected" "$kcolorscheme"
+fi
+
+# Plasma normally broadcasts this after a palette change. In the standalone
+# Hyprland session, send it ourselves so running KDE/Qt applications (notably
+# Dolphin) re-read kdeglobals instead of holding the startup palette.
+dbus-send --session --type=signal /KGlobalSettings \
+  org.kde.KGlobalSettings.notifyChange int32:0 int32:0 2>/dev/null || true
+
+# DMS has just regenerated dms/colors.lua. Reload after generation completes so
+# Hyprland receives the new theme borders and the Nothing-only ring override is
+# evaluated against the newly selected customThemeFile.
+hyprctl reload >/dev/null 2>&1 || true

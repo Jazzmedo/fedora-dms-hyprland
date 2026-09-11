@@ -1,0 +1,56 @@
+#!/bin/sh
+# Shared topology helper. Sourced by the monitor-aware scripts so they do not
+# each hardcode output names.
+#
+# The installer writes ~/.config/hypr/monitors.env alongside monitors.lua:
+#   QUATTRO_WORKSPACES_PER_MONITOR=5
+#   QUATTRO_MONITOR_ORDER="eDP-1 DP-2"
+#   QUATTRO_MONITOR_VERTICAL="DP-2"
+#
+# Defaults below keep the scripts working if that file is missing.
+
+QUATTRO_WORKSPACES_PER_MONITOR=10
+QUATTRO_MONITOR_ORDER=""
+QUATTRO_MONITOR_VERTICAL=""
+[ -r "$HOME/.config/hypr/monitors.env" ] && . "$HOME/.config/hypr/monitors.env"
+
+# Fall back to whatever Hyprland reports if the file said nothing.
+if [ -z "$QUATTRO_MONITOR_ORDER" ]; then
+	QUATTRO_MONITOR_ORDER="$(hyprctl monitors -j 2>/dev/null | jq -r '.[].name' | tr '\n' ' ')"
+fi
+
+topo_focused_monitor() {
+	hyprctl monitors -j 2>/dev/null | jq -r '.[] | select(.focused == true) | .name' | head -n 1
+}
+
+# 1-based position of $1 in the workspace order, or empty.
+topo_index_of() {
+	i=1
+	for m in $QUATTRO_MONITOR_ORDER; do
+		[ "$m" = "$1" ] && { printf '%s' "$i"; return 0; }
+		i=$((i + 1))
+	done
+	return 1
+}
+
+topo_name_at() {
+	i=1
+	for m in $QUATTRO_MONITOR_ORDER; do
+		[ "$i" = "$1" ] && { printf '%s' "$m"; return 0; }
+		i=$((i + 1))
+	done
+	return 1
+}
+
+topo_count() {
+	set -- $QUATTRO_MONITOR_ORDER
+	printf '%s' "$#"
+}
+
+# True when this output's scrolling tape runs vertically.
+topo_is_vertical() {
+	for m in $QUATTRO_MONITOR_VERTICAL; do
+		[ "$m" = "$1" ] && return 0
+	done
+	return 1
+}

@@ -1,0 +1,34 @@
+#!/bin/sh
+# Address workspaces locally: with two outputs, keys 1-5 reach 1-5 on the first
+# and 6-10 on the second. The ranges come from the generated topology, so this
+# stays correct for one, two or three displays.
+. "$HOME/.config/hypr/scripts/monitor-topology"
+
+number="$1"
+action="${2:-focus}"
+
+case "$number" in
+	''|*[!0-9]*) exit 2 ;;
+esac
+[ "$number" -ge 1 ] && [ "$number" -le "$QUATTRO_WORKSPACES_PER_MONITOR" ] || exit 2
+
+focused_monitor="$(topo_focused_monitor)"
+index="$(topo_index_of "$focused_monitor")" || index=1
+workspace=$(( (index - 1) * QUATTRO_WORKSPACES_PER_MONITOR + number ))
+
+# A vertical tape switches workspaces along the other axis than a horizontal one.
+if topo_is_vertical "$focused_monitor"; then
+	animation_style="slide"
+else
+	animation_style="slidevert"
+fi
+
+# Hyprland's workspace animation is global rather than monitor-scoped. Set it
+# immediately before dispatch so each monitor still switches on its own axis.
+hyprctl eval "hl.animation({ leaf = \"workspaces\", enabled = true, speed = 2.0, bezier = \"default\", style = \"$animation_style\" })" >/dev/null || exit 1
+
+case "$action" in
+	move) "$HOME/.config/hypr/scripts/move-to-workspace-preserve-width" "$workspace" ;;
+	focus) hyprctl dispatch "hl.dsp.focus({ workspace = \"$workspace\" })" ;;
+	*) exit 2 ;;
+esac

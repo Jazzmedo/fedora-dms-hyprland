@@ -1,0 +1,8 @@
+# @@ZEN_PROFILE@@ is resolved from the real profile directory at deploy time.
+[templates.zen_userchrome]
+input_path = '~/.config/matugen/templates/zen-userchrome.css'
+output_path = '~/.zen/@@ZEN_PROFILE@@/chrome/userChrome.css'
+
+[templates.zen_usercontent]
+input_path = '~/.config/matugen/templates/zen-usercontent.css'
+output_path = '~/.zen/@@ZEN_PROFILE@@/chrome/userContent.css'

@@ -1,0 +1,17 @@
+[Unit]
+Description=Niri-style focus-follows-real-mouse for Hyprland
+Documentation=file://%h/.config/hypr/scripts/focus-follows-real-mouse
+PartOf=graphical-session.target
+After=graphical-session.target
+
+[Service]
+Type=simple
+# Only meaningful inside a live Hyprland session; the script polls its socket.
+ExecCondition=/bin/sh -c '/usr/bin/pgrep -x Hyprland >/dev/null'
+ExecStart=%h/.config/hypr/scripts/focus-follows-real-mouse
+Restart=on-failure
+RestartSec=2
+Slice=session.slice
+
+[Install]
+WantedBy=graphical-session.target

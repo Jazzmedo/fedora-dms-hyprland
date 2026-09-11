@@ -1,0 +1,3 @@
+[templates.brave_dms_launcher]
+input_path = '~/.config/matugen/templates/brave-dms'
+output_path = '~/.local/bin/brave-dms'

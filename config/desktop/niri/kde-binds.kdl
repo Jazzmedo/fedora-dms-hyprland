@@ -1,0 +1,206 @@
+// ============================================================
+// KDE Plasma-style keybinds for niri
+// Mapped from ~/.config/niri/shortcuts.kksrc (kglobalshortcutsrc)
+// Mod = Super/Meta
+//
+// NOTE: Mod+A, Mod+Return and Mod+Space live in dms/binds.kdl
+//       (included last) — do not redefine them here.
+// ============================================================
+
+binds {
+    Mod+Shift+Slash { show-hotkey-overlay; }
+
+    // ---------- Navigation (KDE Polonium: Meta+WASD) ----------
+    // Mod+A -> focus-column-left  (defined in dms/binds.kdl)
+    Mod+D { focus-column-right; }
+    Mod+W { focus-window-up; }
+    Mod+S { focus-window-down; }
+
+    Mod+Left  { focus-column-left; }
+    Mod+Right { focus-column-right; }
+    Mod+Up    { focus-window-up; }
+    Mod+Down  { focus-window-down; }
+
+    Mod+Home { focus-column-first; }
+    Mod+End  { focus-column-last; }
+
+    // ---------- Moving windows (KDE: Meta+Shift+WASD) ----------
+    Mod+Shift+A { move-column-left; }
+    Mod+Shift+D { move-column-right; }
+    Mod+Shift+W { move-window-up; }
+    Mod+Shift+S { move-window-down; }
+
+    Mod+Shift+Left  { move-column-left; }
+    Mod+Shift+Right { move-column-right; }
+    Mod+Shift+Up    { move-window-up; }
+    Mod+Shift+Down  { move-window-down; }
+
+    Mod+Shift+Home { move-column-to-first; }
+    Mod+Shift+End  { move-column-to-last; }
+
+    // ---------- Resizing (KDE: Meta+Alt+WASD) ----------
+    Mod+Alt+A { set-column-width "-5%"; }
+    Mod+Alt+D { set-column-width "+5%"; }
+    Mod+Alt+W { set-window-height "-5%"; }
+    Mod+Alt+S { set-window-height "+5%"; }
+
+    Mod+Minus { set-column-width "-10%"; }
+    Mod+Equal { set-column-width "+10%"; }
+    Mod+Ctrl+Minus { set-window-height "-10%"; }
+    Mod+Ctrl+Equal { set-window-height "+10%"; }
+
+    Mod+R       { switch-preset-column-width; }
+    Mod+Shift+R { switch-preset-column-width-back; }
+    Mod+Ctrl+R  { reset-window-height; }
+
+    // ---------- Columns / stacking ----------
+    Mod+BracketLeft  { consume-or-expel-window-left; }
+    Mod+BracketRight { consume-or-expel-window-right; }
+    Mod+Comma        { consume-window-into-column; }
+    Mod+Period       { expel-window-from-column; }
+    Mod+Backslash    { toggle-column-tabbed-display; }   // KDE: Meta+\ next layout
+
+    // ---------- Window states ----------
+    Mod+Q                { close-window; }
+    Mod+F                { maximize-column; }             // KDE: Window Maximize
+    Ctrl+Shift+Return    { fullscreen-window; }           // KDE: Window Fullscreen
+    Mod+Ctrl+F           { maximize-window-to-edges; }
+    Mod+Ctrl+E           { expand-column-to-available-width; }
+    Mod+C                { center-column; }
+    Mod+G                { toggle-window-floating; }      // KDE: Meta+G keep above
+    Mod+Shift+G          { switch-focus-between-floating-and-tiling; }
+
+    // ---------- Overview (KDE: Meta+Z grid / Meta+Shift+Z overview) ----------
+    Mod+Z       repeat=false { toggle-overview; }
+    Mod+Shift+Z repeat=false { toggle-overview; }
+    Mod+Tab     repeat=false { toggle-overview; }
+
+    // ---------- Workspaces (KDE virtual desktops) ----------
+    Mod+1 { focus-workspace 1; }
+    Mod+2 { focus-workspace 2; }
+    Mod+3 { focus-workspace 3; }
+    Mod+4 { focus-workspace 4; }
+    Mod+5 { focus-workspace 5; }
+    Mod+6 { focus-workspace 6; }
+    Mod+7 { focus-workspace 7; }
+    Mod+8 { focus-workspace 8; }
+    Mod+9 { focus-workspace 9; }
+
+    // KDE "Window to Desktop N" was Meta+Shift+N
+    Mod+Shift+1 { move-column-to-workspace 1; }
+    Mod+Shift+2 { move-column-to-workspace 2; }
+    Mod+Shift+3 { move-column-to-workspace 3; }
+    Mod+Shift+4 { move-column-to-workspace 4; }
+    Mod+Shift+5 { move-column-to-workspace 5; }
+    Mod+Shift+6 { move-column-to-workspace 6; }
+    Mod+Shift+7 { move-column-to-workspace 7; }
+    Mod+Shift+8 { move-column-to-workspace 8; }
+    Mod+Shift+9 { move-column-to-workspace 9; }
+
+    // KDE: Meta+Ctrl+Up/Down switch one desktop up/down
+    Mod+Ctrl+Up   { focus-workspace-up; }
+    Mod+Ctrl+Down { focus-workspace-down; }
+    Mod+Page_Up   { focus-workspace-up; }
+    Mod+Page_Down { focus-workspace-down; }
+
+    // KDE: Meta+Ctrl+Shift+Up/Down move window one desktop up/down
+    Mod+Ctrl+Shift+Up   { move-column-to-workspace-up; }
+    Mod+Ctrl+Shift+Down { move-column-to-workspace-down; }
+
+    Mod+Ctrl+WheelScrollDown cooldown-ms=150 { move-column-to-workspace-down; }
+    Mod+Ctrl+WheelScrollUp   cooldown-ms=150 { move-column-to-workspace-up; }
+    Mod+WheelScrollDown      cooldown-ms=150 { focus-workspace-down; }
+    Mod+WheelScrollUp        cooldown-ms=150 { focus-workspace-up; }
+    Mod+Shift+WheelScrollDown { focus-column-right; }
+    Mod+Shift+WheelScrollUp   { focus-column-left; }
+
+    // ---------- Monitors (KDE: Meta+` window to next screen) ----------
+    Mod+Grave       { move-column-to-monitor-next; }
+    Mod+Shift+Grave { move-column-to-monitor-previous; }
+    Mod+Ctrl+Left   { focus-monitor-left; }
+    Mod+Ctrl+Right  { focus-monitor-right; }
+
+    // ============================================================
+    // Application launchers (from KDE [Global Shortcuts] _launch)
+    // ============================================================
+    Mod+B       hotkey-overlay-title="Brave" { spawn "brave-origin-stable"; }
+    Mod+Shift+B hotkey-overlay-title="Brave (Private)" { spawn "brave-origin-stable" "--incognito"; }
+
+    Mod+M       hotkey-overlay-title="Zen Browser" { spawn-sh "env DESKTOPINTEGRATION=1 ~/AppImages/zen_browser.appimage"; }
+    Mod+Shift+M hotkey-overlay-title="Zen Browser (Private)" { spawn-sh "env DESKTOPINTEGRATION=1 ~/AppImages/zen_browser.appimage --private-window"; }
+
+    Mod+N       hotkey-overlay-title="Helium" { spawn-sh "env DESKTOPINTEGRATION=1 ~/AppImages/helium.appimage"; }
+    Mod+Shift+N hotkey-overlay-title="Helium (Private)" { spawn-sh "env DESKTOPINTEGRATION=1 ~/AppImages/helium.appimage --incognito"; }
+
+    Mod+O       hotkey-overlay-title="Obsidian" { spawn-sh "env DESKTOPINTEGRATION=1 ~/AppImages/obsidian.appimage --no-sandbox"; }
+    Mod+Shift+O hotkey-overlay-title="Strawberry" { spawn "strawberry"; }
+
+    Mod+J hotkey-overlay-title="Discord" { spawn "discord"; }
+    Mod+K hotkey-overlay-title="Vesktop" { spawn-sh "/opt/Vesktop/vesktop --ozone-platform=wayland"; }
+
+    Mod+E       hotkey-overlay-title="Files: Dolphin" { spawn "dolphin"; }
+    Mod+Shift+T hotkey-overlay-title="Terminal: Konsole" { spawn "konsole"; }
+    Mod+T       hotkey-overlay-title="Terminal: Alacritty" { spawn "alacritty"; }
+
+    Mod+I       hotkey-overlay-title="Settings" { spawn-sh "dms ipc call settings toggle"; }
+    Mod+Plus    hotkey-overlay-title="Calculator" { spawn "kcalc"; }
+    Ctrl+Alt+K  hotkey-overlay-title="System Monitor" { spawn "plasma-systemmonitor"; }
+
+    // Custom commands from KDE khotkeys
+    Mod+Shift+C hotkey-overlay-title="Clean RAM" { spawn-sh "sync; echo 3 | sudo tee /proc/sys/vm/drop_caches && notify-send -i memory 'Memory Cleaned' 'Your memory has been cleaned.'"; }
+    Mod+Shift+X hotkey-overlay-title="Warp Refresh" { spawn-sh "warp-cli registration delete && warp-cli registration new && notify-send 'Warp' 'Registration refreshed'"; }
+    Ctrl+Shift+W hotkey-overlay-title="EasyEffects: Handfree" { spawn-sh "flatpak run com.github.wwmm.easyeffects --load-preset Handfree"; }
+    Ctrl+Shift+Q hotkey-overlay-title="EasyEffects: Normal" { spawn-sh "flatpak run com.github.wwmm.easyeffects --load-preset Normal"; }
+
+    // ============================================================
+    // DMS shell (replaces plasmashell widgets/krunner)
+    // ============================================================
+    Mod+V           { spawn-sh "dms ipc call clipboard toggle"; }          // KDE: Meta+V clipboard
+    Mod+Alt+Slash   { spawn-sh "dms ipc call color-picker toggle"; }       // KDE: gcolor3
+    Mod+P           { spawn-sh "dms ipc call control-center toggle"; }
+    Mod+Ctrl+D      { spawn-sh "dms ipc call dash toggle"; }
+    Mod+Shift+P     { spawn-sh "dms ipc call powermenu toggle"; }
+    Ctrl+Alt+Delete { spawn-sh "dms ipc call powermenu toggle"; }          // KDE: Log Out
+    Mod+L           { spawn-sh "dms ipc call lock lock"; }                 // KDE: Lock Session
+    Mod+Shift+K     { spawn-sh "dms ipc call keybinds toggle"; }
+    Mod+Ctrl+N      { spawn-sh "dms ipc call notifications toggle"; }
+    Mod+Ctrl+T      { spawn-sh "dms ipc call theme toggle"; }
+    Mod+Ctrl+W      { spawn-sh "dms ipc call wallpaper next"; }
+
+    // ---------- Screenshots (KDE Spectacle) ----------
+    Print                 { screenshot; }
+    Mod+Shift+Print       { screenshot; }                  // region
+    Mod+Print             { screenshot-window; }
+    Shift+Print           { screenshot-screen; }
+    Mod+Ctrl+Print        { screenshot-window; }
+
+    // ---------- Volume (KDE kmix) ----------
+    XF86AudioRaiseVolume allow-when-locked=true { spawn-sh "dms ipc call audio increment 5"; }
+    XF86AudioLowerVolume allow-when-locked=true { spawn-sh "dms ipc call audio decrement 5"; }
+    XF86AudioMute        allow-when-locked=true { spawn-sh "dms ipc call audio mute"; }
+    XF86AudioMicMute     allow-when-locked=true { spawn-sh "dms ipc call audio micmute"; }
+    Mod+Shift+Apostrophe allow-when-locked=true { spawn-sh "dms ipc call audio increment 5"; }   // Meta+"
+    Mod+Shift+Semicolon  allow-when-locked=true { spawn-sh "dms ipc call audio decrement 5"; }   // Meta+:
+
+    // ---------- Media (KDE mediacontrol) ----------
+    XF86AudioPlay allow-when-locked=true { spawn-sh "dms ipc call mpris playPause"; }
+    XF86AudioStop allow-when-locked=true { spawn-sh "dms ipc call mpris stop"; }
+    XF86AudioPrev allow-when-locked=true { spawn-sh "dms ipc call mpris previous"; }
+    XF86AudioNext allow-when-locked=true { spawn-sh "dms ipc call mpris next"; }
+    Mod+Slash       allow-when-locked=true { spawn-sh "dms ipc call mpris next"; }        // KDE: Meta+/
+    Mod+Shift+Period allow-when-locked=true { spawn-sh "dms ipc call mpris playPause"; }  // KDE: Meta+>
+    Mod+Shift+Comma  allow-when-locked=true { spawn-sh "dms ipc call mpris previous"; }   // KDE: Meta+<
+
+    // ---------- Brightness ----------
+    XF86MonBrightnessUp   allow-when-locked=true { spawn-sh "dms ipc call brightness increment 5"; }
+    XF86MonBrightnessDown allow-when-locked=true { spawn-sh "dms ipc call brightness decrement 5"; }
+
+    // ---------- Session ----------
+    Mod+Escape allow-inhibiting=false { toggle-keyboard-shortcuts-inhibit; }
+    Mod+Ctrl+Shift+P { power-off-monitors; }
+    Ctrl+Alt+Shift+Delete { quit; }
+
+    // Restart the DMS shell (bar, popouts, launcher). Niri itself reloads its
+    // config automatically on save, so there is nothing to restart for it.
+    Mod+Ctrl+Shift+R hotkey-overlay-title="Restart DMS shell" { spawn-sh "dms restart"; }
+}

@@ -1,0 +1,87 @@
+{
+  "dankKDEConnect": {
+    "enabled": true,
+    "selectedDeviceId": ""
+  },
+  "warpToggle": {
+    "enabled": true
+  },
+  "quickCapture": {
+    "enabled": true
+  },
+  "ocrScanner": {
+    "enabled": true
+  },
+  "todoLauncher": {
+    "enabled": true
+  },
+  "audioPortSwitcher": {
+    "enabled": true,
+    "language": "en"
+  },
+  "lyricsOnPanel": {
+    "enabled": true,
+    "ignoredTracks": "",
+    "lyricTextBold": false,
+    "lyricTextItalic": false,
+    "lyricTextSize": 11,
+    "lyricTextVerticalOffset": 0
+  },
+  "gpuMonitor": {
+    "enabled": true
+  },
+  "screenRecorderLH": {
+    "enabled": true
+  },
+  "screenRecorderX": {
+    "enabled": true,
+    "langIndex": 1,
+    "framerateIndex": 2,
+    "resolutionIndex": 3
+  },
+  "screenRecorder": {
+    "enabled": true
+  },
+  "extendedNetworkToggle": {
+    "enabled": true
+  },
+  "dankscale": {
+    "enabled": true
+  },
+  "wifiHotspot": {
+    "enabled": false
+  },
+  "emojiLauncher": {
+    "enabled": true
+  },
+  "wallpaperCarousel": {
+    "enabled": true,
+    "overlayOpacity": 80,
+    "itemWidth": 300
+  },
+  "dmsThemeSync": {
+    "enabled": true,
+    "documentFontFamily": "",
+    "regularFontSize": 10,
+    "qtStyle": "Fusion"
+  },
+  "cliampDms": {
+    "enabled": true,
+    "visualizerStyle": "blocks",
+    "volumeDisplayMode": "percent",
+    "launchInBackground": false,
+    "launchProvider": "radio",
+    "mprisLatencyCompensationMs": 1998
+  },
+  "nothingClock": {
+    "enabled": true
+  },
+  "aiOverviewControl": {
+    "enabled": false,
+    "densityMode": "compact",
+    "providerSelection": "codex,claude",
+    "pillProviders": "codex,claude",
+    "pillTooltip": "true",
+    "pinnedProviders": "codex"
+  }
+}

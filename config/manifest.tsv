@@ -1,0 +1,31 @@
+# repo path	$HOME path	component
+# Read by sync.sh to pull live changes back into this repo. Deployment runs the
+# other way through install.sh, which also templates and filters these files.
+config/desktop/hypr	.config/hypr	core
+config/desktop/niri	.config/niri	niri
+config/desktop/systemd-user	.config/systemd/user	core
+config/shell-ui/DankMaterialShell/settings.json	.config/DankMaterialShell/settings.json	core
+config/shell-ui/DankMaterialShell/plugin_settings.json	.config/DankMaterialShell/plugin_settings.json	core
+config/shell-ui/DankMaterialShell/themes	.config/DankMaterialShell/themes	core
+config/terminal/kitty	.config/kitty	apps_base
+config/editor/nvim	.config/nvim	editor
+config/shell/zshrc.d	.config/zsh/zshrc.d	zsh
+config/shell/starship.toml	.config/starship.toml	prompt
+config/shell/tmux	.config/tmux	mux
+config/tools/btop	.config/btop	sysinfo
+config/tools/cava	.config/cava	sysinfo
+config/tools/fastfetch	.config/fastfetch	sysinfo
+config/tools/yazi	.config/yazi	filemgr_tui
+config/tools/cliamp	.config/cliamp	cliamp
+config/theming/matugen/templates	.config/matugen/templates	core
+config/theming/gtk-3.0	.config/gtk-3.0	core
+config/theming/gtk-4.0	.config/gtk-4.0	core
+config/theming/qt5ct	.config/qt5ct	core
+config/theming/qt6ct	.config/qt6ct	core
+config/theming/gtkrc-2.0	.gtkrc-2.0	core
+config/theming/kde-color-schemes	.local/share/color-schemes	core
+config/apps/dolphinrc	.config/dolphinrc	apps_base
+config/apps/vesktop	.config/vesktop	vesktop
+config/apps/obs-studio	.config/obs-studio	obs
+config/apps/qbittorrent	.config/qBittorrent	qbittorrent
+config/apps/easyeffects	.config/easyeffects	easyeffects

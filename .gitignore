@@ -1,0 +1,8 @@
+*.bak
+*.orig
+*.save
+*.log
+__pycache__/
+.DS_Store
+config/**/generated/
+config/services/searxng/.env

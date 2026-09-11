@@ -1,0 +1,54 @@
+@OBSThemeMeta {
+    name: 'DMS';
+    id: 'com.hanafi.DMS';
+    extends: 'com.obsproject.Yami';
+    author: 'hanafi';
+    dark: 'true';
+}
+
+/* Keep every Yami control/layout rule; replace only its semantic colors. */
+@OBSThemeVars {
+    --bg_window: {{colors.surface_container.default.hex}};
+    --bg_base: {{colors.surface.default.hex}};
+    --bg_preview: {{colors.surface_container_lowest.default.hex}};
+    --primary: {{colors.primary.default.hex}};
+    --primary_light: {{colors.secondary.default.hex}};
+    --primary_lighter: {{colors.secondary.default.hex}};
+    --primary_dark: {{colors.primary_container.default.hex}};
+    --primary_darker: {{colors.surface_tint.default.hex}};
+    --warning: {{dank16.color3.default.hex}};
+    --danger: {{colors.error.default.hex}};
+    --text: {{colors.on_surface.default.hex}};
+    --text_light: {{colors.on_background.default.hex}};
+    --text_muted: {{colors.on_surface_variant.default.hex}};
+    --text_disabled: {{colors.outline.default.hex}};
+    --text_inactive: {{colors.on_surface_variant.default.hex}};
+    --scrollbar_bg: {{colors.surface_container.default.hex}};
+    --scrollbar_handle: {{colors.outline.default.hex}};
+    --scrollbar_hover: {{colors.surface_container_highest.default.hex}};
+    --scrollbar_down: {{colors.primary.default.hex}};
+    --scrollbar_border: {{colors.outline_variant.default.hex}};
+    --border_color: {{colors.outline_variant.default.hex}};
+    --input_bg: {{colors.surface_container_highest.default.hex}};
+    --input_bg_hover: {{colors.surface_container_high.default.hex}};
+    --input_bg_focus: {{colors.surface_container.default.hex}};
+    --input_border: {{colors.outline_variant.default.hex}};
+    --input_border_hover: {{colors.outline.default.hex}};
+    --input_border_focus: {{colors.primary.default.hex}};
+    --button_bg: {{colors.surface_container_highest.default.hex}};
+    --button_bg_hover: {{colors.surface_bright.default.hex}};
+    --button_bg_down: {{colors.primary_container.default.hex}};
+    --button_border: {{colors.outline_variant.default.hex}};
+    --button_border_hover: {{colors.outline.default.hex}};
+    --button_border_focus: {{colors.primary.default.hex}};
+    --highlight_color: {{colors.primary.default.hex}};
+    --palette_window: {{colors.surface_container.default.hex}};
+    --palette_windowText: {{colors.on_surface.default.hex}};
+    --palette_base: {{colors.surface.default.hex}};
+    --palette_alternateBase: {{colors.surface_container.default.hex}};
+    --palette_text: {{colors.on_surface.default.hex}};
+    --palette_button: {{colors.surface_container_highest.default.hex}};
+    --palette_buttonText: {{colors.on_surface.default.hex}};
+    --palette_highlight: {{colors.primary.default.hex}};
+    --palette_highlightedText: {{colors.on_primary.default.hex}};
+}

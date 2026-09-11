@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Brave Origin follows GTK for its frame, but its internal brave:// pages do
+# not reliably honor the saved system color scheme. Follow the desktop portal
+# explicitly so DMS dark/light mode applies to both the frame and WebUI.
+portal_scheme="$(gdbus call --session \
+  --dest org.freedesktop.portal.Desktop \
+  --object-path /org/freedesktop/portal/desktop \
+  --method org.freedesktop.portal.Settings.Read \
+  org.freedesktop.appearance color-scheme 2>/dev/null || true)"
+
+if [[ "$portal_scheme" == *"uint32 1"* ]]; then
+  exec /usr/bin/brave-origin-stable --force-dark-mode "$@"
+fi
+
+exec /usr/bin/brave-origin-stable "$@"

@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="280" height="240" viewBox="0 0 280 240">
+  <rect width="280" height="240" fill="#fbfbf9"/>
+  <rect width="280" height="26" fill="#f1f1ee"/>
+  <g fill="#D71921"><circle cx="16" cy="13" r="4"/><circle cx="28" cy="13" r="4"/><circle cx="40" cy="13" r="4"/></g>
+  <text x="140" y="17" font-family="monospace" font-size="10" font-weight="700" text-anchor="middle" fill="#111111">0 9 : 4 1</text>
+  <g fill="#505050"><circle cx="242" cy="13" r="3"/><circle cx="254" cy="13" r="3"/><circle cx="266" cy="13" r="3"/></g>
+  <rect x="14" y="38" width="252" height="190" rx="10" fill="#f1f1ee" stroke="#E8E8E8"/>
+  <text x="28" y="62" font-family="monospace" font-size="13" font-weight="700" fill="#111111">N O T H I N G</text>
+  <text x="28" y="78" font-family="monospace" font-size="9" fill="#505050">MATRIX / LIGHT / SIGNAL RED</text>
+  <rect x="26" y="89" width="228" height="48" rx="7" fill="#e5e5e1"/>
+  <g fill="#D71921"><circle cx="42" cy="105" r="5"/><circle cx="58" cy="105" r="5"/><circle cx="74" cy="105" r="5"/></g>
+  <text x="38" y="126" font-family="monospace" font-size="9" fill="#505050">PRECISE. QUIET. DISTINCT.</text>
+  <rect x="26" y="146" width="228" height="22" rx="5" fill="#f4f4f2" stroke="#E8E8E8"/>
+  <text x="38" y="161" font-family="monospace" font-size="9" fill="#505050">SEARCH_</text>
+  <rect x="26" y="177" width="78" height="22" rx="11" fill="#D71921"/>
+  <text x="65" y="192" font-family="monospace" font-size="9" font-weight="700" text-anchor="middle" fill="#ffffff">ACTIVATE</text>
+  <rect x="112" y="177" width="70" height="22" rx="11" fill="#d8d8d3"/>
+  <text x="147" y="192" font-family="monospace" font-size="9" text-anchor="middle" fill="#111111">MONO</text>
+  <g fill="#D71921"><circle cx="34" cy="214" r="7"/></g>
+  <g fill="#E8E8E8" stroke="#505050"><circle cx="54" cy="214" r="7"/></g>
+  <g fill="#a6a6a2"><circle cx="74" cy="214" r="7"/></g>
+  <g fill="#e5e5e1"><circle cx="94" cy="214" r="7"/></g>
+</svg>

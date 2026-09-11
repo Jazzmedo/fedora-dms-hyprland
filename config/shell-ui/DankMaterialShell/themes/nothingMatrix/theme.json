@@ -1,0 +1,103 @@
+{
+  "id": "nothingMatrix",
+  "name": "Nothing Matrix",
+  "version": "1.0.0",
+  "author": "hanafi",
+  "description": "A stark monochrome theme inspired by Nothing OS, with signal-red accents and precise neutral surfaces",
+  "dark": {},
+  "light": {},
+  "variants": {
+    "type": "multi",
+    "defaults": {
+      "dark": {
+        "accent": "signal-red",
+        "flavor": "nothing-dark"
+      },
+      "light": {
+        "accent": "signal-red",
+        "flavor": "nothing-light"
+      }
+    },
+    "flavors": [
+      {
+        "id": "nothing-dark",
+        "name": "Nothing Dark",
+        "dark": {
+          "surface": "#101010",
+          "surfaceText": "#f2f2f2",
+          "surfaceVariant": "#1B1B1D",
+          "surfaceVariantText": "#E8E8E8",
+          "background": "#080808",
+          "backgroundText": "#f5f5f5",
+          "outline": "#E8E8E8",
+          "surfaceContainer": "#121212",
+          "surfaceContainerHigh": "#1B1B1D",
+          "surfaceContainerHighest": "#292929",
+          "error": "#ff453a",
+          "warning": "#f3b33d",
+          "info": "#E8E8E8"
+        },
+        "light": {}
+      },
+      {
+        "id": "nothing-light",
+        "name": "Nothing Light",
+        "dark": {},
+        "light": {
+          "surface": "#f4f4f2",
+          "surfaceText": "#111111",
+          "surfaceVariant": "#e9e9e6",
+          "surfaceVariantText": "#505050",
+          "background": "#fbfbf9",
+          "backgroundText": "#0b0b0b",
+          "outline": "#E8E8E8",
+          "surfaceContainer": "#f1f1ee",
+          "surfaceContainerHigh": "#e5e5e1",
+          "surfaceContainerHighest": "#d8d8d3",
+          "error": "#b3261e",
+          "warning": "#8a5b00",
+          "info": "#E8E8E8"
+        }
+      }
+    ],
+    "accents": [
+      {
+        "id": "signal-red",
+        "name": "Signal Red",
+        "nothing-dark": {
+          "primary": "#D71921",
+          "primaryText": "#ffffff",
+          "primaryContainer": "#5c1717",
+          "secondary": "#E8E8E8",
+          "surfaceTint": "#D71921"
+        },
+        "nothing-light": {
+          "primary": "#D71921",
+          "primaryText": "#ffffff",
+          "primaryContainer": "#ffd9d7",
+          "secondary": "#E8E8E8",
+          "surfaceTint": "#D71921"
+        }
+      },
+      {
+        "id": "monochrome",
+        "name": "Monochrome",
+        "nothing-dark": {
+          "primary": "#f0f0f0",
+          "primaryText": "#0a0a0a",
+          "primaryContainer": "#3a3a3a",
+          "secondary": "#bcbcbc",
+          "surfaceTint": "#dedede"
+        },
+        "nothing-light": {
+          "primary": "#171717",
+          "primaryText": "#ffffff",
+          "primaryContainer": "#ddddda",
+          "secondary": "#555555",
+          "surfaceTint": "#171717"
+        }
+      }
+    ]
+  },
+  "sourceDir": "nothingMatrix"
+}

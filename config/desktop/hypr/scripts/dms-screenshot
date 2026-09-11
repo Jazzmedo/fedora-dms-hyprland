@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# Keep hover-focus from pulling Hyprland's scrolling tape while DMS freezes the
+# screen and displays its screenshot selector.
+set -u
+
+restore_follow_focus() {
+	hyprctl keyword scrolling:follow_focus true >/dev/null 2>&1 || true
+}
+
+trap restore_follow_focus EXIT INT TERM
+hyprctl keyword scrolling:follow_focus false >/dev/null 2>&1 || true
+dms screenshot "$@"

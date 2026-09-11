@@ -1,0 +1,15 @@
+speed = 1.00
+eq_preset = "Rock"
+eq = [5, 4, 2, -1, -2, 2, 4, 5, 5, 5]
+theme = "dms"
+
+repeat = "Off"
+shuffle = false
+visualizer = "Firefly"
+[ytmusic]
+enabled = true
+
+[navidrome]
+url      = "http://home.internal:4533"
+user     = "home"
+password = "Jazz2020"

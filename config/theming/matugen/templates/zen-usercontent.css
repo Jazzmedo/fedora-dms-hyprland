@@ -1,0 +1,40 @@
+/* DMS Matugen colors for Zen internal pages. */
+@-moz-document url-prefix("about:") {
+  :root {
+    color-scheme: dark !important;
+    --in-content-page-color: {{colors.on_background.default.hex}} !important;
+    --in-content-page-background: {{colors.background.default.hex}} !important;
+    --in-content-box-background: {{colors.surface_container.default.hex}} !important;
+    --in-content-box-background-odd: {{colors.surface_container_low.default.hex}} !important;
+    --in-content-box-border-color: {{colors.outline_variant.default.hex}} !important;
+    --in-content-border-color: {{colors.outline_variant.default.hex}} !important;
+    --in-content-text-color: {{colors.on_surface.default.hex}} !important;
+    --in-content-deemphasized-text: {{colors.on_surface_variant.default.hex}} !important;
+    --in-content-button-background: {{colors.surface_container_high.default.hex}} !important;
+    --in-content-button-background-hover: {{colors.secondary_container.default.hex}} !important;
+    --in-content-button-background-active: {{colors.primary_container.default.hex}} !important;
+    --in-content-primary-button-background: {{colors.primary.default.hex}} !important;
+    --in-content-primary-button-text-color: {{colors.on_primary.default.hex}} !important;
+    --in-content-focus-outline-color: {{colors.primary.default.hex}} !important;
+    --newtab-background-color: {{colors.background.default.hex}} !important;
+    --newtab-background-color-secondary: {{colors.surface_container.default.hex}} !important;
+    --newtab-element-hover-color: {{colors.surface_container_high.default.hex}} !important;
+    --newtab-text-primary-color: {{colors.on_background.default.hex}} !important;
+    --newtab-text-secondary-color: {{colors.on_surface_variant.default.hex}} !important;
+    --newtab-wordmark-color: {{colors.primary.default.hex}} !important;
+    --color-accent-primary: {{colors.primary.default.hex}} !important;
+    --newtab-primary-action-background: {{colors.primary.default.hex}} !important;
+    --link-color: {{colors.primary.default.hex}} !important;
+  }
+
+  html,
+  body,
+  body > main,
+  #main,
+  #main-content,
+  .main-content,
+  .main-content-container,
+  .main-content-wrapper {
+    background-color: {{colors.background.default.hex}} !important;
+  }
+}

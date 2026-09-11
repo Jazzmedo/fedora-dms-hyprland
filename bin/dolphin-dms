@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+# Dolphin is a KDE application.  qt6ct can retain its process-local palette
+# across a DMS regeneration, so use KDE's platform theme for Dolphin only.
+# The DMS Theme Sync plugin keeps kdeglobals/DankMatugen current and broadcasts
+# KGlobalSettings changes, which this backend understands natively.
+export QT_QPA_PLATFORMTHEME=kde
+unset QT_STYLE_OVERRIDE
+
+exec /usr/bin/dolphin "$@"

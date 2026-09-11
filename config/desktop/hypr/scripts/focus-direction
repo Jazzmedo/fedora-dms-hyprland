@@ -1,0 +1,88 @@
+#!/bin/sh
+# Focus in the active layout first. Scrolling has its own directional focus
+# command; normal Hyprland layouts (including dwindle) use movefocus. At the
+# shared horizontal monitor edge, continue onto the adjacent monitor; never
+# wrap at the outside edges.
+direction="$1"
+
+case "$direction" in
+	l|r|u|d) ;;
+	*) exit 2 ;;
+esac
+
+before_address="$(hyprctl activewindow -j | jq -r '.address // ""')"
+before_monitor="$(hyprctl monitors -j | jq -r '.[] | select(.focused == true) | .name' | head -n 1)"
+workspace_layout="$(hyprctl activeworkspace -j | jq -r '.tiledLayout // .tiled_layout // ""')"
+
+if [ "$workspace_layout" = "scrolling" ]; then
+    hyprctl dispatch "hl.dsp.layout(\"focus $direction\")" >/dev/null || exit 1
+else
+    hyprctl dispatch "movefocus $direction" >/dev/null || exit 1
+fi
+
+after_address="$(hyprctl activewindow -j | jq -r '.address // ""')"
+[ "$after_address" = "$before_address" ] || exit 0
+
+# Some dwindle trees do not yield a target to movefocus (notably after a
+# layout change). Resolve the nearest visible tiled window from its geometry
+# instead. This is only a fallback: native focus still gets first choice.
+if [ "$workspace_layout" != "scrolling" ] && [ -n "$before_address" ]; then
+    target_address="$(hyprctl clients -j | jq -r --arg active "$before_address" --arg direction "$direction" '
+        (map(select(.address == $active))[0]) as $current
+        | if $current == null then empty else
+            ($current.at[0] + $current.size[0] / 2) as $current_x
+            | ($current.at[1] + $current.size[1] / 2) as $current_y
+            | [ .[]
+                | select(
+                    .address != $active
+                    and .workspace.id == $current.workspace.id
+                    and .monitor == $current.monitor
+                    and .floating == false
+                    and (.hidden // false | not)
+                )
+                | (.at[0] + .size[0] / 2) as $x
+                | (.at[1] + .size[1] / 2) as $y
+                | select(
+                    ($direction == "l" and $x < $current_x)
+                    or ($direction == "r" and $x > $current_x)
+                    or ($direction == "u" and $y < $current_y)
+                    or ($direction == "d" and $y > $current_y)
+                )
+                | {
+                    address,
+                    # Prefer candidates aligned with the requested axis, then
+                    # the one closest along that axis.
+                    score: (if $direction == "l" or $direction == "r"
+                        then (($y - $current_y | abs) * 10000 + ($x - $current_x | abs))
+                        else (($x - $current_x | abs) * 10000 + ($y - $current_y | abs))
+                    end)
+            ]
+            | sort_by(.score)
+            | .[0].address // empty
+          end
+    ')"
+
+    if [ -n "$target_address" ]; then
+        hyprctl dispatch "focuswindow address:$target_address" >/dev/null
+        after_address="$(hyprctl activewindow -j | jq -r '.address // ""')"
+        [ "$after_address" = "$before_address" ] || exit 0
+    fi
+fi
+
+# Nothing to focus in this direction inside the workspace, so hand off to the
+# neighbouring output. Which neighbour depends on the configured order, not on
+# two hardcoded names.
+. "$HOME/.config/hypr/scripts/monitor-topology"
+
+count="$(topo_count)"
+[ "$count" -gt 1 ] || exit 0
+index="$(topo_index_of "$before_monitor")" || exit 0
+
+case "$direction" in
+	r|d) destination="$(topo_name_at $(( index % count + 1 )))" ;;
+	l|u) destination="$(topo_name_at $(( (index - 2 + count) % count + 1 )))" ;;
+	*) exit 0 ;;
+esac
+[ -n "$destination" ] || exit 0
+
+hyprctl dispatch "hl.dsp.focus({ monitor = \"$destination\" })"

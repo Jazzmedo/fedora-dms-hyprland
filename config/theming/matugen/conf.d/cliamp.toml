@@ -1,0 +1,3 @@
+[templates.cliamp_dms]
+input_path = '~/.config/matugen/templates/cliamp-dms.toml'
+output_path = '~/.config/cliamp/themes/dms.toml'

@@ -1,0 +1,27 @@
+# Base matugen targets. Always deployed.
+[config]
+
+[templates.starship]
+input_path = '~/.config/matugen/templates/starship.toml'
+output_path = '~/.config/starship.toml'
+
+[templates.fastfetch]
+input_path = '~/.config/matugen/templates/fastfetch.jsonc'
+output_path = '~/.config/fastfetch/config.jsonc'
+
+[templates.btop_dms]
+input_path = '~/.config/matugen/templates/btop-dms.theme'
+output_path = '~/.config/btop/themes/dms.theme'
+
+[templates.cava_dms]
+input_path = '~/.config/matugen/templates/cava-dms'
+output_path = '~/.config/cava/themes/dms'
+
+[templates.tmux_dms]
+input_path = '~/.config/matugen/templates/tmux-dms.conf'
+output_path = '~/.config/tmux/dms-theme.conf'
+
+# Bumping this file is what tells DankMaterialShell a new palette is ready.
+[templates.desktop_theme_reload]
+input_path = '~/.config/matugen/templates/theme-generation-stamp'
+output_path = '~/.cache/DankMaterialShell/user-theme-generation'

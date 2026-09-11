@@ -1,0 +1,11 @@
+[color]
+# Generated from the active DMS / Matugen palette.
+# Keep the terminal background so CAVA follows terminal transparency.
+background = default
+foreground = '#f935b1'
+
+gradient = 1
+gradient_color_1 = '#4d1a3c'
+gradient_color_2 = '#f935b1'
+gradient_color_3 = '#73daca'
+gradient_color_4 = '#73daca'

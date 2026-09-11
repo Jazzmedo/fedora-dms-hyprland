@@ -1,0 +1,14 @@
+#!/bin/sh
+# Hyprland directional monitor selectors do not wrap at the outer edge. Resolve
+# the next output explicitly so the same shortcut cycles from any monitor.
+. "$HOME/.config/hypr/scripts/monitor-topology"
+
+count="$(topo_count)"
+[ "$count" -gt 1 ] || exit 0
+
+focused_monitor="$(topo_focused_monitor)"
+index="$(topo_index_of "$focused_monitor")" || exit 1
+next=$(( index % count + 1 ))
+destination="$(topo_name_at "$next")" || exit 1
+
+hyprctl dispatch "hl.dsp.window.move({ monitor = \"$destination\" })"

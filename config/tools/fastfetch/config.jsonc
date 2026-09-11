@@ -1,0 +1,80 @@
+{
+    "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
+    // Right padding trimmed to 1: the info block's fixed cursor jumps ({$4}/{$2})
+    // span ~59 columns, so the info block must start at or before column ~44.
+    // Top padding is mirrored by the leading "break" modules so both columns align.
+    "logo": {
+        "type": "builtin",
+        "source": "Kubuntu",
+        "padding": { "top": 2, "right": 1 },
+        // One high-contrast accent prevents unrelated Material roles from
+        // producing a mismatched logo on some generated palettes.
+        "color": {
+            "1": "38;2;249;53;177",
+            "2": "38;2;169;177;214"
+        }
+    },
+    "display": {
+        "color": { "keys": "white" },
+        "separator": "",
+        "constants": [
+            "──────────────────────────────────────────────",
+            "\u001b[47D",
+            "\u001b[47C",
+            "\u001b[46C"
+        ],
+        "brightColor": false
+    },
+    "modules": [
+        "break",
+        "break",
+
+        // Use one readable accent for every section. Material's secondary and
+        // tertiary roles can legitimately diverge a lot from the chosen theme.
+        {
+            "type": "custom",
+            "key": "\u001b[38;2;249;53;177m┌──────────────┬{$1}┐{#keys} \u001b[37D",
+            "format": "\u001b[38;2;249;53;177m Hardware "
+        },
+        { "type": "os", "key": "\u001b[38;2;249;53;177m│ {icon}  Linux     │{$4}│{#keys} {$2}" },
+        { "type": "host", "key": "\u001b[38;2;249;53;177m│ {icon}  Laptop    │{$4}│{#keys} {$2}", "format": "Dell {2}" },
+        { "type": "cpu", "key": "\u001b[38;2;249;53;177m│ {icon}  CPU       │{$4}│{#keys} {$2}" },
+        { "type": "memory", "key": "\u001b[38;2;249;53;177m│ {icon}  RAM       │{$4}│{#keys} {$2}" },
+        { "type": "gpu", "key": "\u001b[38;2;249;53;177m│ {icon}  GPU       │{$4}│{#keys} {$2}", "detectionMethod": "all" },
+        { "type": "disk", "key": "\u001b[38;2;249;53;177m│ {icon}  Disk      │{$4}│{#keys} {$2}", "folders": "/:/home" },
+        { "type": "custom", "key": "\u001b[38;2;249;53;177m└──────────────┴{$1}┘{#keys}", "format": "" },
+
+        // --- SECTION 2: DESKTOP (Indigo #7b88db) ---
+        {
+            "type": "custom",
+            "key": "\u001b[38;2;249;53;177m┌──────────────┬{$1}┐{#keys} \u001b[37D",
+            "format": "\u001b[38;2;249;53;177m Desktop "
+        },
+        { "type": "de", "key": "\u001b[38;2;249;53;177m│ {icon}  Desktop   │{$4}│{#keys} {$2}" },
+        { "type": "wm", "key": "\u001b[38;2;249;53;177m│ {icon}  Session   │{$4}│{#keys} {$2}" },
+        { "type": "display", "key": "\u001b[38;2;249;53;177m│ {icon}  Display   │{$4}│{#keys} {$2}", "compactType": "original-with-refresh-rate" },
+        { "type": "custom", "key": "\u001b[38;2;249;53;177m└──────────────┴{$1}┘{#keys}", "format": "" },
+
+        // --- SECTION 3: TERMINAL ---
+        {
+            "type": "custom",
+            "key": "\u001b[38;2;249;53;177m┌──────────────┬{$1}┐{#keys} \u001b[37D",
+            "format": "\u001b[38;2;249;53;177m Terminal "
+        },
+        { "type": "shell", "key": "\u001b[38;2;249;53;177m│ {icon}  Shell     │{$4}│{#keys} {$2}" },
+        { "type": "terminal", "key": "\u001b[38;2;249;53;177m│ {icon}  Terminal  │{$4}│{#keys} {$2}" },
+        { "type": "terminalfont", "key": "\u001b[38;2;249;53;177m│ {icon}  Term Font │{$4}│{#keys} {$2}" },
+        { "type": "packages", "key": "\u001b[38;2;249;53;177m│ {icon}  Packages  │{$4}│{#keys} {$2}" },
+        { "type": "custom", "key": "\u001b[38;2;249;53;177m└──────────────┴{$1}┘{#keys}", "format": "" },
+
+        // --- SECTION 4: UPTIME ---
+        {
+            "type": "custom",
+            "key": "\u001b[38;2;249;53;177m┌──────────────┬{$1}┐{#keys} \u001b[36D",
+            "format": "\u001b[38;2;249;53;177m Uptime "
+        },
+        { "type": "uptime", "key": "\u001b[38;2;249;53;177m│ {icon}  Uptime    │{$4}│{#keys} {$2}" },
+        { "type": "disk", "keyIcon": "", "key": "\u001b[38;2;249;53;177m│   OS Age    │{$4}│{#keys} {$2}", "folders": "/", "format": "{create-time:10} [{days} days]" },
+        { "type": "custom", "key": "\u001b[38;2;249;53;177m└──────────────┴{$1}┘{#keys}", "format": "" }
+    ]
+}

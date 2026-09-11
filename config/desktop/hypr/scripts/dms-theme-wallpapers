@@ -1,0 +1,123 @@
+#!/usr/bin/env bash
+set -u
+
+settings="$HOME/.config/DankMaterialShell/settings.json"
+base="$HOME/Pictures/Wallpapers/theme-collections"
+lock="$XDG_RUNTIME_DIR/dms-theme-wallpapers.lock"
+state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/dms-theme-wallpapers"
+theme_state="$state_dir/last-theme"
+
+exec 9>"$lock"
+flock -n 9 || exit 0
+
+# DMS saves several theme fields in quick succession. Read after they settle.
+sleep 0.6
+theme_file="$(jq -r '.customThemeFile // ""' "$settings" 2>/dev/null)"
+
+[[ -f "$theme_file" && -d "$base" ]] || exit 0
+
+# Match wallpaper folders to installed DMS themes without maintaining a list.
+# Folder names are compared as lowercase slugs, so theme directories such as
+# `steamDeck` and `deep_sage` match `steam-deck` and `deep-sage`.
+slugify() {
+  printf '%s' "$1" \
+    | sed -E 's/([a-z0-9])([A-Z])/\1-\2/g' \
+    | tr '[:upper:]_' '[:lower:]-' \
+    | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//; s/-+/-/g'
+}
+
+theme_id="$(basename "$(dirname "$theme_file")")"
+theme_name="$(jq -r '.name // ""' "$theme_file" 2>/dev/null)"
+theme_slug="$(slugify "$theme_id")"
+name_slug="$(slugify "$theme_name")"
+collection=""
+
+# Wallpaper changes also rewrite settings.json. Only a genuine theme change
+# should select a new collection; follow-up settings writes must be no-ops.
+last_theme="$(cat "$theme_state" 2>/dev/null || true)"
+[[ "$last_theme" != "$theme_file" ]] || exit 0
+
+while IFS= read -r -d '' candidate; do
+  candidate_slug="$(slugify "$(basename "$candidate")")"
+  if [[ "$candidate_slug" == "$theme_slug" || \
+        ( -n "$name_slug" && "$candidate_slug" == "$name_slug" ) || \
+        "$candidate_slug" == "$theme_slug-"* || \
+        ( -n "$name_slug" && "$candidate_slug" == "$name_slug-"* ) ]]; then
+    collection="$candidate"
+    break
+  fi
+done < <(find "$base" -mindepth 1 -maxdepth 1 -type d -print0 | sort -z)
+
+# A theme with no matching folder should not disturb the current wallpapers.
+[[ -n "$collection" ]] || exit 0
+
+list_images() {
+  find "$1" -maxdepth 1 -type f \
+    \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.webp' \
+       -o -iname '*.bmp' -o -iname '*.avif' -o -iname '*.jxl' \) 2>/dev/null | sort
+}
+
+is_portrait() {
+  local dim w h
+  dim="$(identify -format '%w %h' "$1[0]" 2>/dev/null)" || return 1
+  [[ -n "$dim" ]] || return 1
+  w="${dim% *}"
+  h="${dim#* }"
+  (( h > w ))
+}
+
+horizontal="$(list_images "$collection/horizontal" | head -n 1)"
+vertical="$(list_images "$collection/vertical" | head -n 1)"
+
+# A collection dropped in for a freshly installed theme usually has no
+# horizontal/vertical split, so sort loose images by their own orientation.
+if [[ -z "$horizontal" || -z "$vertical" ]]; then
+  while IFS= read -r image; do
+    [[ -n "$image" ]] || continue
+    if is_portrait "$image"; then
+      [[ -n "$vertical" ]] || vertical="$image"
+    else
+      [[ -n "$horizontal" ]] || horizontal="$image"
+    fi
+  done < <(list_images "$collection")
+fi
+
+# A collection may hold only one orientation. Putting the same image on both
+# monitors still follows the theme, which beats leaving the old wallpaper.
+[[ -n "$horizontal" ]] || horizontal="$vertical"
+[[ -n "$vertical" ]] || vertical="$horizontal"
+[[ -n "$horizontal" ]] || exit 0
+
+# Record the theme before asking DMS to change wallpapers. Those IPC calls
+# rewrite settings.json and immediately trigger this service again.
+mkdir -p "$state_dir"
+printf '%s\n' "$theme_file" > "$theme_state"
+
+# Wallpaper writes update DMS settings and regenerate Matugen colors. Since
+# this service watches the settings file, only write when the selected file is
+# genuinely different; the resulting follow-up event then becomes a no-op.
+# Apply to every connected output rather than the two this config was first
+# written for. Portrait monitors get the vertical image where one exists.
+mapfile -t outputs < <(hyprctl monitors -j 2>/dev/null \
+  | jq -r '.[] | "\(.name) \(.width) \(.height) \(.transform)"' 2>/dev/null)
+
+if [[ ${#outputs[@]} -eq 0 ]]; then
+  outputs=("@@MONITOR@@ 1920 1080 0")
+fi
+
+for spec in "${outputs[@]}"; do
+  read -r name width height transform <<<"$spec"
+  # Transforms 1 and 3 are the 90/270-degree rotations, which swap the axes.
+  if (( transform == 1 || transform == 3 )); then
+    (( width < height )) || { tmp=$width; width=$height; height=$tmp; }
+  fi
+  if (( height > width )); then
+    wanted="$vertical"
+  else
+    wanted="$horizontal"
+  fi
+  [[ -n "$wanted" ]] || continue
+  current="$(dms ipc call wallpaper getFor "$name" 2>/dev/null || true)"
+  [[ "$current" == "$wanted" ]] && continue
+  dms ipc call wallpaper setFor "$name" "$wanted" >/dev/null
+done

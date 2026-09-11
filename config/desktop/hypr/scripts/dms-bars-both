@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+set -u
+
+action="${1:-}"
+
+case "$action" in
+  visibility)
+    command=toggle
+    ;;
+  auto-hide)
+    command=toggleAutoHide
+    ;;
+  *)
+    exit 2
+    ;;
+esac
+
+dms ipc call bar "$command" index 0 >/dev/null
+sleep 0.15
+dms ipc call bar "$command" index 1 >/dev/null

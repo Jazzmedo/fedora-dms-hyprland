@@ -1,0 +1,67 @@
+/* DMS/Matugen colors over Discord's native layout. */
+:root,
+.theme-dark,
+.theme-light {
+  color-scheme: dark !important;
+  --brand-500: #f935b1 !important;
+  --brand-560: #4d1a3c !important;
+  --brand-600: #4d1a3c !important;
+  --background-primary: #1f2335 !important;
+  --background-secondary: #1f2335 !important;
+  --background-secondary-alt: #1f2335 !important;
+  --background-tertiary: #1b1e2e !important;
+  --background-floating: #24283b !important;
+  --background-modifier-hover: #3b4261 !important;
+  --background-modifier-active: #4d1a3c !important;
+  --background-modifier-selected: #3b4261 !important;
+  --background-modifier-accent: #24283b !important;
+  --channeltextarea-background: #3b4261 !important;
+  --modal-background: #1f2335 !important;
+  --modal-footer-background: #1f2335 !important;
+  --text-normal: #a9b1d6 !important;
+  --text-muted: #c0caf5 !important;
+  --header-primary: #a9b1d6 !important;
+  --header-secondary: #c0caf5 !important;
+  --interactive-normal: #c0caf5 !important;
+  --interactive-hover: #a9b1d6 !important;
+  --interactive-active: #f935b1 !important;
+  --interactive-muted: #868eb7 !important;
+  --channels-default: #c0caf5 !important;
+
+  /* Discord's current design-system tokens. Keep these beside the legacy
+     names above because Vesktop can receive either Discord UI generation. */
+  --background-base-lowest: #1b1e2e !important;
+  --background-base-lower: #1f2335 !important;
+  --background-base-low: #1f2335 !important;
+  --background-base-high: #24283b !important;
+  --background-base-higher: #3b4261 !important;
+  --background-surface-high: #24283b !important;
+  --background-surface-higher: #3b4261 !important;
+  --background-mod-subtle: #3b4261 !important;
+  --background-mod-normal: #24283b !important;
+  --background-mod-strong: #3b4261 !important;
+  --card-background-default: #1f2335 !important;
+  --input-background-default: #1b1e2e !important;
+  --input-border-default: #24283b !important;
+  --border-subtle: #24283b !important;
+  --border-muted: #24283b !important;
+  --border-normal: #868eb7 !important;
+  --border-strong: #c0caf5 !important;
+  --border-focus: #f935b1 !important;
+  --text-default: #a9b1d6 !important;
+  --text-strong: #a9b1d6 !important;
+  --text-subtle: #c0caf5 !important;
+  --text-brand: #f935b1 !important;
+  --text-link: #f935b1 !important;
+  --interactive-icon-default: #c0caf5 !important;
+  --interactive-icon-hover: #a9b1d6 !important;
+  --interactive-icon-active: #f935b1 !important;
+  --control-primary-background-default: #f935b1 !important;
+  --control-primary-background-hover: #4d1a3c !important;
+  --control-primary-border-default: #f935b1 !important;
+  --control-primary-text-default: #1b1e2e !important;
+  --control-secondary-background-default: #24283b !important;
+  --control-secondary-background-hover: #3b4261 !important;
+  --control-secondary-border-default: #24283b !important;
+  --control-secondary-text-default: #a9b1d6 !important;
+}

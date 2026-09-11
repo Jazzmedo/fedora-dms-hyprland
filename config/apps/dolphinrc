@@ -1,0 +1,48 @@
+MenuBar=Disabled
+
+[$Version]
+update_info=dolphin_detailsmodesettings.upd:rename-leading-padding,dolphin_detailsmodesettings.upd:move-content-display
+
+[DetailsMode]
+PreviewSize=32
+
+[General]
+GlobalViewProps=false
+LockPanels=false
+RememberOpenedTabs=false
+ShowFullPath=true
+ShowPreviews=false
+Version=202
+ViewPropsTimestamp=2025,12,21,2,35,15.411
+
+[IconsMode]
+IconSize=112
+PreviewSize=112
+
+[KFileDialog Settings]
+Places Icons Auto-resize=false
+Places Icons Static Size=22
+iconViewIconSize=64
+
+[KPropertiesDialog]
+2 screens: Height=659
+2 screens: Width=469
+
+[MainWindow]
+MenuBar=Disabled
+
+[MainWindow][Toolbar mainToolBar]
+ToolButtonStyle=IconOnly
+
+[PreviewSettings]
+Plugins=appimagethumbnail,audiothumbnail,blenderthumbnail,comicbookthumbnail,cursorthumbnail,djvuthumbnail,ebookthumbnail,exrthumbnail,fontthumbnail,imagethumbnail,jpegthumbnail,kraorathumbnail,windowsexethumbnail,windowsimagethumbnail,mobithumbnail,opendocumentthumbnail,gdk-pixbuf-thumbnailer,rawthumbnail,librsvg,svgthumbnail,textthumbnail,ffmpegthumbs
+
+[Toolbar mainToolBar]
+ToolButtonStyle=IconOnly
+
+[UiSettings]
+ColorScheme=DankMatugen
+
+[ViewPropertiesDialog]
+2 screens: Height=327
+2 screens: Width=400

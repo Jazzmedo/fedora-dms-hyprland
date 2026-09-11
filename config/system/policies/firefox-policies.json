@@ -1,0 +1,18 @@
+{
+  "policies": {
+    "SearchEngines": {
+      "Add": [
+        {
+          "Name": "SearXNG",
+          "URLTemplate": "https://searxng.home.local/search?q={searchTerms}",
+          "SuggestURLTemplate": "https://searxng.home.local/autocompleter?q={searchTerms}",
+          "Method": "GET",
+          "IconURL": "https://searxng.home.local/favicon.ico",
+          "Alias": "@sx",
+          "Description": "Local Proxied Metasearch"
+        }
+      ],
+      "Default": "SearXNG"
+    }
+  }
+}

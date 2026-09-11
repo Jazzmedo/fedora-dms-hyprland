@@ -1,0 +1,7 @@
+#!/bin/sh
+# Modern one-shot Quickshell UI; it preserves the exact selector protocol XDPH
+# expects while replacing the old Qt Widgets screen/window list.
+export QSP_THEME=dark
+export XDPH_PICKER_DEFAULT_TAB=window
+export QSP_SYSTEM_SHARE_DIR=@@HOME@@/.local/share/quickshell-share-picker
+exec @@HOME@@/.local/bin/quickshell-share-picker "$@"

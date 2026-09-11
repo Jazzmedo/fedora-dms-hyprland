@@ -1,0 +1,8 @@
+{
+  "DefaultSearchProviderEnabled": true,
+  "DefaultSearchProviderName": "SearXNG",
+  "DefaultSearchProviderKeyword": "@sx",
+  "DefaultSearchProviderSearchURL": "https://searxng.home.local/search?q={searchTerms}",
+  "DefaultSearchProviderSuggestURL": "https://searxng.home.local/autocompleter?q={searchTerms}",
+  "DefaultSearchProviderIconURL": "https://searxng.home.local/favicon.ico"
+}

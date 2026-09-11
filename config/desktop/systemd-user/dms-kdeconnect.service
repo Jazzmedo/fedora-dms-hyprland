@@ -1,0 +1,13 @@
+[Unit]
+Description=KDE Connect daemon for Dank Material Shell
+After=graphical-session.target
+PartOf=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/kdeconnectd --replace
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=graphical-session.target
