@@ -21,8 +21,15 @@ stage_packages() {
     ok "${#missing[@]} packages installed"
   fi
 
+  # --skip-unavailable keeps one absent package from cancelling ninety, but it
+  # also means a COPR that does not actually carry Hyprland fails silently here
+  # and confusingly three stages later.
+  rpm_has hyprland || die "hyprland was not installed.
+     The enabled COPR does not provide it for this Fedora release.
+     Check: dnf repoquery --available hyprland"
+
   # Hyprland must have the Lua config backend or none of config/desktop/hypr
-  # will load. Fedora's own build is usually too old, hence the COPR.
+  # will load. Fedora does not package Hyprland at all, hence the COPR.
   if have hyprland; then
     local hv; hv=$(hyprland --version 2>/dev/null | grep -oP 'v?\K[0-9]+\.[0-9]+\.[0-9]+' | head -1)
     info "hyprland ${hv:-unknown}"
@@ -39,6 +46,11 @@ stage_packages() {
     [[ -n $kv ]] && printf '%s\n0.38.0\n' "$kv" | sort -V -C \
       && warn "kitty $kv is older than 0.38; cursor_trail will be ignored"
   fi
+
+  # quickshell is what DankMaterialShell renders with. It is not in every
+  # Fedora release, and the DMS installer pulls its own build when the rpm is
+  # absent, so a missing package here is not fatal.
+  rpm_has quickshell || info "quickshell not packaged for this release; DMS will supply it"
 
   local -a fps
   mapfile -t fps < <(selected_flatpaks)

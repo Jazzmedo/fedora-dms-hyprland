@@ -73,12 +73,14 @@ selected_flatpaks() {
     printf '%s\n' ${COMPONENT_FLATPAKS[$k]:-}
   done | tr ' ' '\n' | grep -v '^$' | sort -u
 }
+# Declaration order matters here, unlike packages: the COPRs are candidates
+# tried in preference order, so this deduplicates without sorting.
 selected_coprs() {
   local k
   for k in "${COMPONENT_ORDER[@]}"; do
     is_selected "$k" || continue
     printf '%s\n' ${COMPONENT_COPR[$k]:-}
-  done | tr ' ' '\n' | grep -v '^$' | sort -u
+  done | tr ' ' '\n' | grep -v '^$' | awk '!seen[$0]++'
 }
 
 # =============================================================== REGISTRY ===
@@ -89,7 +91,12 @@ group base  "Base desktop — always installed"
 # clipboard history, and grim/slurp the region screenshot. DMS drives all four
 # over IPC but does not vendor them.
 component core        base base "Hyprland + DMS"  "compositor, shell, lock, clipboard, screenshot, picker"
-copr "solopasha/hyprland"
+# Hyprland is not in Fedora proper, and no single COPR covers every release:
+# solopasha builds for rawhide only, so it is unusable on a stable Fedora.
+# These are tried in order and the first one with a chroot for this release
+# wins. sdegler is first because it also carries matugen, hyprlock, hypridle,
+# hyprpicker, hyprpaper, cliphist and qt6ct.
+copr "sdegler/hyprland ashbuk/Hyprland-Fedora solopasha/hyprland"
 pkgs "hyprland hyprland-devel hyprpaper hyprlock hypridle hyprpicker \
       xdg-desktop-portal-hyprland xdg-desktop-portal-gtk xdg-utils \
       quickshell matugen sddm qt6-qtvirtualkeyboard \
