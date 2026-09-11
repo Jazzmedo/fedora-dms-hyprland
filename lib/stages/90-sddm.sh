@@ -5,18 +5,19 @@ stage_sddm() {
   step "Login screen"
 
   local dest=/usr/share/sddm/themes/nothing
-  if [[ -f $dest/Main.qml ]]; then
-    skip "Nothing theme already installed"
-  else
-    as_root mkdir -p /usr/share/sddm/themes
-    as_root cp -r "$REPO_DIR/assets/sddm/nothing" "$dest"
-    ok "Nothing SDDM theme installed (MIT, Darkkal44)"
-  fi
 
-  # The greeter runs before any user session, so it needs its own copy of the
-  # fonts rather than the ones in the user's home.
-  as_root mkdir -p "$dest/font"
-  as_root cp "$REPO_DIR/assets/fonts/nothing/Ndot57-Regular.otf" "$dest/font/" 2>/dev/null || true
+  # Copied every run rather than skipped when Main.qml exists, so an edit to
+  # the theme in this repo actually reaches an installed machine.
+  as_root mkdir -p /usr/share/sddm/themes /etc/sddm.conf.d
+  as_root rm -rf "$dest"
+  as_root cp -r "$REPO_DIR/assets/sddm/nothing" "$dest"
+  ok "Nothing SDDM theme installed (MIT, Darkkal44)"
+
+  # The theme carries its own NDot55 and NType82 and loads them with a
+  # FontLoader, because the greeter runs before any user session and cannot
+  # read fonts from a home directory.
+
+  verify_sddm_theme
 
   # A Wayland greeter needs a compositor. The captured config named kwin_wayland,
   # which this install does not have; weston is what Fedora ships for the job.
@@ -63,4 +64,48 @@ EOF
   as_root systemctl enable sddm
   as_root systemctl set-default graphical.target
   ok "graphical boot enabled"
+}
+
+# A QML theme whose imports cannot be resolved does not fail loudly: SDDM logs
+# the error and silently presents its own default greeter, which looks exactly
+# like the theme never having been set. Every import in Main.qml is checked
+# against what is installed, before the reboot rather than after it.
+verify_sddm_theme() {
+  # QtQuick.Window is folded into the QtQuick module in Qt 6 and has no
+  # directory of its own, so QtQuick is what gets checked for it.
+  local -A provider=(
+    [Qt5Compat/GraphicalEffects]=qt6-qt5compat
+    [Qt/labs/folderlistmodel]=qt6-qtdeclarative
+    [QtQuick]=qt6-qtdeclarative
+    [SddmComponents]=sddm
+  )
+
+  # Ask Qt where its QML modules live rather than guessing a libdir.
+  local -a roots=()
+  local q
+  q=$(qtpaths6 --query QT_INSTALL_QML 2>/dev/null \
+      || qmake6 -query QT_INSTALL_QML 2>/dev/null) && [[ -n $q ]] && roots+=("$q")
+  roots+=(/usr/lib64/qt6/qml /usr/lib/qt6/qml)
+
+  local module missing=()
+
+  for module in "${!provider[@]}"; do
+    local found=0 root
+    for root in "${roots[@]}"; do
+      [[ -d $root/$module ]] && { found=1; break; }
+    done
+    (( found )) || missing+=("$module (from ${provider[$module]})")
+  done
+
+  if (( ${#missing[@]} == 0 )); then
+    ok "every QML module the theme imports is present"
+    return 0
+  fi
+
+  local m
+  for m in "${missing[@]}"; do
+    soft_fail "the login theme imports $m, which is not installed"
+  done
+  soft_fail "SDDM will fall back to its default greeter until those are installed"
+  return 0
 }

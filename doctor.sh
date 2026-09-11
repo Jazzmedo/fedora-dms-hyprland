@@ -143,6 +143,22 @@ kv "kdeglobals colour blocks" "$(grep -c '^\[Colors' "$kg" 2>/dev/null || echo 0
 kv "ColorScheme" "$(sed -n 's/^ColorScheme=//p' "$kg" 2>/dev/null | head -1)"
 kv "qt6ct palette" "$([[ -f $HOME/.config/qt6ct/colors/matugen.conf ]] && echo present || echo MISSING)"
 
+sec "login screen"
+kv "configured theme" "$(sed -n 's/^Current=//p' /etc/sddm.conf.d/*.conf /etc/sddm.conf 2>/dev/null | tail -1)"
+kv "theme installed"  "$([[ -f /usr/share/sddm/themes/nothing/Main.qml ]] && echo yes || echo NO)"
+kv "default target"   "$(systemctl get-default 2>/dev/null)"
+# A QML import the greeter cannot resolve makes SDDM fall back to its own
+# default silently, which looks exactly like the theme never being set.
+qmlroot=$(qtpaths6 --query QT_INSTALL_QML 2>/dev/null || qmake6 -query QT_INSTALL_QML 2>/dev/null)
+for m in Qt5Compat/GraphicalEffects Qt/labs/folderlistmodel QtQuick SddmComponents; do
+  hit=""
+  for r in "$qmlroot" /usr/lib64/qt6/qml /usr/lib/qt6/qml; do
+    [[ -n $r && -d $r/$m ]] && { hit=$r; break; }
+  done
+  if [[ -n $hit ]]; then kv "imports $m" "present"
+  else printf '  %-26s %sMISSING — greeter falls back to default%s\n' "imports $m" "$C" "$O"; fi
+done
+
 sec "wallpaper follows theme"
 kv "watcher" "$(systemctl --user is-active dms-theme-wallpapers.path 2>/dev/null)"
 kv "last theme applied" "$(cat "${XDG_STATE_HOME:-$HOME/.local/state}/dms-theme-wallpapers/last-theme" 2>/dev/null)"

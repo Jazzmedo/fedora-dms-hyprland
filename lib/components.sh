@@ -114,7 +114,7 @@ component core        base base "Hyprland + DMS"  "compositor, shell, lock, clip
 copr "sdegler/hyprland ashbuk/Hyprland-Fedora solopasha/hyprland"
 pkgs "hyprland hyprland-devel hyprpaper hyprlock hypridle hyprpicker \
       xdg-desktop-portal-hyprland xdg-desktop-portal-gtk xdg-utils \
-      matugen sddm qt6-qtvirtualkeyboard \
+      matugen sddm weston qt6-qtvirtualkeyboard \
       qt6-qtdeclarative qt6-qt5compat qt6-qtsvg qt6-qtmultimedia \
       polkit-kde qt6ct qt5ct kvantum \
       breeze-icon-theme hicolor-icon-theme \
