@@ -137,6 +137,36 @@ ensure_quickshell() {
   return 0
 }
 
+# Upstream's installer is a full-screen program with its own list of optional
+# extras, which is the second list of choices you are asked for. If the version
+# on the server accepts a flag for running unattended, use it: its defaults are
+# already what this installer wants, and dms-greeter in particular must stay
+# off, since the login screen here is SDDM.
+#
+# The flag is looked for in the downloaded script rather than assumed, because
+# it is somebody else's program and the name changes between releases.
+dank_noninteractive_flag() {
+  local script=$1 candidate
+  for candidate in --non-interactive --noninteractive --headless --unattended --yes; do
+    grep -qF -- "$candidate" "$script" && { printf '%s' "$candidate"; return 0; }
+  done
+  return 0
+}
+
+# Run it attached to the terminal. run_visible would put it behind a pipe to
+# tee, and a full-screen program drawing into a pipe is what turned that screen
+# into overlapping text.
+dank_run_installer() {
+  local script=$1; shift
+  _log_raw "RUN   sh $script $*"
+  if (( $# == 0 )); then
+    printf '\n  %s→%s The next screen belongs to the desktop shell'"'"'s own installer,\n' "$C_CYAN" "$C_OFF"
+    printf '    not to this one. Its defaults already match what you chose.\n'
+    printf '    %sPress Enter to continue.%s\n\n' "$C_BOLD" "$C_OFF"
+  fi
+  sh "$script" "$@"
+}
+
 # Upstream's installer knows which quickshell revision it needs; reproducing
 # that here would rot. Run it, then layer our config on top.
 install_dms_runtime() {
@@ -154,18 +184,41 @@ install_dms_runtime() {
     info '$ curl -fsSL https://install.danklinux.com | sh'
     return 0
   fi
-  # Three attempts: the failure this hits in practice is upstream's version
-  # lookup against GitHub timing out, which is usually over by the second try.
-  local attempt ok_run=0
+  local tmp; tmp=$(mktemp -d)
+  local script="$tmp/danklinux.sh"
+
+  # Fetched to a file rather than piped into sh, so a failed download is told
+  # apart from a failed install, and so the installer can be handed arguments.
+  local attempt got=0
   for attempt in 1 2 3; do
-    if run_visible bash -c 'curl -fsSL https://install.danklinux.com | sh'; then
-      ok_run=1; break
-    fi
+    if run curl -fsSL -o "$script" https://install.danklinux.com; then got=1; break; fi
     (( attempt < 3 )) && {
-      warn "the desktop shell download failed, trying again ($attempt of 3)"
+      warn "could not reach the download server, trying again ($attempt of 3)"
       sleep $(( attempt * 5 ))
     }
   done
+  if (( ! got )); then
+    rm -rf "$tmp"
+    soft_fail "The desktop shell could not be downloaded" \
+        "Its download server could not be reached. Everything else on this machine is unaffected." \
+        "When the connection is working: ./install.sh --only=dms"
+    return 1
+  fi
+
+  local -a args=()
+  local flag
+  flag=$(dank_noninteractive_flag "$script")
+  [[ -n $flag ]] && args=("$flag")
+
+  local ok_run=0
+  for attempt in 1 2 3; do
+    if dank_run_installer "$script" ${args[@]+"${args[@]}"}; then ok_run=1; break; fi
+    (( attempt < 3 )) && {
+      warn "the desktop shell installer did not finish, trying again ($attempt of 3)"
+      sleep $(( attempt * 5 ))
+    }
+  done
+  rm -rf "$tmp"
 
   if (( ! ok_run )) || ! have dms; then
     soft_fail "The desktop shell could not be downloaded" \
