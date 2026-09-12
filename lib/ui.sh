@@ -7,23 +7,72 @@
 
 UI_ROWS=()        # "group" or "item:<key>"
 UI_CURSOR=0
-UI_HEADER_H=6
-UI_FOOTER_H=4
+UI_HEADER_H=8      # lines drawn by _ui_banner
+UI_FOOTER_H=3      # lines drawn by _ui_footer
+UI_SCROLL=0        # first body line currently on screen
+UI_ALTSCREEN=0
+UI_COMPACT=0
+UI_BODY=()
+UI_CURSOR_LINE=0
 
 _tput() { tput "$@" 2>/dev/null || true; }
 
+# The picker runs on the alternate screen where the terminal has one, so the
+# scrollback the user had before the installer is still there afterwards.
+_ui_enter_screen() {
+  local seq
+  seq=$(tput smcup 2>/dev/null) || seq=""
+  if [[ -n $seq ]]; then
+    UI_ALTSCREEN=1
+    printf '%s' "$seq"
+  else
+    UI_ALTSCREEN=0
+UI_COMPACT=0
+  fi
+  _tput clear
+}
+
+_ui_leave_screen() {
+  _tput cnorm
+  if (( UI_ALTSCREEN )); then _tput rmcup; else _tput clear; fi
+  UI_ALTSCREEN=0
+UI_COMPACT=0
+}
+
+# Four lines instead of eight, for terminals too short to spare them.
+_ui_banner_compact() {
+  printf '  %s%s███%s %sfedora-nothing%s  %sCustomisable installation%s\n\n' \
+    "$C_RED" "$C_BOLD" "$C_OFF" "$C_BOLD" "$C_OFF" "$C_GREY" "$C_OFF"
+  printf '  %s↑↓%s move  %sspace%s tick  %senter%s install  %sq%s cancel\n' \
+    "$C_BOLD" "$C_OFF" "$C_BOLD" "$C_OFF" "$C_BOLD" "$C_OFF" "$C_BOLD" "$C_OFF"
+  printf '  %s%s%s\n' "$C_GREY" "$(rule $(( UI_WIDTH - 2 )))" "$C_OFF"
+}
+
 _ui_banner() {
+  (( UI_COMPACT )) && { _ui_banner_compact; return; }
   printf '%s\n' "$C_RED$C_BOLD"
   cat <<'ART'
   ███  fedora-nothing
 ART
   printf '%s' "$C_OFF"
   printf '  %sHyprland · DankMaterialShell · Nothing%s\n\n' "$C_GREY" "$C_OFF"
-  printf '  %sCustomisable installation%s  everything is ticked; untick what you do not want\n\n' \
-    "$C_BOLD" "$C_OFF"
-  printf '  %s↑↓/jk%s move   %sspace%s tick   %sa%s whole group   %senter%s install   %sq%s cancel\n' \
-    "$C_BOLD" "$C_OFF" "$C_BOLD" "$C_OFF" "$C_BOLD" "$C_OFF" "$C_BOLD" "$C_OFF" "$C_BOLD" "$C_OFF"
-  printf '  %s%s%s\n' "$C_GREY" "$(printf '─%.0s' $(seq 1 "$UI_WIDTH"))" "$C_OFF"
+  # Narrow terminals get the short wording. A line that wraps costs a row, and
+  # every row it costs pushes the frame off the top on the next repaint.
+  if (( UI_WIDTH >= 78 )); then
+    printf '  %sCustomisable installation%s  everything is ticked; untick what you do not want\n\n' \
+      "$C_BOLD" "$C_OFF"
+    printf '  %s↑↓/jk%s move   %sspace%s tick   %sa%s whole group   %senter%s install   %sq%s cancel\n' \
+      "$C_BOLD" "$C_OFF" "$C_BOLD" "$C_OFF" "$C_BOLD" "$C_OFF" "$C_BOLD" "$C_OFF" "$C_BOLD" "$C_OFF"
+  elif (( UI_WIDTH >= 60 )); then
+    printf '  %sCustomisable installation%s\n\n' "$C_BOLD" "$C_OFF"
+    printf '  %s↑↓%s move  %sspace%s tick  %senter%s install  %sq%s cancel\n' \
+      "$C_BOLD" "$C_OFF" "$C_BOLD" "$C_OFF" "$C_BOLD" "$C_OFF" "$C_BOLD" "$C_OFF"
+  else
+    printf '  %sCustomisable installation%s\n\n' "$C_BOLD" "$C_OFF"
+    printf '  %s↑↓%s %sspace%s %senter%s %sq%s\n' \
+      "$C_BOLD" "$C_OFF" "$C_BOLD" "$C_OFF" "$C_BOLD" "$C_OFF" "$C_BOLD" "$C_OFF"
+  fi
+  printf '  %s%s%s\n' "$C_GREY" "$(rule $(( UI_WIDTH - 2 )))" "$C_OFF"
 }
 
 _ui_build_rows() {
@@ -62,18 +111,33 @@ _ui_move() {
   done
 }
 
-_ui_render() {
-  _tput clear
-  _ui_banner
-  local i row key
+# How many rows the terminal has. The list is around sixty lines long; most
+# terminals are twenty-four, so it has to be windowed rather than dumped.
+_ui_lines() {
+  local h
+  h=$(tput lines 2>/dev/null) || h=""
+  [[ $h =~ ^[0-9]+$ ]] || h=${LINES:-24}
+  (( h < 10 )) && h=10
+  printf '%s' "$h"
+}
+
+# Build every body line into UI_BODY instead of printing it, and remember which
+# line the cursor is on, so the window can be positioned before anything is
+# drawn.
+_ui_body() {
+  UI_BODY=()
+  UI_CURSOR_LINE=0
+  local i row key line
   for i in "${!UI_ROWS[@]}"; do
     row=${UI_ROWS[i]}
     if [[ $row == group:* ]]; then
-      printf '\n  %s%s%s\n' "$C_BOLD" "${GROUP_LABEL[${row#group:}]}" "$C_OFF"
+      UI_BODY+=("")
+      printf -v line '  %s%s%s' "$C_BOLD" "${GROUP_LABEL[${row#group:}]}" "$C_OFF"
+      UI_BODY+=("$line")
       continue
     fi
     key=${row#item:}
-    local mark cursor name desc
+    local mark name desc
     name=${COMPONENT_NAME[$key]}
     desc=${COMPONENT_DESC[$key]}
     if component_locked "$key"; then
@@ -92,17 +156,88 @@ _ui_render() {
     esac
     local pad=""
     (( ${#name} < 22 )) && printf -v pad '%*s' $(( 22 - ${#name} )) ''
+    # Everything left of the description is 11 columns plus the padded name. A
+    # line that overflows the terminal wraps, and one wrapped line pushes the
+    # frame off the top of the screen.
+    local nlen=${#name}
+    (( nlen < 22 )) && nlen=22
+    local descmax=$(( UI_WIDTH - 11 - nlen ))
+    if (( descmax < 8 )); then
+      desc=""                                   # no room for it at this width
+    elif (( ${#desc} > descmax )); then
+      desc="${desc:0:$(( descmax - 1 ))}…"
+    fi
     if (( i == UI_CURSOR )); then
-      printf '  %s❯%s %s %s %s%s%s%s %s%s%s\n' \
+      printf -v line '  %s❯%s %s %s %s%s%s%s %s%s%s' \
         "$C_RED" "$C_OFF" "$mark" "$badge" "$C_BOLD" "$name" "$C_OFF" "$pad" "$C_GREY" "$desc" "$C_OFF"
+      UI_CURSOR_LINE=${#UI_BODY[@]}
     else
-      printf '    %s %s %s%s %s%s%s\n' "$mark" "$badge" "$name" "$pad" "$C_GREY" "$desc" "$C_OFF"
+      printf -v line '    %s %s %s%s %s%s%s' \
+        "$mark" "$badge" "$name" "$pad" "$C_GREY" "$desc" "$C_OFF"
+    fi
+    UI_BODY+=("$line")
+  done
+}
+
+# Three lines, always, so the body window keeps a fixed height.
+_ui_footer() {
+  local total=$1 view=$2 n hint=""
+  n=$(selected_count)
+  if (( total > view )); then
+    local up=" " down=" "
+    (( UI_SCROLL > 0 ))                && up="↑"
+    (( UI_SCROLL + view < total ))     && down="↓"
+    printf -v hint '   %s%s%s more%s' "$C_GREY" "$up" "$down" "$C_OFF"
+  fi
+  printf '\033[K\n'
+  printf '  %s%s%s\033[K\n' "$C_GREY" "$(rule $(( UI_WIDTH - 2 )))" "$C_OFF"
+  # No trailing newline: printing one on the last row scrolls the whole screen
+  # up by a line, and the banner would creep off the top on every keypress.
+  local legend='✓ already installed   ~ partial   [·] always installed'
+  (( UI_WIDTH < 78 )) && legend='✓ installed  ~ partial  [·] always'
+  (( UI_WIDTH < 60 )) && legend=''
+  printf '  %s%d selected%s   %s%s%s%s\033[K' \
+    "$C_BOLD" "$n" "$C_OFF" "$C_GREY" "$legend" "$C_OFF" "$hint"
+}
+
+# Repaint from the home position rather than clearing first. A `tput clear`
+# followed by sixty lines of list scrolls the banner off a twenty-four line
+# terminal, which looks exactly like the installer restarting itself.
+_ui_render() {
+  _ui_body
+
+  local h view total
+  h=$(_ui_lines)
+  UI_COMPACT=0
+  UI_HEADER_H=8
+  if (( h < 20 )); then UI_COMPACT=1; UI_HEADER_H=4; fi
+  view=$(( h - UI_HEADER_H - UI_FOOTER_H ))
+  (( view < 3 )) && view=3
+  total=${#UI_BODY[@]}
+
+  # Keep the cursor inside the window, with one line of context either side.
+  if (( total <= view )); then
+    UI_SCROLL=0
+    view=$total          # tall terminal: let the footer sit under the last row
+  else
+    (( UI_CURSOR_LINE - 1 < UI_SCROLL ))        && UI_SCROLL=$(( UI_CURSOR_LINE - 1 ))
+    (( UI_CURSOR_LINE + 2 > UI_SCROLL + view )) && UI_SCROLL=$(( UI_CURSOR_LINE + 2 - view ))
+    (( UI_SCROLL > total - view )) && UI_SCROLL=$(( total - view ))
+    (( UI_SCROLL < 0 )) && UI_SCROLL=0
+  fi
+
+  printf '\033[H'
+  _ui_banner
+  local j
+  for (( j = UI_SCROLL; j < UI_SCROLL + view; j++ )); do
+    if (( j < total )); then
+      printf '%s\033[K\n' "${UI_BODY[j]}"
+    else
+      printf '\033[K\n'
     fi
   done
-  local n; n=$(selected_count)
-  printf '\n  %s%s%s\n' "$C_GREY" "$(printf '─%.0s' $(seq 1 "$UI_WIDTH"))" "$C_OFF"
-  printf '  %s%d selected%s   %s✓ already installed   ~ partial   [·] always installed%s\n' \
-    "$C_BOLD" "$n" "$C_OFF" "$C_GREY" "$C_OFF"
+  _ui_footer "$total" "$view"
+  printf '\033[J'
 }
 
 # Read one key, expanding escape sequences to names.
@@ -134,8 +269,10 @@ ui_select_components() {
 
   _ui_build_rows
   UI_CURSOR=$(_ui_first_item)
+  UI_SCROLL=0
+  _ui_enter_screen
   _tput civis
-  trap '_tput cnorm; _tput clear' RETURN
+  trap '_ui_leave_screen' RETURN
 
   while :; do
     _ui_render
@@ -157,7 +294,7 @@ ui_select_components() {
                fi ;;
       a)       _ui_toggle_group ;;
       enter)   return 0 ;;
-      q|esc)   _tput cnorm; _tput clear; die "aborted by the user" ;;
+      q|esc)   _ui_leave_screen; die "aborted by the user" ;;
     esac
   done
 }
