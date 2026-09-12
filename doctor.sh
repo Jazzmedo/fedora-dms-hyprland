@@ -168,6 +168,7 @@ kv "zshrc.d"     "$(ls "${XDG_CONFIG_HOME:-$HOME/.config}/zsh/zshrc.d"/*.zsh 2>/
 sec "login screen"
 kv "configured theme" "$(sddm_configured_theme)"
 kv "theme installed"  "$([[ -f /usr/share/sddm/themes/nothing/Main.qml ]] && echo yes || echo NO)"
+kv "starts at boot"   "$(active_display_manager || echo "none enabled")"
 kv "default target"   "$(systemctl get-default 2>/dev/null)"
 # A QML import the greeter cannot resolve makes SDDM fall back to its own
 # default silently, which looks exactly like the theme never being set.

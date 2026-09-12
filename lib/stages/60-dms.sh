@@ -146,7 +146,10 @@ ensure_quickshell() {
 # it is somebody else's program and the name changes between releases.
 dank_noninteractive_flag() {
   local script=$1 candidate
-  for candidate in --non-interactive --noninteractive --headless --unattended --yes; do
+  # --yes is deliberately not in this list. On that installer it would accept
+  # every optional extra, and one of them is a greeter that replaces the
+  # display manager. The flags here take the defaults, which decline them.
+  for candidate in --non-interactive --noninteractive --headless --unattended; do
     grep -qF -- "$candidate" "$script" && { printf '%s' "$candidate"; return 0; }
   done
   return 0

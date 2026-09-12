@@ -43,6 +43,16 @@ check_sddm_theme() {
     && [[ -f /usr/share/sddm/themes/nothing/Main.qml ]]
 }
 
+# Whichever unit owns display-manager.service is the one that starts. The theme
+# being installed and configured says nothing about that, which is how a
+# different greeter ran for a whole session while every check here passed.
+active_display_manager() {
+  [[ -L /etc/systemd/system/display-manager.service ]] || return 1
+  basename "$(readlink -f /etc/systemd/system/display-manager.service)"
+}
+
+check_display_manager() { [[ $(active_display_manager) == sddm.service ]]; }
+
 check_graphical_target() {
   [[ $(systemctl get-default 2>/dev/null) == graphical.target ]]
 }
@@ -92,6 +102,8 @@ verify_install() {
 
   _verify "The login screen is set to the Nothing theme" \
           "./install.sh --only=sddm" check_sddm_theme
+  _verify "SDDM is the login screen that starts" \
+          "sudo systemctl enable --force sddm" check_display_manager
   _verify "The computer boots to the login screen" \
           "sudo systemctl set-default graphical.target" check_graphical_target
 

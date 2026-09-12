@@ -1,6 +1,41 @@
 # shellcheck shell=bash
 # The Nothing login screen, and the switch from a TTY to a graphical boot.
 
+# Enabling SDDM is not the same as making it the login screen. Whichever
+# display manager owns /etc/systemd/system/display-manager.service is the one
+# that starts, and `systemctl enable sddm` will not take that symlink from
+# another unit: it leaves the existing one alone.
+#
+# The desktop shell'"'"'s own installer offers a greeter, dms-greeter, and its
+# description says plainly that it replaces the current display manager. When
+# that happens, the Nothing theme is installed, configured and never seen.
+make_sddm_the_login_screen() {
+  local current=""
+  [[ -L /etc/systemd/system/display-manager.service ]] && \
+    current=$(basename "$(readlink -f /etc/systemd/system/display-manager.service)")
+
+  if [[ $current == sddm.service ]]; then
+    skip "SDDM is already the login screen"
+    return 0
+  fi
+
+  if [[ -n $current ]]; then
+    warn "${current%.service} is currently the login screen; switching to SDDM"
+    record dm "$current"
+    as_root systemctl disable "$current" || \
+      warn "could not switch ${current%.service} off; SDDM is being forced in anyway"
+  fi
+
+  systemctl is-enabled sddm >/dev/null 2>&1 || record unit-system sddm
+  # --force is what replaces the symlink; without it this is a no-op whenever
+  # anything else already claimed the name.
+  as_root systemctl enable --force sddm \
+    || soft_fail "Could not make SDDM the login screen" \
+                 "systemctl refused to hand it display-manager.service." \
+                 "sudo systemctl enable --force sddm"
+  return 0
+}
+
 stage_sddm() {
 
   local dest=/usr/share/sddm/themes/nothing
@@ -72,8 +107,7 @@ EOF
     record moved /etc/sddm.conf /etc/sddm.conf.fedora-nothing.bak && \
     info "Moved an old login screen config aside so these settings take effect"
 
-  systemctl is-enabled sddm >/dev/null 2>&1 || record unit-system sddm
-  as_root systemctl enable sddm
+  make_sddm_the_login_screen
   # The target as it stands, so uninstall can put it back rather than guess.
   record target "$(systemctl get-default 2>/dev/null)"
   as_root systemctl set-default graphical.target
@@ -81,6 +115,17 @@ EOF
 
   # Read back what SDDM will actually load, rather than trusting that the copy
   # and the config write both landed.
+  local dm=""
+  [[ -L /etc/systemd/system/display-manager.service ]] && \
+    dm=$(basename "$(readlink -f /etc/systemd/system/display-manager.service)")
+  if [[ $dm == sddm.service ]]; then
+    ok "Confirmed: SDDM is the login screen this machine will start"
+  else
+    soft_fail "The login screen that will actually start is ${dm:-none}, not SDDM" \
+              "Another display manager owns display-manager.service." \
+              "sudo systemctl disable ${dm:-greetd} && sudo systemctl enable --force sddm"
+  fi
+
   local active
   active=$(sed -n 's/^Current=//p' /etc/sddm.conf.d/*.conf /etc/sddm.conf 2>/dev/null | tail -1)
   if [[ $active == nothing ]]; then

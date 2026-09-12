@@ -214,7 +214,7 @@ remove_path() {
 declare -a IGNORED_PATHS=()
 declare -a P_FILES=() P_PKGS=() P_FLATPAKS=() P_COPRS=() P_REPOFILES=()
 declare -a P_UNITS_USER=() P_UNITS_SYSTEM=() P_MOVED=() P_EDITED=() P_BACKUPS=()
-P_SHELL_USER=""; P_SHELL_WAS=""; P_TARGET=""
+P_SHELL_USER=""; P_SHELL_WAS=""; P_TARGET=""; P_DM=""
 
 # Packages whose removal would break the machine rather than the desktop.
 CRITICAL_PKGS=" kernel kernel-core dnf dnf5 rpm systemd glibc bash sudo NetworkManager selinux-policy grub2-common shim "
@@ -240,6 +240,7 @@ build_plan() {
   first=$(collect shell | head -1)
   P_SHELL_USER=${first%%$'\t'*}; P_SHELL_WAS=${first#*$'\t'}
   P_TARGET=$(collect target | head -1); P_TARGET=${P_TARGET%%$'\t'*}
+  P_DM=$(collect dm | head -1); P_DM=${P_DM%%$'\t'*}
 }
 
 count_line() {
@@ -271,6 +272,8 @@ show_plan() {
     "$C_BOLD" "$C_OFF" "$P_SHELL_WAS"
   [[ -n $P_TARGET ]] && printf '    %s   ·%s  the computer boots to %s again\n' \
     "$C_BOLD" "$C_OFF" "$P_TARGET"
+  [[ -n $P_DM ]] && printf '    %s   ·%s  %s becomes the login screen again\n' \
+    "$C_BOLD" "$C_OFF" "${P_DM%.service}"
   (( RESTORE )) && count_line "${#P_BACKUPS[@]}" "backups to put back afterwards"
 
   if (( ${#P_EDITED[@]} )); then
@@ -322,6 +325,14 @@ undo_services() {
     as_root systemctl disable --now "$u" || true
   done
   (( ${#P_UNITS_SYSTEM[@]} )) && ok "Switched off the system services it turned on"
+  return 0
+}
+
+undo_display_manager() {
+  [[ -n $P_DM ]] || return 0
+  systemctl list-unit-files "$P_DM" >/dev/null 2>&1 || return 0
+  as_root systemctl enable --force "$P_DM" \
+    && ok "${P_DM%.service} is the login screen again"
   return 0
 }
 
@@ -453,6 +464,7 @@ main() {
 
   step "Services"
   undo_services
+  undo_display_manager
   undo_boot_target
   undo_login_shell
 
