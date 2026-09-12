@@ -1,9 +1,11 @@
 // Rewritten by matugen on every DMS theme change; edit this file, not the copy
 // at ~/.config/fastfetch/config.jsonc.
 //
-// No frames. Each row is a name, a rule in the theme's accent colour, and the
-// value. The rules are hand-padded to a fixed width because fastfetch aligns
-// on the separator, not on the key text.
+// No frames. One vertical rule in the theme's accent colour runs from the top
+// row to the bottom, with the names on its left and the values on its right.
+// Every key is padded by hand to the same character count, which is what keeps
+// the rule straight; fastfetch's own keyWidth aligns the value column instead
+// and leaves the separator wherever the name happens to end.
 {
     "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
     "logo": {
@@ -29,72 +31,83 @@
         "break",
         {
             "type": "custom",
-            "format": "\u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m\u001b[1mH A R D W A R E\u001b[0m"
+            "format": "",
+            "key": "\u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m\u001b[1mHARDWARE     \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m│\u001b[0m"
         },
         {
             "type": "os",
-            "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  OS \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m────────────────\u001b[0m"
+            "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  OS        \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m│\u001b[0m"
         },
         {
             "type": "host",
-            "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  Host \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m──────────────\u001b[0m"
+            "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  Host      \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m│\u001b[0m"
         },
         {
             "type": "kernel",
-            "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  Kernel \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m────────────\u001b[0m"
+            "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  Kernel    \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m│\u001b[0m"
         },
         {
             "type": "cpu",
-            "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  CPU \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m───────────────\u001b[0m"
+            "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  CPU       \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m│\u001b[0m"
         },
         {
             "type": "gpu",
-            "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  GPU \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m───────────────\u001b[0m",
+            "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  GPU       \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m│\u001b[0m",
             "detectionMethod": "all"
         },
         {
             "type": "memory",
-            "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  Memory \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m────────────\u001b[0m"
+            "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  Memory    \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m│\u001b[0m"
         },
         {
             "type": "disk",
-            "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  Disk \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m──────────────\u001b[0m",
+            "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  Disk      \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m│\u001b[0m",
             "folders": "/"
         },
-        "break",
         {
             "type": "custom",
-            "format": "\u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m\u001b[1mD E S K T O P\u001b[0m"
+            "format": "",
+            "key": "             \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m│\u001b[0m"
+        },
+        {
+            "type": "custom",
+            "format": "",
+            "key": "\u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m\u001b[1mDESKTOP      \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m│\u001b[0m"
         },
         {
             "type": "de",
-            "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  Desktop \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m───────────\u001b[0m"
+            "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  Desktop   \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m│\u001b[0m"
         },
         {
             "type": "wm",
-            "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  Session \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m───────────\u001b[0m"
+            "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  Session   \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m│\u001b[0m"
         },
         {
             "type": "display",
-            "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  Display \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m───────────\u001b[0m",
+            "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  Display   \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m│\u001b[0m",
             "compactType": "original-with-refresh-rate"
         },
-        "break",
         {
             "type": "custom",
-            "format": "\u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m\u001b[1mS Y S T E M\u001b[0m"
+            "format": "",
+            "key": "             \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m│\u001b[0m"
+        },
+        {
+            "type": "custom",
+            "format": "",
+            "key": "\u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m\u001b[1mSYSTEM       \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m│\u001b[0m"
         },
         {
             "type": "packages",
-            "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  Packages \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m──────────\u001b[0m"
+            "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  Packages  \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m│\u001b[0m"
         },
         {
             "type": "uptime",
-            "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  Uptime \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m────────────\u001b[0m"
+            "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  Uptime    \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m│\u001b[0m"
         },
         {
             "type": "disk",
-            "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  Age \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m───────────────\u001b[0m",
+            "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  Age       \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m│\u001b[0m",
             "keyIcon": "󰃭",
             "folders": "/",
             "format": "{create-time:10} [{days} days]"

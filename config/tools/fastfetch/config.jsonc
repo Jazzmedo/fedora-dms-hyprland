@@ -26,72 +26,83 @@
         "break",
         {
             "type": "custom",
-            "format": "\u001b[38;2;215;25;33m\u001b[1mH A R D W A R E\u001b[0m"
+            "format": "",
+            "key": "\u001b[38;2;215;25;33m\u001b[1mHARDWARE     \u001b[38;2;215;25;33m│\u001b[0m"
         },
         {
             "type": "os",
-            "key": "\u001b[38;2;200;200;200m{icon}  OS \u001b[38;2;215;25;33m────────────────\u001b[0m"
+            "key": "\u001b[38;2;200;200;200m{icon}  OS        \u001b[38;2;215;25;33m│\u001b[0m"
         },
         {
             "type": "host",
-            "key": "\u001b[38;2;200;200;200m{icon}  Host \u001b[38;2;215;25;33m──────────────\u001b[0m"
+            "key": "\u001b[38;2;200;200;200m{icon}  Host      \u001b[38;2;215;25;33m│\u001b[0m"
         },
         {
             "type": "kernel",
-            "key": "\u001b[38;2;200;200;200m{icon}  Kernel \u001b[38;2;215;25;33m────────────\u001b[0m"
+            "key": "\u001b[38;2;200;200;200m{icon}  Kernel    \u001b[38;2;215;25;33m│\u001b[0m"
         },
         {
             "type": "cpu",
-            "key": "\u001b[38;2;200;200;200m{icon}  CPU \u001b[38;2;215;25;33m───────────────\u001b[0m"
+            "key": "\u001b[38;2;200;200;200m{icon}  CPU       \u001b[38;2;215;25;33m│\u001b[0m"
         },
         {
             "type": "gpu",
-            "key": "\u001b[38;2;200;200;200m{icon}  GPU \u001b[38;2;215;25;33m───────────────\u001b[0m",
+            "key": "\u001b[38;2;200;200;200m{icon}  GPU       \u001b[38;2;215;25;33m│\u001b[0m",
             "detectionMethod": "all"
         },
         {
             "type": "memory",
-            "key": "\u001b[38;2;200;200;200m{icon}  Memory \u001b[38;2;215;25;33m────────────\u001b[0m"
+            "key": "\u001b[38;2;200;200;200m{icon}  Memory    \u001b[38;2;215;25;33m│\u001b[0m"
         },
         {
             "type": "disk",
-            "key": "\u001b[38;2;200;200;200m{icon}  Disk \u001b[38;2;215;25;33m──────────────\u001b[0m",
+            "key": "\u001b[38;2;200;200;200m{icon}  Disk      \u001b[38;2;215;25;33m│\u001b[0m",
             "folders": "/"
         },
-        "break",
         {
             "type": "custom",
-            "format": "\u001b[38;2;215;25;33m\u001b[1mD E S K T O P\u001b[0m"
+            "format": "",
+            "key": "             \u001b[38;2;215;25;33m│\u001b[0m"
+        },
+        {
+            "type": "custom",
+            "format": "",
+            "key": "\u001b[38;2;215;25;33m\u001b[1mDESKTOP      \u001b[38;2;215;25;33m│\u001b[0m"
         },
         {
             "type": "de",
-            "key": "\u001b[38;2;200;200;200m{icon}  Desktop \u001b[38;2;215;25;33m───────────\u001b[0m"
+            "key": "\u001b[38;2;200;200;200m{icon}  Desktop   \u001b[38;2;215;25;33m│\u001b[0m"
         },
         {
             "type": "wm",
-            "key": "\u001b[38;2;200;200;200m{icon}  Session \u001b[38;2;215;25;33m───────────\u001b[0m"
+            "key": "\u001b[38;2;200;200;200m{icon}  Session   \u001b[38;2;215;25;33m│\u001b[0m"
         },
         {
             "type": "display",
-            "key": "\u001b[38;2;200;200;200m{icon}  Display \u001b[38;2;215;25;33m───────────\u001b[0m",
+            "key": "\u001b[38;2;200;200;200m{icon}  Display   \u001b[38;2;215;25;33m│\u001b[0m",
             "compactType": "original-with-refresh-rate"
         },
-        "break",
         {
             "type": "custom",
-            "format": "\u001b[38;2;215;25;33m\u001b[1mS Y S T E M\u001b[0m"
+            "format": "",
+            "key": "             \u001b[38;2;215;25;33m│\u001b[0m"
+        },
+        {
+            "type": "custom",
+            "format": "",
+            "key": "\u001b[38;2;215;25;33m\u001b[1mSYSTEM       \u001b[38;2;215;25;33m│\u001b[0m"
         },
         {
             "type": "packages",
-            "key": "\u001b[38;2;200;200;200m{icon}  Packages \u001b[38;2;215;25;33m──────────\u001b[0m"
+            "key": "\u001b[38;2;200;200;200m{icon}  Packages  \u001b[38;2;215;25;33m│\u001b[0m"
         },
         {
             "type": "uptime",
-            "key": "\u001b[38;2;200;200;200m{icon}  Uptime \u001b[38;2;215;25;33m────────────\u001b[0m"
+            "key": "\u001b[38;2;200;200;200m{icon}  Uptime    \u001b[38;2;215;25;33m│\u001b[0m"
         },
         {
             "type": "disk",
-            "key": "\u001b[38;2;200;200;200m{icon}  Age \u001b[38;2;215;25;33m───────────────\u001b[0m",
+            "key": "\u001b[38;2;200;200;200m{icon}  Age       \u001b[38;2;215;25;33m│\u001b[0m",
             "keyIcon": "󰃭",
             "folders": "/",
             "format": "{create-time:10} [{days} days]"
