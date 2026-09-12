@@ -19,6 +19,7 @@ NO_BACKUP=0
 COLOR_MODE=${COLOR_MODE:-auto}
 KEEP_PACKAGES=0
 KEEP_FILES=0
+SWEEP=1
 RESTORE=1
 MANIFESTS=()
 FROM_LOGS=()
@@ -27,6 +28,12 @@ FROM_LOGS=()
 source "$REPO_DIR/lib/common.sh"
 # shellcheck source=lib/progress.sh
 source "$REPO_DIR/lib/progress.sh"
+# shellcheck source=lib/components.sh
+source "$REPO_DIR/lib/components.sh"
+# shellcheck source=lib/detect.sh
+source "$REPO_DIR/lib/detect.sh"
+# shellcheck source=lib/artifacts.sh
+source "$REPO_DIR/lib/artifacts.sh"
 
 LOG_FILE="$REPO_DIR/logs/uninstall-$(date +%Y%m%d-%H%M%S).log"
 mkdir -p "$(dirname "$LOG_FILE")" 2>/dev/null || LOG_FILE=""
@@ -44,6 +51,9 @@ usage() {
                          before the installer kept records
     --keep-packages      leave installed programs alone, remove only settings
     --keep-files         remove programs and services, leave settings in place
+    --recorded-only      undo only what the records list, and sweep nothing.
+                         Without this, everywhere this installer or the
+                         installers it runs can leave something is swept too
     --no-restore         do not put replaced files back from the backup
     --list               show the records available and exit
     -h, --help           this
@@ -62,6 +72,7 @@ while (( $# )); do
     --keep-packages) KEEP_PACKAGES=1 ;;
     --keep-files)    KEEP_FILES=1 ;;
     --no-restore)    RESTORE=0 ;;
+    --recorded-only) SWEEP=0 ;;
     --color=*)       COLOR_MODE=${1#*=}; set_colors ;;
     --list)          LIST_ONLY=1 ;;
     -h|--help)       usage; exit 0 ;;
@@ -89,6 +100,7 @@ ENTRY_KIND=()
 ENTRY_A=()
 ENTRY_B=()
 INFERRED=0
+SWEPT=0
 
 load_entries() {
   local -a files=()
@@ -111,6 +123,8 @@ load_entries() {
     done <"$file"
   done
 
+  (( SWEEP )) && sweep_artifacts
+
   for file in ${FROM_LOGS[@]+"${FROM_LOGS[@]}"}; do
     [[ -r $file ]] || die "Cannot read $file"
     INFERRED=1
@@ -119,6 +133,65 @@ load_entries() {
       ENTRY_KIND+=("$kind"); ENTRY_A+=("${a:-}"); ENTRY_B+=("${b:-}")
     done < <(python3 "$REPO_DIR/lib/manifest_from_log.py" "$file")
   done
+}
+
+
+# Everything the inventory names that is actually on this machine.
+#
+# The records cannot cover a run made before they existed, nor anything another
+# installer did on our behalf: the desktop shell, the music player and the Rust
+# toolchain all arrive through somebody else's script and write where they
+# please. This walks the known locations instead of the history.
+sweep_artifacts() {
+  local x
+  while read -r x; do
+    [[ -n $x ]] || continue
+    [[ -e $x || -L $x ]] && { ENTRY_KIND+=(file); ENTRY_A+=("$x"); ENTRY_B+=(""); }
+  done < <(artifact_home_paths; artifact_system_paths)
+
+  while read -r x; do
+    [[ -n $x ]] || continue
+    systemctl --user list-unit-files "$x" >/dev/null 2>&1 || continue
+    ENTRY_KIND+=(unit-user); ENTRY_A+=("$x"); ENTRY_B+=("")
+  done < <(artifact_user_units)
+
+  while read -r x; do
+    [[ -n $x ]] || continue
+    systemctl is-enabled "$x" >/dev/null 2>&1 || continue
+    ENTRY_KIND+=(unit-system); ENTRY_A+=("$x"); ENTRY_B+=("")
+  done < <(artifact_system_units)
+
+  # One rpm -qa, not ninety rpm -q.
+  detect_snapshot
+  while read -r x; do
+    [[ -n $x ]] || continue
+    pkg_installed "$x" || continue
+    ENTRY_KIND+=(pkg); ENTRY_A+=("$x"); ENTRY_B+=("")
+  done < <(artifact_packages)
+
+  if have flatpak; then
+    while read -r x; do
+      [[ -n $x ]] || continue
+      flatpak_installed "$x" || continue
+      ENTRY_KIND+=(flatpak); ENTRY_A+=("$x"); ENTRY_B+=("")
+    done < <(artifact_flatpaks)
+  fi
+
+  # A copr writes a repo file named after itself. No file, never enabled, and
+  # asking dnf to disable it would only produce noise.
+  while read -r x; do
+    [[ -n $x ]] || continue
+    local slug=${x//\//:}
+    compgen -G "/etc/yum.repos.d/*${slug}*.repo" >/dev/null 2>&1 || continue
+    ENTRY_KIND+=(copr); ENTRY_A+=("$x"); ENTRY_B+=("")
+  done < <(artifact_coprs)
+
+  while read -r x; do
+    [[ -n $x ]] || continue
+    [[ -f $x ]] && { ENTRY_KIND+=(repofile); ENTRY_A+=("$x"); ENTRY_B+=(""); }
+  done < <(artifact_repofiles)
+
+  SWEPT=1
 }
 
 # Collect the values of one kind, newest occurrence first, without repeats.
@@ -217,7 +290,9 @@ declare -a P_UNITS_USER=() P_UNITS_SYSTEM=() P_MOVED=() P_EDITED=() P_BACKUPS=()
 P_SHELL_USER=""; P_SHELL_WAS=""; P_TARGET=""; P_DM=""
 
 # Packages whose removal would break the machine rather than the desktop.
-CRITICAL_PKGS=" kernel kernel-core dnf dnf5 rpm systemd glibc bash sudo NetworkManager selinux-policy grub2-common shim "
+CRITICAL_PKGS=" kernel kernel-core dnf dnf5 rpm systemd systemd-libs systemd-udev \
+glibc bash coreutils util-linux filesystem setup dbus dbus-broker polkit sudo \
+NetworkManager selinux-policy grub2-common shim dracut openssh-server "
 
 build_plan() {
   local a b
@@ -235,6 +310,15 @@ build_plan() {
   while IFS=$'\t' read -r a b; do [[ -n $a ]] && P_MOVED+=("$a"$'\t'"$b"); done < <(collect moved)
   while IFS=$'\t' read -r a b; do [[ -n $a ]] && P_EDITED+=("$a"); done < <(collect edited)
   while IFS=$'\t' read -r a b; do [[ -d $a ]] && P_BACKUPS+=("$a"); done < <(collect backup)
+
+  # Removing SDDM with nothing recorded to fall back on would leave the machine
+  # booting to a graphical target with no way to log in graphically.
+  if (( SWEPT )) && [[ -z $P_TARGET ]]; then
+    local p
+    for p in ${P_PKGS[@]+"${P_PKGS[@]}"}; do
+      [[ $p == sddm ]] && { P_TARGET=multi-user.target; break; }
+    done
+  fi
 
   local first
   first=$(collect shell | head -1)
@@ -287,6 +371,15 @@ show_plan() {
       "$C_WARN" "$C_OFF" "${#IGNORED_PATHS[@]}"
     printf '               owns, so they stay:\n'
     for f in "${IGNORED_PATHS[@]}"; do printf '    %s\n' "${f/#$HOME/\~}"; done
+  fi
+
+  if (( SWEPT )); then
+    printf '\n  %s▲ This is a full removal.%s Everywhere this installer, and the installers\n' \
+      "$C_WARN" "$C_OFF"
+    printf '    it runs, can leave something has been swept, not just what the records\n'
+    printf '    list. A program above may predate your first install: the records know\n'
+    printf '    the difference, a sweep cannot. %s--recorded-only%s undoes only the records.\n' \
+      "$C_BOLD" "$C_OFF"
   fi
 
   if (( INFERRED )); then
@@ -366,6 +459,14 @@ undo_files() {
   done
   ok "Removed $n file(s) and folder(s)"
 
+  # Directories this installer created only to hold what has just gone. Removed
+  # only when empty, so a Wallpapers folder with your own pictures in it stays.
+  local leftover
+  for leftover in "$HOME/Pictures/Wallpapers" "$HOME/SelfHosted" "$HOME/.zsh"; do
+    [[ -d $leftover ]] || continue
+    rmdir "$leftover" 2>/dev/null || true
+  done
+
   local pair from to
   for pair in ${P_MOVED[@]+"${P_MOVED[@]}"}; do
     IFS=$'\t' read -r from to <<< "$pair"
@@ -436,9 +537,10 @@ main() {
 
   load_entries
   if (( ${#ENTRY_KIND[@]} == 0 )); then
-    die "There is no record of an install to undo" \
-        "logs/ holds no manifest, and no --from-log was given." \
-        "./uninstall.sh --list, or ./uninstall.sh --from-log logs/install-*.log"
+    printf '\n  %s✓ Nothing to remove.%s Neither the records nor a sweep of every place\n' \
+      "$C_OK$C_BOLD" "$C_OFF"
+    printf '    this installer writes to found anything on this machine.\n\n'
+    exit 0
   fi
 
   build_plan

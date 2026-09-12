@@ -245,12 +245,24 @@ install are also listed at the end of every run.
 ./uninstall.sh               # ask once, then undo it
 ```
 
-It reads the manifests, not the machine, and reverses what they record:
-services it enabled, files it created, packages it installed, sources it
-added, your login shell, the boot target. Anything absent from a manifest is
-left alone, so a package that was already here before the first install is
-never removed. Files that were replaced rather than created are restored from
-`~/.fedora-nothing-backup/`.
+It does two things. It reverses what the manifests record: services enabled,
+files created, packages installed, sources added, the login shell, the login
+screen, the boot target. Then it sweeps every place this installer, and the
+installers it runs, can leave something, and removes whatever is actually
+there. The sweep is what catches the parts no manifest can know about: the
+desktop shell arrives through `install.danklinux.com`, the music player
+through `cliamp.stream`, the Rust toolchain through `rustup`, and each writes
+where it pleases. It also catches installs made before manifests existed.
+
+Files that were replaced rather than created are restored from
+`~/.fedora-nothing-backup/`. Directories left empty by the removal, such as
+`~/Pictures/Wallpapers`, are pruned; ones with your own files in them are not.
+
+The two halves differ in what they can know. A manifest records that a package
+was absent before the run, so removing it is certainly right. A sweep only sees
+that a package is present now, so it may name one that predates your first
+install. The plan lists every package before anything happens, and
+`--recorded-only` restricts the run to the manifests.
 
 Two safeguards are unconditional. A path is only removed if it lies somewhere
 this installer owns, so `~/Documents`, `~/.ssh` and the like are refused even
@@ -263,6 +275,7 @@ refuses is printed.
 | `--dry-run` | show the plan, change nothing |
 | `--keep-packages` | remove settings, leave the programs |
 | `--keep-files` | remove the programs, leave the settings |
+| `--recorded-only` | undo only the manifests, sweep nothing |
 | `--from-log FILE` | work out an install that predates the manifests |
 | `--list` | show the records available |
 
