@@ -31,7 +31,7 @@ hl.on("hyprland.start", function()
 	-- Keep this ordered: services must inherit the KDE environment before the
 	-- application database is built or DMS launches applications.
 	hl.exec_cmd(
-		"dbus-update-activation-environment --systemd --all && kbuildsycoca6 --noincremental && systemctl --user start dms.service && systemctl --user restart hypr-real-mouse-focus.service && systemctl --user start dms-theme-wallpapers.service"
+		"dbus-update-activation-environment --systemd --all && kbuildsycoca6 --noincremental && systemctl --user daemon-reload && systemctl --user start dms.service && systemctl --user restart hypr-real-mouse-focus.service && systemctl --user start dms-theme-wallpapers.path dms-theme-wallpapers.service"
 	)
 end)
 

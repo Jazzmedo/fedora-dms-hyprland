@@ -553,6 +553,35 @@ EOF
   ok "The lyrics helper will start when you log in"
 }
 
+# Themes this repo used to ship and no longer does, because none of them has a
+# wallpaper collection: choosing one changed every colour on screen and left
+# the desktop picture from the previous theme behind. deploy_tree only adds,
+# so a machine installed before this has to be told to let them go.
+DMS_THEMES_DROPPED=(
+  amoledBlack bru deepsage joziCityNights peaceAndQuiet steamDeck
+  synthwaveElectric
+)
+
+prune_themes_without_wallpapers() {
+  local t removed=0
+  for t in "${DMS_THEMES_DROPPED[@]}"; do
+    [[ -d $DMS_CONFIG/themes/$t ]] || continue
+    run rm -rf "$DMS_CONFIG/themes/$t" && removed=$(( removed + 1 ))
+  done
+  (( removed )) || return 0
+  ok "Removed $removed themes that had no wallpapers"
+
+  # The selected theme may be one of them, which would leave the shell
+  # pointing at a directory that is gone.
+  local settings="$DMS_CONFIG/settings.json"
+  [[ -f $settings ]] || return 0
+  local cur; cur=$(jq -r '.customThemeFile // ""' "$settings" 2>/dev/null) || return 0
+  [[ -n $cur && ! -f $cur ]] || return 0
+  info "The theme you were using is one of those; switching to Nothing Matrix"
+  json_edit "$settings" \
+    "data['customThemeFile'] = '$HOME/.config/DankMaterialShell/themes/nothingMatrix/theme.json'"
+}
+
 # settings.json and plugin_settings.json, rewritten for this install.
 deploy_dms_settings() {
   local src="$REPO_DIR/config/shell-ui/DankMaterialShell"
@@ -560,6 +589,7 @@ deploy_dms_settings() {
   deploy_tree "$src/themes" "$DMS_CONFIG/themes"
   local n; n=$(find "$src/themes" -mindepth 1 -maxdepth 1 2>/dev/null | wc -l)
   ok "Installed $n colour themes"
+  prune_themes_without_wallpapers
 
   backup_path "$DMS_CONFIG/settings.json"
   backup_path "$DMS_CONFIG/plugin_settings.json"

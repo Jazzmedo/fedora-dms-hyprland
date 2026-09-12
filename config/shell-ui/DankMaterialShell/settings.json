@@ -1,24 +1,12 @@
 {
   "currentThemeName": "custom",
   "currentThemeCategory": "registry",
-  "customThemeFile": "@@HOME@@/.config/DankMaterialShell/themes/joziCityNights/theme.json",
+  "customThemeFile": "@@HOME@@/.config/DankMaterialShell/themes/nothingMatrix/theme.json",
   "registryThemeVariants": {
     "catppuccin": {
       "dark": {
         "flavor": "mocha",
         "accent": "lavender"
-      }
-    },
-    "deepsage": {
-      "dark": {
-        "flavor": "sage",
-        "accent": "bright"
-      }
-    },
-    "amoledBlack": {
-      "dark": {
-        "flavor": "black",
-        "accent": "orange"
       }
     },
     "nothingMatrix": {
@@ -27,7 +15,6 @@
         "accent": "signal-red"
       }
     },
-    "peaceAndQuiet": "salmon",
     "gruvboxMaterial": "soft"
   },
   "matugenScheme": "scheme-tonal-spot",

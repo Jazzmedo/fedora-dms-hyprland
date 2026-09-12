@@ -7,6 +7,11 @@ lock="$XDG_RUNTIME_DIR/dms-theme-wallpapers.lock"
 state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/dms-theme-wallpapers"
 theme_state="$state_dir/last-theme"
 
+# Everything printed here lands in the journal:
+#   journalctl --user -u dms-theme-wallpapers -n 40
+# A wallpaper that does not follow the theme is otherwise completely silent.
+log() { printf 'dms-theme-wallpapers: %s\n' "$*" >&2; }
+
 exec 9>"$lock"
 flock -n 9 || exit 0
 
@@ -69,7 +74,7 @@ wait_for_dms() {
 }
 
 if ! wait_for_dms; then
-  printf 'dms-theme-wallpapers: the desktop shell never answered; giving up\n' >&2
+  log "the desktop shell never answered; giving up"
   exit 1
 fi
 
@@ -91,7 +96,11 @@ while IFS= read -r -d '' candidate; do
 done < <(find "$base" -mindepth 1 -maxdepth 1 -type d -print0 | sort -z)
 
 # A theme with no matching folder should not disturb the current wallpapers.
-[[ -n "$collection" ]] || exit 0
+if [[ -z "$collection" ]]; then
+  log "no wallpaper collection for theme '$theme_id' (looked for '$theme_slug' or '$name_slug' in $base)"
+  exit 0
+fi
+log "theme '$theme_id' -> $(basename "$collection")"
 
 list_images() {
   find "$1" -maxdepth 1 -type f \
@@ -170,15 +179,16 @@ for spec in "${outputs[@]}"; do
     # Older and single-output builds take the path without a monitor name.
     applied=$((applied + 1))
   else
-    printf 'dms-theme-wallpapers: could not set %s on %s: %s / %s\n' \
-      "$wanted" "$name" "$err" "$err2" >&2
+    log "could not set $wanted on $name: $err / $err2"
   fi
 done
 
 # Nothing applied means the theme must not stay recorded, or the guard above
 # turns a transient failure into a permanent one.
+log "applied $applied of ${#outputs[@]} outputs from $(basename "$collection")"
+
 if (( applied == 0 )); then
   rm -f "$theme_state"
-  printf 'dms-theme-wallpapers: no wallpaper applied; will retry\n' >&2
+  log "no wallpaper applied; will retry"
   exit 1
 fi

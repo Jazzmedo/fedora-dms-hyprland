@@ -117,8 +117,17 @@ made once can always be changed; `--reset-selection` throws the file away.
 
 **Always** — Hyprland with the hyprgrass touchpad plugin, DankMaterialShell and
 nine plugins, PipeWire with pavucontrol, kitty, Zen, Dolphin, the Nothing SDDM
-theme, the Nothing typefaces, ten DMS themes, three wallpaper collections, and
+theme, the Nothing typefaces, three DMS themes, their wallpaper collections, and
 the XDG associations that route files to the right application.
+
+Every theme ships with a wallpaper collection, and changing the theme changes
+the desktop picture to match. That is the reason there are three of them and
+not ten: a theme with no collection recoloured the whole desktop and left the
+previous picture in place. To add one, drop images into
+`assets/wallpapers/<theme-slug>/horizontal/` and re-run. If a change does not
+follow, the watcher says why:
+
+    journalctl --user -u dms-theme-wallpapers -n 40
 
 The lock screen, clipboard history, colour picker, emoji picker and screenshot
 tools are all driven by DMS over IPC, backed by hyprlock, cliphist, hyprpicker,

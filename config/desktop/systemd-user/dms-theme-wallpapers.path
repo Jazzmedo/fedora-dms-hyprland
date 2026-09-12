@@ -3,8 +3,13 @@ Description=Watch DMS theme selection for matching wallpaper collections
 StartLimitIntervalSec=0
 
 [Path]
+# PathChanged fires when the file is closed after writing, which misses a
+# shell that keeps its settings file open and flushes into it. PathModified
+# catches those, and the service's own guards make a duplicate trigger a
+# no-op.
 PathChanged=%h/.config/DankMaterialShell/settings.json
 PathChanged=%h/.config/DankMaterialShell/session.json
+PathModified=%h/.config/DankMaterialShell/settings.json
 Unit=dms-theme-wallpapers.service
 
 [Install]
