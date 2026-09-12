@@ -219,6 +219,9 @@ detect 'all_of "[[ -e $HOME/.config/DankMaterialShell/plugins/lyricsOnPanel ]]" 
 pkgs "python3 python3-devel dbus-devel glib2-devel pkgconf gcc"
 dms_plugin "lyricsOnPanel"
 
+component strawberry  apps on  "Strawberry"   "music player for a local library, with a Qt interface"
+pkgs "strawberry"
+
 component easyeffects apps on  "EasyEffects"  "audio effects, Handfree/Normal presets"
 pkgs "easyeffects"
 detect 'all_of "pkg_installed easyeffects" "[[ -f $HOME/.config/easyeffects/output/Normal.json ]]"' 

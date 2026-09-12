@@ -131,8 +131,8 @@ backend is built into a virtualenv and run as a user service.
 **Optional** — zsh with oh-my-zsh and starship, Neovim with LazyVim, tmux,
 yazi, the modern CLI set (eza, bat, ripgrep, fd, fzf, trash-cli), btop,
 fastfetch, cava, podman, pyenv, nvm, Rust, Go, Helium, Brave Origin, Vesktop,
-qBittorrent, OBS, Obsidian, CLIAMP, EasyEffects, Tailscale, Cloudflare WARP,
-the niri session, SearXNG, and a set of system tweaks.
+qBittorrent, OBS, Obsidian, CLIAMP, Strawberry, EasyEffects, Tailscale,
+Cloudflare WARP, the niri session, SearXNG, and a set of system tweaks.
 
 ## Layout
 
