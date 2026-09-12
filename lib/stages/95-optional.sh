@@ -4,7 +4,7 @@
 
 stage_optional() {
   local any=0
-  for c in tailscale warp niri searxng; do is_selected "$c" && any=1; done
+  for c in tailscale warp niri; do is_selected "$c" && any=1; done
   (( any )) || { skip "No extras were chosen"; return 0; }
 
 
@@ -42,27 +42,4 @@ stage_optional() {
       soft_fail "niri did not install, so that session is not available" "" "./install.sh --only=packages,optional"
     fi
   fi
-
-  if is_selected searxng; then
-    install_searxng
-  fi
-}
-
-install_searxng() {
-  have podman-compose || { soft_fail "SearXNG needs podman-compose, which is not installed" \
-                        "It runs as a set of containers." \
-                        "sudo dnf install podman-compose"; return 0; }
-  local dest="$HOME/SelfHosted/searxng"
-  if [[ -f $dest/docker-compose.yml ]]; then
-    skip "SearXNG is already set up"
-    return 0
-  fi
-  deploy_tree "$REPO_DIR/config/services/searxng" "$dest" || { soft_fail "The SearXNG files are missing from this repository"; return 0; }
-  # The secret key must not be the one committed to the repo.
-  if [[ -f $dest/.env.example ]] && cp "$dest/.env.example" "$dest/.env"
-  [[ -f $dest/.env ]] && ! (( DRY_RUN )); then
-    local key; key=$(openssl rand -hex 32)
-    sed -i "s|^SEARXNG_SECRET=.*|SEARXNG_SECRET=$key|" "$dest/.env" 2>/dev/null || true
-  fi
-  ok "SearXNG is ready. Start it with: cd ${dest/#$HOME/\~} && podman-compose up -d"
 }

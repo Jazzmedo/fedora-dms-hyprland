@@ -256,10 +256,7 @@ component niri        services off "niri session"    "second Wayland session at 
 pkgs "niri"
 detect 'all_of "pkg_installed niri" "[[ -f $HOME/.config/niri/config.kdl ]]"' 
 
-component searxng     services off "SearXNG"         "self-hosted search via podman-compose"
-detect 'all_of "[[ -f $HOME/SelfHosted/searxng/docker-compose.yml ]]"' 
-
-component tweaks      services off "System tweaks"   "SearXNG search policy, mDNS resolution, writeback cap"
+component tweaks      services off "System tweaks"   "search engine policy, mDNS resolution, writeback cap"
 detect 'all_of "[[ -f /etc/sysctl.d/99-usb-copy-fix.conf ]]" \
                "grep -q mdns4_minimal /etc/nsswitch.conf" \
                "[[ -f /etc/zen/policies/policies.json ]]"' 
