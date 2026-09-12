@@ -123,8 +123,39 @@ install_tool_configs() {
   is_selected mux         && deploy_tree "$REPO_DIR/config/shell/tmux" "$HOME/.config/tmux"
   # starship.toml and fastfetch/config.jsonc are matugen targets, so both get
   # rewritten with the live palette the first time the theme changes.
-  is_selected prompt      && deploy_file "$REPO_DIR/config/shell/starship.toml" "$HOME/.config/starship.toml"
+  if is_selected prompt; then
+    deploy_file "$REPO_DIR/config/shell/starship.toml" "$HOME/.config/starship.toml"
+    ensure_starship
+  fi
   ok "Copied the settings for the smaller tools into place"
+}
+
+# The prompt comes from the starship rpm, installed with --skip-unavailable
+# along with everything else, so a repository that does not carry it drops it
+# without a word. The shell then starts with no prompt configured and nothing
+# says why. Install it from upstream instead of leaving that hole.
+ensure_starship() {
+  have starship && return 0
+  (( DRY_RUN )) && { info "Would install the starship prompt from starship.rs"; return 0; }
+
+  local tmp; tmp=$(mktemp -d)
+  if ! run curl -fsSL -o "$tmp/starship.sh" https://starship.rs/install.sh; then
+    clean_tmp "$tmp"
+    soft_fail "The prompt could not be installed" \
+              "Fedora does not carry the starship package and its own site could not be reached." \
+              "./install.sh --only=shell"
+    return 0
+  fi
+  mkdir -p "$HOME/.local/bin"
+  if run_quiet "Installing the starship prompt" -- \
+       sh "$tmp/starship.sh" --yes --bin-dir "$HOME/.local/bin"; then
+    record file "$HOME/.local/bin/starship"
+    ok "Installed the starship prompt"
+  else
+    soft_fail "The prompt could not be installed" "" "./install.sh --only=shell"
+  fi
+  clean_tmp "$tmp"
+  return 0
 }
 
 install_runtime_managers() {

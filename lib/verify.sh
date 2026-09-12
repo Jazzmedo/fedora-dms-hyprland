@@ -32,6 +32,13 @@ check_login_shell() {
 
 check_zshrc() { [[ -s $HOME/.zshrc ]]; }
 
+# The prompt is drawn by starship or not at all: ~/.zshrc initialises it only
+# when the program is on PATH, so a missing rpm shows up as a plain shell with
+# no error anywhere.
+check_starship() { have starship && [[ -f $HOME/.config/starship.toml ]]; }
+
+check_fastfetch() { have fastfetch && [[ -f $HOME/.config/fastfetch/config.jsonc ]]; }
+
 # The theme SDDM will actually load, which is the last Current= across
 # everything in conf.d plus the legacy file.
 #
@@ -110,6 +117,14 @@ verify_install() {
             "chsh -s $(command -v zsh 2>/dev/null || echo /usr/bin/zsh)" check_login_shell
     _verify "Your ~/.zshrc is written" \
             "./install.sh --only=shell" check_zshrc
+  fi
+  if is_selected prompt; then
+    _verify "The starship prompt is installed" \
+            "./install.sh --only=shell" check_starship
+  fi
+  if is_selected sysinfo; then
+    _verify "fastfetch greets you in a new terminal" \
+            "./install.sh --only=shell" check_fastfetch
   fi
 
   _verify "The login screen is set to the Nothing theme" \

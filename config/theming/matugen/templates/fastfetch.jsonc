@@ -1,80 +1,104 @@
+// Rewritten by matugen on every DMS theme change; edit the template at
+// config/theming/matugen/templates/fastfetch.jsonc, not this copy.
+//
+// No frames. Each row is a name, a rule in the theme's accent colour, and the
+// value. The rules are hand-padded to a fixed width because fastfetch aligns
+// on the separator, not on the key text.
 {
     "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
-    // Right padding trimmed to 1: the info block's fixed cursor jumps ({$4}/{$2})
-    // span ~59 columns, so the info block must start at or before column ~44.
-    // Top padding is mirrored by the leading "break" modules so both columns align.
     "logo": {
         "type": "builtin",
-        "source": "Kubuntu",
-        "padding": { "top": 2, "right": 1 },
-        // One high-contrast accent prevents unrelated Material roles from
-        // producing a mismatched logo on some generated palettes.
+        "source": "Fedora",
+        "padding": {
+            "top": 2,
+            "right": 3
+        },
         "color": {
             "1": "38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}",
             "2": "38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}"
         }
     },
     "display": {
-        "color": { "keys": "white" },
-        "separator": "",
-        "constants": [
-            "──────────────────────────────────────────────",
-            "\u001b[47D",
-            "\u001b[47C",
-            "\u001b[46C"
-        ],
+        "separator": "  ",
+        "color": {
+            "keys": "white"
+        },
         "brightColor": false
     },
     "modules": [
         "break",
+        {
+            "type": "custom",
+            "format": "\u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m  hardware\u001b[0m"
+        },
+        {
+            "type": "os",
+            "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  OS \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m────────────────\u001b[0m"
+        },
+        {
+            "type": "host",
+            "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  Host \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m──────────────\u001b[0m"
+        },
+        {
+            "type": "kernel",
+            "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  Kernel \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m────────────\u001b[0m"
+        },
+        {
+            "type": "cpu",
+            "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  CPU \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m───────────────\u001b[0m"
+        },
+        {
+            "type": "gpu",
+            "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  GPU \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m───────────────\u001b[0m",
+            "detectionMethod": "all"
+        },
+        {
+            "type": "memory",
+            "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  Memory \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m────────────\u001b[0m"
+        },
+        {
+            "type": "disk",
+            "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  Disk \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m──────────────\u001b[0m",
+            "folders": "/"
+        },
         "break",
-
-        // Use one readable accent for every section. Material's secondary and
-        // tertiary roles can legitimately diverge a lot from the chosen theme.
         {
             "type": "custom",
-            "key": "\u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m┌──────────────┬{$1}┐{#keys} \u001b[37D",
-            "format": "\u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m Hardware "
+            "format": "\u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m  desktop\u001b[0m"
         },
-        { "type": "os", "key": "\u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m│ {icon}  Linux     │{$4}│{#keys} {$2}" },
-        { "type": "host", "key": "\u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m│ {icon}  Laptop    │{$4}│{#keys} {$2}", "format": "Dell {2}" },
-        { "type": "cpu", "key": "\u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m│ {icon}  CPU       │{$4}│{#keys} {$2}" },
-        { "type": "memory", "key": "\u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m│ {icon}  RAM       │{$4}│{#keys} {$2}" },
-        { "type": "gpu", "key": "\u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m│ {icon}  GPU       │{$4}│{#keys} {$2}", "detectionMethod": "all" },
-        { "type": "disk", "key": "\u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m│ {icon}  Disk      │{$4}│{#keys} {$2}", "folders": "/:/home" },
-        { "type": "custom", "key": "\u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m└──────────────┴{$1}┘{#keys}", "format": "" },
-
-        // --- SECTION 2: DESKTOP (Indigo #7b88db) ---
+        {
+            "type": "de",
+            "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  Desktop \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m───────────\u001b[0m"
+        },
+        {
+            "type": "wm",
+            "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  Session \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m───────────\u001b[0m"
+        },
+        {
+            "type": "display",
+            "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  Display \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m───────────\u001b[0m",
+            "compactType": "original-with-refresh-rate"
+        },
+        "break",
         {
             "type": "custom",
-            "key": "\u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m┌──────────────┬{$1}┐{#keys} \u001b[37D",
-            "format": "\u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m Desktop "
+            "format": "\u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m  system\u001b[0m"
         },
-        { "type": "de", "key": "\u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m│ {icon}  Desktop   │{$4}│{#keys} {$2}" },
-        { "type": "wm", "key": "\u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m│ {icon}  Session   │{$4}│{#keys} {$2}" },
-        { "type": "display", "key": "\u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m│ {icon}  Display   │{$4}│{#keys} {$2}", "compactType": "original-with-refresh-rate" },
-        { "type": "custom", "key": "\u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m└──────────────┴{$1}┘{#keys}", "format": "" },
-
-        // --- SECTION 3: TERMINAL ---
         {
-            "type": "custom",
-            "key": "\u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m┌──────────────┬{$1}┐{#keys} \u001b[37D",
-            "format": "\u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m Terminal "
+            "type": "packages",
+            "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  Packages \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m──────────\u001b[0m"
         },
-        { "type": "shell", "key": "\u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m│ {icon}  Shell     │{$4}│{#keys} {$2}" },
-        { "type": "terminal", "key": "\u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m│ {icon}  Terminal  │{$4}│{#keys} {$2}" },
-        { "type": "terminalfont", "key": "\u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m│ {icon}  Term Font │{$4}│{#keys} {$2}" },
-        { "type": "packages", "key": "\u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m│ {icon}  Packages  │{$4}│{#keys} {$2}" },
-        { "type": "custom", "key": "\u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m└──────────────┴{$1}┘{#keys}", "format": "" },
-
-        // --- SECTION 4: UPTIME ---
         {
-            "type": "custom",
-            "key": "\u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m┌──────────────┬{$1}┐{#keys} \u001b[36D",
-            "format": "\u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m Uptime "
+            "type": "uptime",
+            "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  Uptime \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m────────────\u001b[0m"
         },
-        { "type": "uptime", "key": "\u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m│ {icon}  Uptime    │{$4}│{#keys} {$2}" },
-        { "type": "disk", "keyIcon": "", "key": "\u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m│   OS Age    │{$4}│{#keys} {$2}", "folders": "/", "format": "{create-time:10} [{days} days]" },
-        { "type": "custom", "key": "\u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m└──────────────┴{$1}┘{#keys}", "format": "" }
+        {
+            "type": "disk",
+            "keyIcon": "",
+            "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  Age \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m───────────────\u001b[0m",
+            "folders": "/",
+            "format": "{create-time:10} [{days} days]"
+        },
+        "break"
     ]
 }
