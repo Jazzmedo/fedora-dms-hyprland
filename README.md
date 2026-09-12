@@ -6,6 +6,9 @@
 
 <img src="assets/screenshots/desktop.png" alt="The desktop" width="880">
 
+<img src="assets/screenshots/workspace.png" alt="btop, Dolphin and cava tiled" width="435">
+<img src="assets/screenshots/tiling.png" alt="the same workspace scrolled" width="435">
+
 ![Fedora](https://img.shields.io/badge/Fedora-41%2B-51A2DA?style=flat-square&logo=fedora&logoColor=white)
 ![Hyprland](https://img.shields.io/badge/Hyprland-Wayland-58E1FF?style=flat-square)
 ![Shell](https://img.shields.io/badge/DankMaterialShell-1.6-A277FF?style=flat-square)
@@ -14,8 +17,9 @@
 </div>
 
 ```sh
-git clone https://github.com/Jazzmedo/fedora-dms-hyprland-setup
-cd fedora-dms-hyprland-setup
+sudo dnf install -y git
+git clone https://github.com/Jazzmedo/fedora-dms-hyprland
+cd fedora-dms-hyprland
 ./install.sh
 ```
 
@@ -50,13 +54,47 @@ Add your own by dropping images into
 
 Everything outside the base desktop is optional and shown in the checklist.
 
-## 💿 Fedora first
+## 💿 Installing
 
-Install from the **Fedora Everything** ISO with the **Fedora Custom Operating
-System** base environment, plus Standard, Hardware Support and the
-NetworkManager submodules. Leave the rest unticked, keep the root account
-disabled, and tick "Make this user administrator". The first boot lands on a
-text console; that is expected.
+### 1 · Fedora
+
+Use the **Fedora Everything** ISO, not a spin: a spin brings a desktop of its
+own that would fight this one. Anaconda's **Software Selection** screen decides
+what you start from.
+
+| Software Selection | Choose |
+|---|---|
+| Base Environment | **Fedora Custom Operating System** |
+| Standard | ✅ tick |
+| Hardware Support | ✅ tick, or Wi-Fi and GPU firmware may be missing |
+| Common NetworkManager Submodules | ✅ tick |
+| Guest Agents | ✅ only in a virtual machine |
+| everything else | leave unticked |
+
+Also on the summary screen: set the hostname, switch the network **on** before
+you start, leave the root account **disabled**, and tick **Make this user
+administrator** for your own account. The installer needs sudo and never wants
+a root login.
+
+The first boot lands on a text console with no desktop. That is expected, and
+it is what this repository is for.
+
+### 2 · git
+
+Nothing else is needed first, but the Custom base environment does not include
+git, so install it and clone:
+
+```sh
+sudo dnf install -y git
+git clone https://github.com/Jazzmedo/fedora-dms-hyprland
+cd fedora-dms-hyprland
+./install.sh
+```
+
+Run it as your own user, logged in at the console, never over `su` or a bare
+SSH session: those have no user bus, and the shell's services cannot be enabled
+without one. Everything else, including the graphics driver, is worked out and
+installed for you.
 
 ## ⚙️ Options
 
