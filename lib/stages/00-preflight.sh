@@ -27,6 +27,7 @@ stage_preflight() {
   local t; for t in "${need[@]}"; do have "$t" || missing+=("$t"); done
   if (( ${#missing[@]} )); then
     info "Installing a few tools the installer itself needs"
+    record_new_pkgs "${missing[@]}"
     as_root dnf install -y "${missing[@]}" || die "Could not install the tools the installer needs: ${missing[*]}" \
          "The download failed, usually because of the network." \
          "Check your connection, then run ./install.sh again."

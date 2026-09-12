@@ -25,6 +25,7 @@ install_wallpapers() {
       continue
     fi
     run mkdir -p "$dest/$name/horizontal" "$dest/$name/vertical"
+    record file "$dest/$name"
     run cp -a "$set_dir/horizontal/." "$dest/$name/horizontal/"
     ok "Added $want_n $name wallpapers"
   done

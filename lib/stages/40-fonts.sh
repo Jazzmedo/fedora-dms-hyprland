@@ -12,6 +12,7 @@ stage_fonts() {
   else
     as_root mkdir -p "$dest"
     as_root cp "$REPO_DIR"/assets/fonts/nothing/*.otf "$dest/"
+    record file "$dest"
     ok "Installed the Nothing typefaces: Ndot 55, Ndot 57 and NType 82"
   fi
 
@@ -25,6 +26,7 @@ stage_fonts() {
       as_root mkdir -p "$nerd"
       run tar -xf "$tmp/jb.tar.xz" -C "$tmp"
       as_root bash -c "cp '$tmp'/*.ttf '$nerd'/"
+      record file "$nerd"
       ok "Installed JetBrains Mono, the typeface the terminal and editor use"
     else
       soft_fail "Could not download the terminal typeface" \
@@ -69,6 +71,7 @@ stage_fonts() {
   </alias>
 </fontconfig>
 XML
+    record file "$conf"
     ok "Set Ndot 57 as the system font and JetBrains Mono for code"
   fi
 
@@ -82,12 +85,14 @@ XML
     skip "The mouse cursor theme is already installed"
   else
     run tar -xf "$REPO_DIR/assets/icons/Afterglow-cursors.tar.zst" -C "$icons"
+    record file "$icons/Afterglow-cursors"
     ok "Installed the Afterglow mouse cursors"
   fi
   if [[ -d "$icons/Cawnonical Mono-Glyph Icon Suite (White)" ]]; then
     skip "The icon set is already installed"
   else
     run tar -xf "$REPO_DIR/assets/icons/cawnonical-mono-glyph-white.tar.zst" -C "$icons"
+    record file "$icons/Cawnonical Mono-Glyph Icon Suite (White)"
     ok "Installed the Cawnonical icon set"
   fi
 }

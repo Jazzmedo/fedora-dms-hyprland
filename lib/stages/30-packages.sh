@@ -14,6 +14,8 @@ stage_packages() {
     skip "Every program you chose is already installed"
   else
     info "${#missing[@]} still to download. This is the long part; leave it running."
+    # Recorded before the transaction, while "absent" is still true of them.
+    record_new_pkgs "${missing[@]}"
     if ! as_root dnf install -y --skip-unavailable "${missing[@]}"; then
       die "Installing the programs failed" \
           "Usually the connection dropped partway through, or a download source is temporarily down." \
@@ -69,6 +71,7 @@ stage_packages() {
         skip "$f is already installed"
       else
         run_visible flatpak install -y --noninteractive flathub "$f" \
+          && record flatpak "$f" \
           || soft_fail "Could not install $f" \
                "The download from Flathub failed." \
                "./install.sh --only=packages"

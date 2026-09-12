@@ -29,11 +29,23 @@ declare -A DMS_PLUGIN_VENDOR=(
 
 stage_dms() {
   ensure_quickshell
-  install_dms_runtime
-  verify_dms_shell
-  install_dms_plugins
-  deploy_dms_settings
-  fix_dms_service_path
+
+  # The shell itself comes from a download that can fail. When it does, the
+  # settings and plugins are still worth putting in place: they are files, they
+  # need no running shell, and a later ./install.sh --only=dms then has only
+  # the download left to do. Taking the whole run down for this cost six later
+  # stages -- the login screen among them -- for one unreachable server.
+  if install_dms_runtime; then
+    verify_dms_shell
+    install_dms_plugins
+    deploy_dms_settings
+    fix_dms_service_path
+  else
+    install_dms_plugins
+    deploy_dms_settings
+    warn "Your settings are in place, but the desktop shell itself is not installed yet"
+    info "When the connection is working: ./install.sh --only=dms"
+  fi
 }
 
 # The unit shipped in this repo hardcodes /usr/bin/dms, which is where the
@@ -142,14 +154,32 @@ install_dms_runtime() {
     info '$ curl -fsSL https://install.danklinux.com | sh'
     return 0
   fi
-  if ! curl -fsSL https://install.danklinux.com | sh; then
-    die "The desktop shell installer failed" \
-        "It downloads from the internet, so this is usually a connection problem." \
-        "Check your connection, then run ./install.sh again."
+  # Three attempts: the failure this hits in practice is upstream's version
+  # lookup against GitHub timing out, which is usually over by the second try.
+  local attempt ok_run=0
+  for attempt in 1 2 3; do
+    if run_visible bash -c 'curl -fsSL https://install.danklinux.com | sh'; then
+      ok_run=1; break
+    fi
+    (( attempt < 3 )) && {
+      warn "the desktop shell download failed, trying again ($attempt of 3)"
+      sleep $(( attempt * 5 ))
+    }
+  done
+
+  if (( ! ok_run )) || ! have dms; then
+    soft_fail "The desktop shell could not be downloaded" \
+        "Its installer could not reach GitHub to find out which version to fetch. Everything else on this machine is unaffected." \
+        "When the connection is working: ./install.sh --only=dms"
+    return 1
   fi
-  have dms || die "The desktop shell installer finished but did not leave a working program" \
-                 "The dms command is still not found." \
-                 "Try running it by hand: curl -fsSL https://install.danklinux.com | sh"
+  # The upstream installer decides its own paths, so what it left is read back
+  # rather than assumed.
+  local dms_bin; dms_bin=$(command -v dms 2>/dev/null)
+  [[ -n $dms_bin ]] && record file "$dms_bin"
+  local qs_bin; qs_bin=$(command -v quickshell 2>/dev/null)
+  [[ -n $qs_bin ]] && record file "$qs_bin"
+  record note "the desktop shell came from https://install.danklinux.com"
   ok "Installed the desktop shell"
 }
 
@@ -272,6 +302,9 @@ install_one_plugin() {
   else
     run ln -sfn ".repos/$hash/$sub" "$plugins/$name"
   fi
+  record file "$plugins/$name"
+  record file "$dir"
+  record file "$plugins/$name.meta"
   (( DRY_RUN )) || printf 'repo=%s\npath=%s\nrepodir=%s\nbranch=%s\n' \
     "$repo" "$sub" "$hash" "${branch:-HEAD}" > "$plugins/$name.meta"
   ok "Installed the $name add-on"
@@ -341,6 +374,7 @@ install_lyrics_backend() {
   # The sources are refreshed every run, since the vendored copy is what
   # changes; only the virtualenv is expensive enough to reuse.
   run mkdir -p "$dest"
+  record file "$dest"
   run rsync -a --exclude='.venv' "$repo_dir/backend/" "$dest/backend/" \
     || run cp -a "$repo_dir/backend/." "$dest/backend/"
 
@@ -381,7 +415,7 @@ RestartSec=5
 WantedBy=default.target
 EOF
   run systemctl --user daemon-reload
-  run systemctl --user enable "$unit" || soft_fail "Could not set the lyrics helper to start automatically" "" "systemctl --user enable $unit"
+  run systemctl --user enable "$unit" && record unit-user "$unit" || soft_fail "Could not set the lyrics helper to start automatically" "" "systemctl --user enable $unit"
   ok "The lyrics helper will start when you log in"
 }
 

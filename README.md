@@ -224,8 +224,44 @@ the systemd user units, and the warnings and errors from the newest installer
 log. Home paths, the username, the hostname, email addresses and anything
 shaped like a token are redacted, so the result is safe to paste.
 
-The raw log is at `~/.cache/fedora-nothing/install-<timestamp>.log`. Steps that
-fail without stopping the install are also listed at the end of every run.
+Every run leaves two files in `logs/` inside this repository: the full log,
+`install-<timestamp>.log`, and a record of what it changed,
+`install-<timestamp>.manifest`. `latest.log` and `latest.manifest` point at the
+newest pair. They are ignored by git. If the repository is not writable they
+fall back to `~/.cache/fedora-nothing/`. Steps that fail without stopping the
+install are also listed at the end of every run.
+
+### Removing it again
+
+```sh
+./uninstall.sh --dry-run     # show what would go, change nothing
+./uninstall.sh               # ask once, then undo it
+```
+
+It reads the manifests, not the machine, and reverses what they record:
+services it enabled, files it created, packages it installed, sources it
+added, your login shell, the boot target. Anything absent from a manifest is
+left alone, so a package that was already here before the first install is
+never removed. Files that were replaced rather than created are restored from
+`~/.fedora-nothing-backup/`.
+
+Two safeguards are unconditional. A path is only removed if it lies somewhere
+this installer owns, so `~/Documents`, `~/.ssh` and the like are refused even
+if a manifest names them, and a short list of packages that would break the
+system rather than the desktop is never handed to `dnf remove`. Anything it
+refuses is printed.
+
+| Option | |
+|---|---|
+| `--dry-run` | show the plan, change nothing |
+| `--keep-packages` | remove settings, leave the programs |
+| `--keep-files` | remove the programs, leave the settings |
+| `--from-log FILE` | work out an install that predates the manifests |
+| `--list` | show the records available |
+
+`--from-log` is the fallback for a machine installed before this existed. It
+infers the same list from the prose log, which cannot say what was already
+present beforehand, so it prints a warning and you should read the plan.
 
 ### Pulling changes back
 

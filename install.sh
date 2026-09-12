@@ -105,9 +105,23 @@ for f in "$REPO_DIR"/lib/stages/*.sh; do
   source "$f"
 done
 
-LOG_FILE="$HOME/.cache/fedora-nothing/install-$(date +%Y%m%d-%H%M%S).log"
-mkdir -p "$(dirname "$LOG_FILE")"
+# Both files live in the repository, next to the installer that wrote them, so
+# they are where you already are when something goes wrong and they survive a
+# cache clear. If the repository is not writable -- a read-only clone, or run
+# from a different user -- they fall back to the cache directory.
+RUN_STAMP=$(date +%Y%m%d-%H%M%S)
+LOG_DIR="$REPO_DIR/logs"
+mkdir -p "$LOG_DIR" 2>/dev/null || true
+[[ -w $LOG_DIR ]] || { LOG_DIR="$HOME/.cache/fedora-nothing"; mkdir -p "$LOG_DIR"; }
+
+LOG_FILE="$LOG_DIR/install-$RUN_STAMP.log"
+MANIFEST_FILE="$LOG_DIR/install-$RUN_STAMP.manifest"
 : > "$LOG_FILE"
+: > "$MANIFEST_FILE"
+# A stable name for the newest of each, which is what uninstall.sh reads and
+# what report.sh attaches.
+ln -sfn "install-$RUN_STAMP.log"      "$LOG_DIR/latest.log"      2>/dev/null || true
+ln -sfn "install-$RUN_STAMP.manifest" "$LOG_DIR/latest.manifest" 2>/dev/null || true
 
 trap 'install_exit_trap "$?"' EXIT
 trap 'spin_cleanup; printf "\n"; exit 130' INT
@@ -301,6 +315,10 @@ summary() {
   fi
 
   printf '  %sFull log%s        %s\n' "$C_GREY" "$C_OFF" "${LOG_FILE/#$HOME/\~}"
+  if [[ -n ${MANIFEST_FILE:-} && -s $MANIFEST_FILE ]]; then
+    printf '  %sWhat changed%s    %s  %s(./uninstall.sh reverses it)%s\n' \
+      "$C_GREY" "$C_OFF" "${MANIFEST_FILE/#$HOME/\~}" "$C_GREY" "$C_OFF"
+  fi
   [[ -n $BACKUP_DIR ]] && \
     printf '  %sReplaced files%s  %s\n' "$C_GREY" "$C_OFF" "${BACKUP_DIR/#$HOME/\~}"
 

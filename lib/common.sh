@@ -222,6 +222,58 @@ retry() {
 have()      { command -v "$1" >/dev/null 2>&1; }
 rpm_has()   { rpm -q "$1" >/dev/null 2>&1; }
 
+# --------------------------------------------------------------- ledger ---
+# What this run changed, in a form a machine can undo.
+#
+# The prose log says what was attempted; it cannot say what was already there.
+# "dnf install -y kitty" appears identically whether kitty arrived with this
+# run or three months ago, and removing what the machine already had is the one
+# mistake an uninstaller must not make. So every change that is ours to reverse
+# is also appended here as a tab-separated line, and uninstall.sh replays it
+# backwards. Anything not in this file is left alone.
+#
+#   file <path>            a file or directory this run put there
+#   pkg <name>             an rpm that was absent before this run installed it
+#   flatpak <id>           a flatpak this run installed
+#   copr <owner/project>   a community source this run enabled
+#   repofile <path>        a .repo file this run added
+#   unit-user <unit>       a user service this run enabled
+#   unit-system <unit>     a system service this run enabled
+#   symlink <path>         a link this run created
+#   edited <path>          an existing file this run modified in place
+#   moved <from> <to>      a file this run renamed out of the way
+#   shell <user> <before>  the login shell as it was before chsh
+#   target <before>        the systemd default target as it was before
+#   backup <dir>           where the originals of edited files were copied
+MANIFEST_FILE=${MANIFEST_FILE:-}
+
+record() {
+  [[ -n $MANIFEST_FILE ]] || return 0
+  (( DRY_RUN )) && return 0
+  local kind=$1; shift
+  printf '%s\t%s\n' "$kind" "$(IFS=$'\t'; printf '%s' "$*")" >>"$MANIFEST_FILE"
+  return 0
+}
+
+# Record only the rpms that are not already on the machine, before installing
+# them. Called with the same list that is about to be handed to dnf.
+record_new_pkgs() {
+  local p
+  for p in "$@"; do
+    [[ $p == -* ]] && continue
+    rpm_has "$p" || record pkg "$p"
+  done
+  return 0
+}
+
+# Record an rpm file's package name, for the ones fetched from GitHub.
+record_rpm_file() {
+  local f=$1 name
+  name=$(rpm -qp --qf '%{NAME}' "$f" 2>/dev/null) || return 0
+  [[ -n $name ]] && ! rpm_has "$name" && record pkg "$name"
+  return 0
+}
+
 # --------------------------------------------------------------- backups ---
 # Anything the installer is about to clobber is moved here first, preserving
 # the path relative to $HOME so a restore is a plain `cp -a` back.
@@ -233,11 +285,13 @@ backup_path() {
   if [[ -z $BACKUP_DIR ]]; then
     BACKUP_DIR="$HOME/.fedora-nothing-backup/$(date +%Y%m%d-%H%M%S)"
     run mkdir -p "$BACKUP_DIR"
+    record backup "$BACKUP_DIR"
     info "Anything replaced is being copied to ${BACKUP_DIR/#$HOME/\~} first"
   fi
   local rel=${target#"$HOME"/}
   run mkdir -p "$BACKUP_DIR/$(dirname "$rel")"
   run cp -a "$target" "$BACKUP_DIR/$rel"
+  record edited "$target"
 }
 
 # ------------------------------------------------------------ templating ---
@@ -289,6 +343,7 @@ deploy_file() {
     strip_unselected "$dest"
   fi
   [[ -n $mode ]] && run chmod "$mode" "$dest"
+  record file "$dest"
   return 0
 }
 
@@ -299,6 +354,7 @@ deploy_tree() {
   backup_path "$dest"
   run mkdir -p "$dest"
   run cp -aL "$src/." "$dest/"
+  record file "$dest"
   (( DRY_RUN )) && return 0
   local f
   while IFS= read -r -d '' f; do
@@ -313,6 +369,7 @@ deploy_tree() {
 ini_set() {
   local file=$1 section=$2 key=$3 value=$4
   run mkdir -p "$(dirname "$file")"
+  if [[ -e $file ]]; then record edited "$file"; else record file "$file"; fi
   (( DRY_RUN )) && { _log_raw "DRY   ini [$section] $key=$value -> $file"; return 0; }
   python3 - "$file" "$section" "$key" "$value" <<'PY'
 import sys, os, re

@@ -21,6 +21,7 @@ install_browser_policies() {
     [[ -d ${dir%/*} || $dir == /etc/* ]] || continue
     as_root mkdir -p "$dir"
     as_root cp "$ff" "$dir/policies.json"
+    record file "$dir/policies.json"
   done
   ok "Set your custom search engine in Zen and Firefox"
 
@@ -28,6 +29,7 @@ install_browser_policies() {
              /etc/opt/chrome/policies/managed /etc/helium/policies/managed; do
     as_root mkdir -p "$dir"
     as_root cp "$cr" "$dir/searxng_policy.json"
+    record file "$dir/searxng_policy.json"
   done
   ok "Set your custom search engine in Chromium, Brave, Chrome and Helium"
 }
@@ -41,15 +43,17 @@ configure_nsswitch() {
     return 0
   fi
   as_root cp /etc/nsswitch.conf /etc/nsswitch.conf.fedora-nothing.bak
+  record edited /etc/nsswitch.conf
   as_root sed -i "s|^hosts:.*|$want|" /etc/nsswitch.conf
   grep -q '^hosts:' /etc/nsswitch.conf || as_root bash -c "printf '%s\n' '$want' >> /etc/nsswitch.conf"
   ok "Set up name lookup so devices on your network resolve by name"
 
   if ! rpm_has nss-mdns; then
+    record_new_pkgs nss-mdns avahi
     as_root dnf install -y nss-mdns avahi || soft_fail "Could not install the local name lookup service" \
          "Addresses ending in .local will not work." \
          "sudo dnf install nss-mdns avahi"
-    as_root systemctl enable --now avahi-daemon || true
+    as_root systemctl enable --now avahi-daemon && record unit-system avahi-daemon || true
   fi
 }
 
@@ -60,6 +64,7 @@ install_sysctl() {
     return 0
   fi
   as_root cp "$REPO_DIR/config/system/sysctl/99-usb-copy-fix.conf" "$f"
+  record file "$f"
   as_root sysctl --system >/dev/null
   ok "Copying to USB drives will no longer make the system freeze"
 }

@@ -218,10 +218,10 @@ install_systemd_units() {
   for unit in dms.service dms-theme-wallpapers.path dms-dolphin-palette.path \
               hypr-real-mouse-focus.service; do
     [[ -f $dest/$unit ]] || { warn "A startup file is missing: $unit"; continue; }
-    run systemctl --user enable "$unit" || soft_fail "Could not set $unit to start automatically" "" "systemctl --user enable $unit"
+    run systemctl --user enable "$unit" && record unit-user "$unit" || soft_fail "Could not set $unit to start automatically" "" "systemctl --user enable $unit"
   done
   is_selected core && [[ -f $dest/dms-kdeconnect.service ]] && \
-    run systemctl --user enable dms-kdeconnect.service
+    run systemctl --user enable dms-kdeconnect.service && record unit-user dms-kdeconnect.service
 
   run systemctl --user daemon-reload
   ok "The desktop will now start these services when you log in"
@@ -230,6 +230,7 @@ install_systemd_units() {
 install_session_entry() {
   [[ -f /usr/share/wayland-sessions/hyprland.desktop ]] \
     && { skip "Hyprland already appears as a choice on the login screen"; return 0; }
+  record file /usr/share/wayland-sessions/hyprland.desktop
   as_root tee /usr/share/wayland-sessions/hyprland.desktop >/dev/null <<'EOF'
 [Desktop Entry]
 Name=Hyprland
@@ -245,6 +246,17 @@ EOF
 # not take the whole install down: the config guards every hyprgrass call.
 install_hyprgrass() {
   have hyprpm || { skip "Touchpad gestures need a tool that is not installed"; return 0; }
+
+  # hyprpm asks the running compositor which version to build against. From a
+  # text console there is none, so it spends a minute or two cloning Hyprland
+  # and then fails with "HYPRLAND_INSTANCE_SIGNATURE was not set". Skip it here
+  # and say when to run it instead of burning the time on a certain failure.
+  if [[ -z ${HYPRLAND_INSTANCE_SIGNATURE:-} ]]; then
+    skip "Touchpad gestures are set up from inside the desktop, not from here"
+    info "After you log in, run: hyprpm update && hyprpm add https://github.com/horriblename/hyprgrass && hyprpm enable hyprgrass"
+    return 0
+  fi
+
   if hyprpm list 2>/dev/null | grep -q hyprgrass; then
     skip "Touchpad gestures are already set up"
   else

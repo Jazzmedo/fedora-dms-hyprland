@@ -34,11 +34,14 @@ install_zen() {
     as_root mkdir -p "$ZEN_INSTALL_DIR"
     as_root tar -xf "$tmp/zen.tar.xz" -C "$tmp"
     as_root bash -c "cp -a '$tmp/zen/.' '$ZEN_INSTALL_DIR/'"
+    record file "$ZEN_INSTALL_DIR"
     rm -rf "$tmp"
     ok "Installed the Zen browser"
   fi
 
   as_root ln -sfn "$ZEN_INSTALL_DIR/zen" /usr/local/bin/zen
+  record symlink /usr/local/bin/zen
+  record file /usr/share/applications/app.zen_browser.zen.desktop
   as_root tee /usr/share/applications/app.zen_browser.zen.desktop >/dev/null <<EOF
 [Desktop Entry]
 Name=Zen Browser
@@ -71,6 +74,8 @@ install_helium() {
   as_root mkdir -p "$HELIUM_INSTALL_DIR"
   as_root tar -xf "$tmp/helium.tar.xz" -C "$HELIUM_INSTALL_DIR" --strip-components=1
   as_root ln -sfn "$HELIUM_INSTALL_DIR/helium" /usr/local/bin/helium
+  record file "$HELIUM_INSTALL_DIR"
+  record symlink /usr/local/bin/helium
   rm -rf "$tmp"
   ok "Installed the Helium browser"
 }
@@ -109,6 +114,7 @@ install_github_rpm() {
 
   local tmp; tmp=$(mktemp -d)
   if retry 3 curl -fL --progress-bar -o "$tmp/pkg.rpm" "$url"; then
+    record_rpm_file "$tmp/pkg.rpm"
     as_root dnf install -y "$tmp/pkg.rpm" && ok "Installed $label" \
       || soft_fail "Downloaded $label but it would not install" "" "./install.sh --only=apps"
   else

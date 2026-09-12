@@ -10,6 +10,7 @@ stage_optional() {
 
   if is_selected tailscale; then
     if rpm_has tailscale; then
+      systemctl is-enabled tailscaled >/dev/null 2>&1 || record unit-system tailscaled
       as_root systemctl enable --now tailscaled && ok "Tailscale is running" \
         || soft_fail "Could not start Tailscale" "" "sudo systemctl enable --now tailscaled"
       info "To sign in to Tailscale, run: sudo tailscale up"
@@ -22,6 +23,7 @@ stage_optional() {
 
   if is_selected warp; then
     if rpm_has cloudflare-warp; then
+      systemctl is-enabled warp-svc >/dev/null 2>&1 || record unit-system warp-svc
       as_root systemctl enable --now warp-svc && ok "Cloudflare WARP is running" \
         || soft_fail "Could not start Cloudflare WARP" "" "sudo systemctl enable --now warp-svc"
       info "To set up Cloudflare WARP, run: warp-cli registration new"

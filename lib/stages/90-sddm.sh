@@ -10,6 +10,7 @@ stage_sddm() {
   as_root mkdir -p /usr/share/sddm/themes /etc/sddm.conf.d
   as_root rm -rf "$dest"
   as_root cp -r "$REPO_DIR/assets/sddm/nothing" "$dest"
+  record file "$dest"
   # SDDM reads theme.conf.user as an override on top of theme.conf, so shipping
   # both means the override silently wins over anything edited in the base.
   as_root rm -f "$dest/theme.conf.user"
@@ -26,6 +27,7 @@ stage_sddm() {
   local compositor=""
   if ! have weston && ! have kwin_wayland; then
     info "The login screen needs a small compositor to draw on; installing weston"
+    record_new_pkgs weston
     as_root dnf install -y weston >/dev/null 2>&1 || true
   fi
   if have weston;      then compositor="weston --shell=fullscreen-shell.so"
@@ -41,6 +43,7 @@ GreeterEnvironment=QT_WAYLAND_SHELL_INTEGRATION=layer-shell,QT_QPA_PLATFORMTHEME
 [Wayland]
 CompositorCommand=$compositor
 EOF
+    record file /etc/sddm.conf.d/10-wayland.conf
     ok "The login screen will run in modern graphics mode"
   else
     warn "Falling back to the older graphics mode for the login screen"
@@ -61,13 +64,18 @@ InputMethod=
 MaximumUid=60000
 MinimumUid=1000
 EOF
+  record file /etc/sddm.conf.d/20-nothing.conf
   ok "The Nothing theme is now the login screen"
 
   # Fedora's own /etc/sddm.conf, if present, overrides conf.d on some builds.
   [[ -f /etc/sddm.conf ]] && as_root mv /etc/sddm.conf /etc/sddm.conf.fedora-nothing.bak && \
+    record moved /etc/sddm.conf /etc/sddm.conf.fedora-nothing.bak && \
     info "Moved an old login screen config aside so these settings take effect"
 
+  systemctl is-enabled sddm >/dev/null 2>&1 || record unit-system sddm
   as_root systemctl enable sddm
+  # The target as it stands, so uninstall can put it back rather than guess.
+  record target "$(systemctl get-default 2>/dev/null)"
   as_root systemctl set-default graphical.target
   ok "The computer will boot straight to the login screen"
 

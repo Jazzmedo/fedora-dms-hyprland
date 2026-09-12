@@ -16,7 +16,7 @@ install_zsh() {
   local omz="$HOME/.oh-my-zsh"
   if [[ -d $omz ]]; then
     skip "oh-my-zsh is already installed"
-  elif retry 2 git clone --depth 1 https://github.com/ohmyzsh/ohmyzsh.git "$omz"; then
+  elif retry 2 git clone --depth 1 https://github.com/ohmyzsh/ohmyzsh.git "$omz" && record file "$omz"; then
     ok "Installed oh-my-zsh, which manages your shell add-ons"
   else
     soft_fail "Could not download oh-my-zsh" \
@@ -80,8 +80,11 @@ set_login_shell() {
   fi
 
   grep -qx "$zsh_path" /etc/shells 2>/dev/null \
-    || as_root bash -c "printf '%s\n' '$zsh_path' >> /etc/shells"
+    || { as_root bash -c "printf '%s\n' '$zsh_path' >> /etc/shells"; record edited /etc/shells; }
 
+  # The old shell goes in the ledger before it is replaced; there is nowhere
+  # else to read it from afterwards.
+  record shell "$USER" "$current"
   if as_root chsh -s "$zsh_path" "$USER" && [[ $(getent passwd "$USER" | cut -d: -f7) == "$zsh_path" ]]; then
     ok "zsh is now your login shell. This takes effect the next time you log in."
   else
@@ -130,6 +133,7 @@ install_runtime_managers() {
   if [[ -d $HOME/.nvm ]]; then skip "nvm, the Node version manager, is already installed"
   else
     retry 2 git clone --depth 1 https://github.com/nvm-sh/nvm.git "$HOME/.nvm" \
+      && record file "$HOME/.nvm" \
       && ok "Installed nvm, for managing Node versions" \
       || soft_fail "Could not download nvm" "" "./install.sh --only=shell"
   fi
@@ -137,6 +141,7 @@ install_runtime_managers() {
   if [[ -d $HOME/.pyenv ]]; then skip "pyenv, the Python version manager, is already installed"
   else
     retry 2 git clone --depth 1 https://github.com/pyenv/pyenv.git "$HOME/.pyenv" \
+      && record file "$HOME/.pyenv" \
       && ok "Installed pyenv, for managing Python versions" \
       || soft_fail "Could not download pyenv" "" "./install.sh --only=shell"
     [[ -d $HOME/.pyenv ]] && retry 2 git clone --depth 1 \
@@ -151,6 +156,6 @@ install_runtime_managers() {
       || soft_fail "Could not install Rust" "The installer script failed to download." "./install.sh --only=shell"
   fi
 
-  run systemctl --user enable --now podman.socket 2>/dev/null || true
+  run systemctl --user enable --now podman.socket 2>/dev/null && record unit-user podman.socket || true
   ok "The version managers for Node, Python and Rust are ready"
 }

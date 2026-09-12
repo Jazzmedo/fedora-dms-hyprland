@@ -5,6 +5,7 @@ stage_repos() {
   # dnf's stock settings make a 90-package transaction unpleasantly slow.
   if ! grep -q '^max_parallel_downloads' /etc/dnf/dnf.conf 2>/dev/null; then
     as_root bash -c 'printf "max_parallel_downloads=10\nfastestmirror=True\n" >> /etc/dnf/dnf.conf'
+    record edited /etc/dnf/dnf.conf
     ok "Set up Fedora to download several files at once, which is faster"
   else
     skip "Downloads are already set up to run in parallel"
@@ -14,6 +15,7 @@ stage_repos() {
   if rpm_has rpmfusion-free-release && rpm_has rpmfusion-nonfree-release; then
     skip "RPM Fusion, the extra software source, is already set up"
   else
+    record_new_pkgs rpmfusion-free-release rpmfusion-nonfree-release
     as_root dnf install -y \
       "https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-${ver}.noarch.rpm" \
       "https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-${ver}.noarch.rpm" \
@@ -32,6 +34,7 @@ stage_repos() {
       skip "Brave already has a download source"
     else
       as_root dnf config-manager addrepo --from-repofile=https://brave-browser-rpm-release.s3.brave.com/brave-browser.repo \
+        && record repofile /etc/yum.repos.d/brave-browser.repo \
         || soft_fail "Could not reach Brave's download source" \
               "Their server did not respond." \
               "./install.sh --only=repos,packages"
@@ -41,6 +44,7 @@ stage_repos() {
   if is_selected tailscale; then
     [[ -f /etc/yum.repos.d/tailscale.repo ]] && skip "Tailscale already has a download source" || \
       as_root dnf config-manager addrepo --from-repofile="https://pkgs.tailscale.com/stable/fedora/tailscale.repo" \
+        && record repofile /etc/yum.repos.d/tailscale.repo \
         || soft_fail "Could not reach Tailscale's download source" \
               "Their server did not respond." \
               "./install.sh --only=repos,optional"
@@ -49,6 +53,7 @@ stage_repos() {
   if is_selected warp; then
     [[ -f /etc/yum.repos.d/cloudflare-warp.repo ]] && skip "Cloudflare WARP already has a download source" || \
       as_root dnf config-manager addrepo --from-repofile="https://pkg.cloudflareclient.com/cloudflare-warp-ascii.repo" \
+        && record repofile /etc/yum.repos.d/cloudflare-warp-ascii.repo \
         || soft_fail "Could not reach Cloudflare WARP's download source" \
               "Their server did not respond." \
               "./install.sh --only=repos,optional"
@@ -57,7 +62,7 @@ stage_repos() {
   # Flatpak is opt-in: everything else here comes from rpms, which theme and
   # integrate better. Only Gear Lever needs it.
   if is_selected flatpak; then
-    have flatpak || as_root dnf install -y flatpak
+    have flatpak || { record_new_pkgs flatpak; as_root dnf install -y flatpak; }
     run_visible flatpak remote-add --if-not-exists flathub \
       https://dl.flathub.org/repo/flathub.flatpakrepo || soft_fail "Could not add Flathub, where Flatpak apps come from" \
          "Their server did not respond." \
@@ -81,6 +86,7 @@ install_copr_plugin() {
   if dnf --version 2>/dev/null | head -1 | grep -q '^dnf5'; then
     pkg=dnf5-plugins
   fi
+  record_new_pkgs "$pkg"
   as_root dnf install -y "$pkg" || die "Could not install $pkg." \
        "It is what lets Fedora add community software sources, and Hyprland comes from one." \
        "Check your internet connection, then run ./install.sh again."
@@ -133,7 +139,7 @@ enable_hyprland_copr() {
       info "One source has no build for this Fedora version, trying another"
       continue
     fi
-    if as_root dnf copr enable -y "$project"; then
+    if as_root dnf copr enable -y "$project" && record copr "$project"; then
       ok "Added the community source that provides Hyprland"
       return 0
     fi
