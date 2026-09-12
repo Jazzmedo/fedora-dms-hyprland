@@ -81,7 +81,17 @@ repaired_scheme() {
 }
 
 # KColorScheme applications do not paint from the .colors file. They read the
-# [Colors:*] and [ColorEffects:*] sections copied into kdeglobals.
+# [Colors:*] and [ColorEffects:*] sections copied into kdeglobals, and they only
+# re-read them when KConfig raises its change notification.
+#
+# Writing those sections by hand raises nothing, and asking kwriteconfig6 to
+# notify raises nothing either when the value it writes is unchanged, which is
+# why Dolphin used to keep its old palette until it was restarted. The one route
+# that reliably emits the signal is plasma-apply-colorscheme, and it too is a
+# no-op when the named scheme is already the current one. So the palette is
+# applied under two names in turn: every theme change is a change of name.
+#
+# Neither of those names is DankMatugen.colors, which the path unit watches.
 apply_kde_palette() {
   [[ -f $scheme ]] || return 0
   local kdeglobals="$config/kdeglobals"
@@ -91,25 +101,43 @@ apply_kde_palette() {
   local fixed; fixed=$(mktemp "${TMPDIR:-/tmp}/dms-scheme.XXXXXX")
   repaired_scheme "$accent" >"$fixed" || { rm -f "$fixed"; return 0; }
 
-  local tmp="${kdeglobals}.reload.$$"
-  {
-    awk '/^\[/ { drop = ($0 ~ /^\[Colors:/ || $0 ~ /^\[ColorEffects:/) } !drop { print }' "$kdeglobals"
-    awk '/^\[/ { keep = ($0 ~ /^\[Colors:/ || $0 ~ /^\[ColorEffects:/) } keep  { print }' "$fixed"
-  } >"$tmp"
-  chmod --reference="$kdeglobals" "$tmp" 2>/dev/null || true
-  mv "$tmp" "$kdeglobals"
+  local sel; sel=$(awk '
+    /^\[/ { selection = ($0 == "[Colors:Selection]") }
+    selection && /^BackgroundNormal=/ { print substr($0, index($0, "=") + 1); exit }
+  ' "$fixed")
 
-  if have_cmd kwriteconfig6; then
-    local sel; sel=$(awk '
-      /^\[/ { selection = ($0 == "[Colors:Selection]") }
-      selection && /^BackgroundNormal=/ { print substr($0, index($0, "=") + 1); exit }
-    ' "$fixed")
-    # --notify raises the KConfig change signal that KF6 applications watch.
-    kwriteconfig6 --notify --file kdeglobals --group General --key ColorScheme DankMatugen 2>/dev/null || true
-    if [[ -n $sel ]]; then
-      kwriteconfig6 --notify --file kdeglobals --group General --key AccentColor "$sel" 2>/dev/null || true
-      kwriteconfig6 --notify --file kdeglobals --group General --key LastUsedCustomAccentColor "$sel" 2>/dev/null || true
-    fi
+  if have_cmd plasma-apply-colorscheme; then
+    local dir="$HOME/.local/share/color-schemes" current next
+    current=$(awk -F= '
+      /^\[/ { general = ($0 == "[General]") }
+      general && $1 == "ColorScheme" { print $2; exit }
+    ' "$kdeglobals")
+    next=DankMatugenLiveA
+    [[ $current == DankMatugenLiveA ]] && next=DankMatugenLiveB
+
+    mkdir -p "$dir"
+    awk -v name="$next" '
+      /^\[/ { general = ($0 == "[General]") }
+      general && (/^Name=/ || /^ColorScheme=/) { sub(/=.*/, "=" name) }
+      { print }
+    ' "$fixed" >"$dir/$next.colors"
+    plasma-apply-colorscheme "$next" >/dev/null 2>&1 || true
+  else
+    # No Plasma tooling: merge the sections in by hand. Running applications
+    # will not repaint, but anything started afterwards picks the palette up.
+    local tmp="${kdeglobals}.reload.$$"
+    {
+      awk '/^\[/ { drop = ($0 ~ /^\[Colors:/ || $0 ~ /^\[ColorEffects:/) } !drop { print }' "$kdeglobals"
+      awk '/^\[/ { keep = ($0 ~ /^\[Colors:/ || $0 ~ /^\[ColorEffects:/) } keep  { print }' "$fixed"
+    } >"$tmp"
+    chmod --reference="$kdeglobals" "$tmp" 2>/dev/null || true
+    mv "$tmp" "$kdeglobals"
+  fi
+
+  # After the scheme, because applying one rewrites [General].
+  if have_cmd kwriteconfig6 && [[ -n $sel ]]; then
+    kwriteconfig6 --notify --file kdeglobals --group General --key AccentColor "$sel" 2>/dev/null || true
+    kwriteconfig6 --notify --file kdeglobals --group General --key LastUsedCustomAccentColor "$sel" 2>/dev/null || true
     kwriteconfig6 --file kdeglobals --group General --key ColorSchemeHash --delete 2>/dev/null || true
   fi
   rm -f "$fixed"
@@ -159,28 +187,46 @@ reload_toolkits() {
 }
 
 # ---------------------------------------------------------------- dispatch ---
-# One at a time, and a burst of triggers does the work once. The path unit
-# watches four files that the shell writes within a second of each other, so
-# without this every theme change would repaint several times over.
-exec 9>"$runtime/dms-theme-reload.lock"
-flock 9 || exit 0
-sleep 0.4
-
-# A repeat with identical inputs is skipped outright. The shell writes these
-# files twice on some theme changes, and without this the second write costs a
-# visible second repaint of every GTK window.
+# The four watched files are written by the shell over a span of time, not at
+# one instant, so a fingerprint of all four is what says the theme change has
+# landed.
 stamp_file="$runtime/dms-theme-reload.stamp"
 fingerprint() {
   local f
   for f in "$config/kitty/dank-theme.conf" "$config/gtk-3.0/dank-colors.css" \
            "$config/qt6ct/colors/matugen.conf" "$scheme"; do
-    [[ -f $f ]] && stat -c '%Y %s %n' "$f" 2>/dev/null
+    [[ -f $f ]] && stat -c '%.3Y %s %n' "$f" 2>/dev/null
   done
 }
+
+# Wait for those writes to stop rather than for a fixed delay. A fixed delay is
+# either too long on every change or too short on a slow one, and too short
+# meant Strawberry read the qt6ct palette that was still being replaced.
+settle() {
+  local last="" now tries=0
+  while (( tries < 30 )); do
+    now=$(fingerprint)
+    [[ -n $last && $now == "$last" ]] && return 0
+    last=$now
+    sleep 0.15
+    (( tries++ ))
+  done
+  return 0
+}
+
+# One at a time, and a burst of triggers does the work once. The path unit
+# watches four files that the shell writes within a second of each other, so
+# without this every theme change would repaint several times over.
+exec 9>"$runtime/dms-theme-reload.lock"
+flock 9 || exit 0
+settle
 
 case $scope in
   matugen) reload_matugen_outputs ;;
   toolkits)
+    # A repeat with identical inputs is skipped outright. The shell writes these
+    # files twice on some theme changes, and without this the second write costs
+    # a visible second repaint of every GTK window.
     now=$(fingerprint)
     if [[ -f $stamp_file && $now == "$(cat "$stamp_file" 2>/dev/null)" ]]; then
       exit 0
