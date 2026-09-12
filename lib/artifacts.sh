@@ -116,6 +116,7 @@ artifact_system_paths() {
     /opt/zen \
     /opt/helium \
     /etc/sysctl.d/99-usb-copy-fix.conf \
+    /etc/systemd/system/numlock-on.service \
     /etc/zen/policies/policies.json \
     /etc/firefox/policies/policies.json \
     /etc/librewolf/policies.json \
@@ -140,7 +141,7 @@ artifact_user_units() {
 # restored from the manifest, and switching it off blind would leave a machine
 # with no way to log in graphically.
 artifact_system_units() {
-  printf '%s\n' tailscaled warp-svc avahi-daemon
+  printf '%s\n' tailscaled warp-svc avahi-daemon numlock-on.service
 }
 
 # Every package any component can install, whether or not it was ticked.

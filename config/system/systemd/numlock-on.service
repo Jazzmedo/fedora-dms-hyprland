@@ -1,0 +1,13 @@
+[Unit]
+Description=Turn Num Lock on for the text consoles
+Documentation=man:setleds(1)
+# The consoles exist by then; earlier and setleds has nothing to write to.
+After=systemd-user-sessions.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/sh -c 'for t in /dev/tty[1-6]; do /usr/bin/setleds -D +num < "$t" || true; done'
+
+[Install]
+WantedBy=multi-user.target

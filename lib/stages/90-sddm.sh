@@ -36,6 +36,30 @@ make_sddm_the_login_screen() {
   return 0
 }
 
+# Num Lock on the text consoles as well as the login screen. SDDM handles its
+# own greeter with Numlock=on above; the consoles have no such setting, so a
+# one-shot service does it once the terminals exist.
+enable_console_numlock() {
+  local unit=numlock-on.service
+  local src="$REPO_DIR/config/system/systemd/$unit"
+  [[ -f $src ]] || return 0
+
+  if ! have setleds; then
+    record_new_pkgs kbd
+    as_root dnf install -y kbd >/dev/null 2>&1 || true
+  fi
+  have setleds || { warn "Num Lock cannot be set on the text consoles: setleds is not installed"; return 0; }
+
+  as_root cp "$src" "/etc/systemd/system/$unit"
+  record file "/etc/systemd/system/$unit"
+  systemctl is-enabled "$unit" >/dev/null 2>&1 || record unit-system "$unit"
+  as_root systemctl daemon-reload
+  as_root systemctl enable --now "$unit" >/dev/null 2>&1 \
+    && ok "Num Lock will be on at the login screen and on the text consoles" \
+    || warn "Could not switch Num Lock on for the text consoles"
+  return 0
+}
+
 # Which display server the greeter itself runs on.
 #
 # Wayland where the hardware can draw it, X11 in a virtual machine. There the
@@ -127,6 +151,7 @@ Font=Ndot 57
 
 [General]
 InputMethod=
+Numlock=on
 
 [Users]
 MaximumUid=60000
@@ -139,6 +164,8 @@ EOF
   [[ -f /etc/sddm.conf ]] && as_root mv /etc/sddm.conf /etc/sddm.conf.fedora-nothing.bak && \
     record moved /etc/sddm.conf /etc/sddm.conf.fedora-nothing.bak && \
     info "Moved an old login screen config aside so these settings take effect"
+
+  enable_console_numlock
 
   make_sddm_the_login_screen
   # The target as it stands, so uninstall can put it back rather than guess.
