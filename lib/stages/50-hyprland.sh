@@ -31,6 +31,7 @@ stage_hyprland() {
   done
   ok "Installed the small helper scripts the shortcuts use"
 
+  install_share_picker
   install_systemd_units
   # The unit is deployed just above and points at wherever the shell's own
   # installer put the binary, so the correction belongs here rather than in the
@@ -265,6 +266,19 @@ EOF
 
 # hyprgrass adds the touchpad gestures quattro.lua binds. A build failure must
 # not take the whole install down: the config guards every hyprgrass call.
+# The screen-share source chooser. xdg-desktop-portal-hyprland ships a Qt
+# Widgets picker; xdph.conf points it at the wrapper in bin/ instead, and that
+# wrapper execs this one. Without the payload the wrapper has nothing to run,
+# the portal's custom picker fails, and screen sharing offers no window list at
+# all, which is why it is deployed here rather than left to the shell's own
+# installer.
+install_share_picker() {
+  local src="$REPO_DIR/assets/share-picker"
+  [[ -d $src ]] || return 0
+  deploy_tree "$src" "$HOME/.local/share/quickshell-share-picker"
+  ok "Installed the screen-share source chooser"
+}
+
 install_hyprgrass() {
   have hyprpm || { skip "Touchpad gestures need a tool that is not installed"; return 0; }
 

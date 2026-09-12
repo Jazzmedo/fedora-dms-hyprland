@@ -25,6 +25,8 @@ artifact_home_paths() {
     "$HOME/.local/bin/quickshell"
     "$HOME/.local/bin/qs"
     "$HOME/.local/bin/dankinstall"
+    "$HOME/.local/share/quickshell-share-picker"
+    "$HOME/.local/state/quickshell-share-picker"
 
     # window managers and the session
     "$HOME/.config/hypr"

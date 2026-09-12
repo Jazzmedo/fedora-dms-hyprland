@@ -92,6 +92,16 @@ check_wallpapers() {
 
 check_hypr_config() { [[ -f $HOME/.config/hypr/hyprland.lua ]]; }
 
+# The screen-share source chooser: the portal's config, the wrapper it names and
+# the payload that wrapper execs. Missing any one of them and screen sharing
+# starts with no window list.
+check_share_picker() {
+  [[ -f $HOME/.config/hypr/xdph.conf ]] &&
+  [[ -x $HOME/.local/bin/dms-share-picker ]] &&
+  [[ -x $HOME/.local/bin/quickshell-share-picker ]] &&
+  [[ -f $HOME/.local/share/quickshell-share-picker/quickshell/shell.qml ]]
+}
+
 check_dms_binary() { command -v dms >/dev/null 2>&1; }
 
 # ---------------------------------------------------------------- the pass ---
@@ -105,6 +115,8 @@ verify_install() {
           "./install.sh --only=hyprland" check_hypr_config
   _verify "Hyprland is offered at the login screen" \
           "./install.sh --only=hyprland" check_session_entry
+  _verify "Screen sharing can choose a window" \
+          "./install.sh --only=hyprland" check_share_picker
   _verify "The desktop shell is installed" \
           "./install.sh --only=dms" check_dms_binary
   _verify "The Nothing typefaces are installed" \
