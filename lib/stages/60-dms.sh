@@ -421,6 +421,14 @@ plugin_post_install() {
 
 # The player the plugin drives. CLIAMP is a Go program with no Fedora package,
 # and `go install` is more dependable than guessing release asset names.
+# The approved plugins and the hash each was approved at, written by
+# `cliamp plugins trust`.
+cliamp_plugin_trusted() {
+  local store="$HOME/.config/cliamp/plugins/.trust.json"
+  [[ -r $store ]] || return 1
+  grep -q "\"$1\"" "$store"
+}
+
 install_cliamp() {
   local repo_dir=$1
   if have cliamp; then
@@ -462,14 +470,22 @@ install_cliamp() {
       "$HOME/.config/cliamp/plugins/cliamp-dms-bridge.lua"
     # CLIAMP refuses to load a Lua plugin it has not been told to trust, and
     # says so only in its own startup output. Copying the file is not enough.
+    #
+    # Trusting it prints the plugin's hash and permissions and waits for a y/N
+    # answer. With no answer it exits 1 saying "approval required; rerun with
+    # --yes", which is what made this look like a failure on every run. The
+    # flag is checked for rather than assumed, because older builds lack it.
     if have cliamp; then
-      if run cliamp plugins trust cliamp-dms-bridge; then
+      local -a trust_args=(plugins trust cliamp-dms-bridge)
+      cliamp plugins trust --help 2>&1 | grep -q -- '--yes' \
+        && trust_args=(plugins trust --yes cliamp-dms-bridge)
+      # Checked against the trust file rather than `cliamp plugins list`,
+      # which reports the add-on as untrusted even once it has been approved.
+      if run cliamp "${trust_args[@]}" && cliamp_plugin_trusted cliamp-dms-bridge; then
         ok "CLIAMP radio support is ready. Turn it on from the Radio tab in the widget."
       else
-        # Not a failure of the install: CLIAMP will not trust a plugin it has
-        # never seen, and it only scans for them when it starts.
-        warn "CLIAMP has not seen the radio add-on yet, so it could not be trusted from here"
-        info "Start CLIAMP once, then run: cliamp plugins trust cliamp-dms-bridge"
+        warn "The CLIAMP radio add-on is installed but not trusted yet"
+        info "Approve it with: cliamp plugins trust --yes cliamp-dms-bridge"
       fi
     else
       info "CLIAMP radio support is in place. Once CLIAMP is installed: cliamp plugins trust cliamp-dms-bridge"
