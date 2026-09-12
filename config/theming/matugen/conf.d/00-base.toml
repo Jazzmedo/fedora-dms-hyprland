@@ -22,6 +22,12 @@ input_path = '~/.config/matugen/templates/tmux-dms.conf'
 output_path = '~/.config/tmux/dms-theme.conf'
 
 # Bumping this file is what tells DankMaterialShell a new palette is ready.
+#
+# The hook covers only what matugen itself has just finished writing, tmux and
+# cliamp. Everything else is triggered by dms-theme-reload.path watching the
+# files the shell writes, because those land after this point and a reload
+# fired here would read the previous palette.
 [templates.desktop_theme_reload]
 input_path = '~/.config/matugen/templates/theme-generation-stamp'
 output_path = '~/.cache/DankMaterialShell/user-theme-generation'
+post_hook = '~/.config/hypr/scripts/reload-themed-apps matugen'

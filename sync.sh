@@ -24,6 +24,14 @@ EXCLUDES=(
   --exclude='plugins/' --exclude='generated/' --exclude='.dms-backups/'
   --exclude='lazy-lock.json.bak' --exclude='*.log'
   --exclude='*.backup[0-9]*' --exclude='*.save' --exclude='*.orig'
+  # Files the desktop shell regenerates on every theme change. Capturing them
+  # would put one machine's palette back in the repository, and the installer
+  # would then paint it over every other machine's.
+  --exclude='dank-theme.conf' --exclude='dank-tabs.conf'
+  --exclude='dank-colors.css' --exclude='colors/matugen.conf'
+  --exclude='DankMatugen.colors' --exclude='DankMatugenDark.colors'
+  --exclude='DankMatugenLight.colors' --exclude='DankMatugenLavender.colors'
+  --exclude='seed/'
 )
 
 # Undo everything install.sh's templating did, so the repo copy stays portable.

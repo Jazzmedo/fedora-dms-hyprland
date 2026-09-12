@@ -136,7 +136,10 @@ artifact_user_units() {
   for f in "$REPO_DIR"/config/desktop/systemd-user/*; do
     [[ -e $f ]] && printf '%s\n' "$(basename "$f")"
   done
-  printf '%s\n' Universal-Mpris-LyricServer.service dms-greeter.service
+  # Plus the pair this repository used to install, so an uninstall after the
+  # rename still takes them away.
+  printf '%s\n' Universal-Mpris-LyricServer.service dms-greeter.service \
+                dms-dolphin-palette.path dms-dolphin-palette.service
 }
 
 # System services. sddm is deliberately absent: which login screen runs is

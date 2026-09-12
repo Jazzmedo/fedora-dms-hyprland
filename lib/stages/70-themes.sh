@@ -71,12 +71,22 @@ install_matugen_config() {
 
 # Zen's profile directory has a random prefix, so the template path can only be
 # resolved once the browser has created it.
+# Zen keeps its profiles in ~/.zen when installed from its tarball and in
+# ~/.config/zen when run as an AppImage. Looking in one place meant matugen
+# wrote the browser theme into a directory that did not exist, and the browser
+# was never themed at all.
+# Prints the whole profile directory, not just its name: Zen keeps profiles in
+# ~/.zen when installed from its tarball and in ~/.config/zen when run as an
+# AppImage. Looking in one place meant matugen wrote the browser theme into a
+# directory that did not exist, so the browser was never themed at all.
 detect_zen_profile() {
-  local d
-  for d in "$HOME"/.zen/*.Default* "$HOME"/.zen/*default*; do
-    [[ -d $d ]] && { basename "$d"; return; }
+  local root d
+  for root in "$HOME/.zen" "$HOME/.config/zen"; do
+    for d in "$root"/*.Default* "$root"/*default*; do
+      [[ -d $d ]] && { printf '%s' "$d"; return; }
+    done
   done
-  printf 'default'
+  printf '%s' "$HOME/.zen/default"
 }
 
 install_toolkit_theming() {
@@ -87,10 +97,26 @@ install_toolkit_theming() {
   deploy_tree "$t/qt6ct"   "$HOME/.config/qt6ct"
   deploy_file "$t/gtkrc-2.0" "$HOME/.gtkrc-2.0"
   deploy_tree "$t/kde-color-schemes" "$HOME/.local/share/color-schemes"
+
+  # The colour files themselves are seeded once and owned by the desktop shell
+  # from then on. Copying the captured ones over the generated ones on every
+  # run is what used to reset every open window to the palette of the machine
+  # this repository was captured from.
+  deploy_seed "$t/gtk-3.0/seed/dank-colors.css" "$HOME/.config/gtk-3.0/dank-colors.css"
+  deploy_seed "$t/gtk-4.0/seed/dank-colors.css" "$HOME/.config/gtk-4.0/dank-colors.css"
+  deploy_seed "$t/qt5ct/seed/matugen.conf" "$HOME/.config/qt5ct/colors/matugen.conf"
+  deploy_seed "$t/qt6ct/seed/matugen.conf" "$HOME/.config/qt6ct/colors/matugen.conf"
+  local scheme
+  for scheme in "$t"/kde-color-schemes/seed/*.colors; do
+    [[ -f $scheme ]] || continue
+    deploy_seed "$scheme" "$HOME/.local/share/color-schemes/$(basename "$scheme")"
+  done
   ok "Put the colour settings in place for every kind of app"
 
-  # gtk.css must point at the file matugen rewrites, or GTK apps keep the
-  # palette they were built with.
+  # gtk.css must point at the file the shell rewrites, or GTK apps keep the
+  # palette they were built with. The link is made here rather than shipped:
+  # a symlink in the repository would dangle, since its target is a seed file
+  # that is deployed separately.
   run ln -sfn dank-colors.css "$HOME/.config/gtk-3.0/gtk.css"
 
   # Both settings.ini files ask for adw-gtk3-dark. Without it GTK apps fall

@@ -211,15 +211,31 @@ append_gpu_env() {
   ok "Added the $GPU_VENDOR graphics settings"
 }
 
+# Units this repository used to install. deploy_tree only ever adds files, so
+# without this the old Dolphin-only watcher stays enabled beside the new one
+# and both broadcast a palette change, which repaints every window twice.
+retire_old_units() {
+  local dest="$HOME/.config/systemd/user" unit
+  for unit in dms-dolphin-palette.path dms-dolphin-palette.service; do
+    [[ -e $dest/$unit ]] || continue
+    run systemctl --user disable --now "$unit" 2>/dev/null || true
+    run rm -f "$dest/$unit" "$dest"/*.wants/"$unit"
+    ok "Removed the old $unit"
+  done
+  run rm -f "$HOME/.config/hypr/scripts/guard-dolphin-palette"
+  return 0
+}
+
 install_systemd_units() {
   local src="$REPO_DIR/config/desktop/systemd-user"
   local dest="$HOME/.config/systemd/user"
   deploy_tree "$src" "$dest"
+  retire_old_units
 
   # The backup committed *.target.wants/ symlinks pointing at an absolute
   # /home/hanafi. Let systemd create them instead.
   local unit
-  for unit in dms.service dms-theme-wallpapers.path dms-dolphin-palette.path \
+  for unit in dms.service dms-theme-wallpapers.path dms-theme-reload.path \
               hypr-real-mouse-focus.service; do
     [[ -f $dest/$unit ]] || { warn "A startup file is missing: $unit"; continue; }
     enable_user_unit "$unit" && record unit-user "$unit" \

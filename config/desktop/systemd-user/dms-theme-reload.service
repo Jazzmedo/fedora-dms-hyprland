@@ -1,0 +1,10 @@
+[Unit]
+Description=Recolour running applications after a theme change
+StartLimitIntervalSec=0
+# It signals the shell's own windows and reads what the shell generates.
+After=dms.service
+Wants=dms.service
+
+[Service]
+Type=oneshot
+ExecStart=%h/.config/hypr/scripts/reload-themed-apps toolkits

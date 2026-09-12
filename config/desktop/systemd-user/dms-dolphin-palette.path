@@ -1,9 +1,0 @@
-[Unit]
-Description=Watch DMS KDE palette for Dolphin contrast races
-
-[Path]
-PathChanged=%h/.local/share/color-schemes/DankMatugen.colors
-Unit=dms-dolphin-palette.service
-
-[Install]
-WantedBy=default.target

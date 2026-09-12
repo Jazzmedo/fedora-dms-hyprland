@@ -33,6 +33,12 @@ The wallpaper follows too, picking a landscape or portrait image per monitor.
 Add your own by dropping images into
 `assets/wallpapers/<theme-slug>/horizontal/` and re-running.
 
+**Open windows recolour where they can.** A watcher picks up each new palette
+and reloads kitty, tmux, Dolphin and the other Qt and KDE apps, and GTK 3
+programs, without closing anything. Vesktop and Obsidian watch their own
+generated stylesheets. The browser is the exception: it reads its theme once at
+startup, so it changes at the next launch.
+
 ## ✨ What you get
 
 |                 |                                                                                                               |

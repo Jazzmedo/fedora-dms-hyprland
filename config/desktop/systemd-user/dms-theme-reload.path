@@ -1,0 +1,19 @@
+[Unit]
+Description=Watch the generated palettes and recolour running applications
+StartLimitIntervalSec=0
+
+[Path]
+# The files the desktop shell writes last, not the event that starts the work.
+# The shell writes these asynchronously around its matugen run, so triggering
+# on matugen finishing would signal kitty before its palette exists.
+#
+# kdeglobals is deliberately absent: the service writes it, and watching it
+# would make the reload trigger itself for ever.
+PathModified=%h/.config/kitty/dank-theme.conf
+PathModified=%h/.config/gtk-3.0/dank-colors.css
+PathModified=%h/.config/qt6ct/colors/matugen.conf
+PathChanged=%h/.local/share/color-schemes/DankMatugen.colors
+Unit=dms-theme-reload.service
+
+[Install]
+WantedBy=default.target

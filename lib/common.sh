@@ -435,13 +435,35 @@ deploy_file() {
   return 0
 }
 
+# deploy_seed <src> <dest> — like deploy_file, but only when dest is absent.
+#
+# For files this repository ships once and the desktop shell owns thereafter:
+# the kitty palette, the GTK and Qt colour files, the KDE colour schemes. They
+# have to exist, because kitty's config includes them and Qt reads them at
+# startup, but copying the captured copy over the generated one on every run is
+# how a re-install used to reset every open window to the palette of whichever
+# machine this repository was captured from.
+deploy_seed() {
+  local src=$1 dest=$2 mode=${3:-}
+  if [[ -e $dest ]]; then
+    return 0
+  fi
+  deploy_file "$src" "$dest" ${mode:+"$mode"}
+}
+
 # deploy_tree <srcdir> <destdir> — mirrors a directory, templating text files.
+# A `seed/` directory inside a tree is never copied as a directory. Its
+# contents are files the desktop shell regenerates, deployed individually with
+# deploy_seed so an existing one is left alone.
 deploy_tree() {
   local src=$1 dest=$2
   [[ -d $src ]] || { warn "missing source tree: $src"; return 1; }
   backup_path "$dest"
   run mkdir -p "$dest"
   run cp -aL "$src/." "$dest/"
+  # Copied wholesale, then removed: cp has no exclude, and a Fedora Custom
+  # install cannot be assumed to have anything that does.
+  if [[ -d $src/seed ]]; then run rm -rf "$dest/seed"; fi
   record file "$dest"
   (( DRY_RUN )) && return 0
   local f

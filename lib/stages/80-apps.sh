@@ -5,8 +5,12 @@ ZEN_INSTALL_DIR=/opt/zen
 HELIUM_INSTALL_DIR=/opt/helium
 
 stage_apps() {
-  deploy_file "$REPO_DIR/config/terminal/kitty/kitty.conf" "$HOME/.config/kitty/kitty.conf"
-  deploy_tree "$REPO_DIR/config/terminal/kitty" "$HOME/.config/kitty"
+  local k="$REPO_DIR/config/terminal/kitty"
+  deploy_tree "$k" "$HOME/.config/kitty"
+  # kitty.conf includes both of these unconditionally, so they have to exist,
+  # but the desktop shell rewrites them on every theme change. Seeded once.
+  deploy_seed "$k/seed/dank-theme.conf" "$HOME/.config/kitty/dank-theme.conf"
+  deploy_seed "$k/seed/dank-tabs.conf"  "$HOME/.config/kitty/dank-tabs.conf"
   ok "Set up the kitty terminal"
 
   install_zen

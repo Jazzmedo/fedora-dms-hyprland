@@ -1,6 +1,0 @@
-[Unit]
-Description=Repair and reload Dolphin palette after DMS theme generation
-
-[Service]
-Type=oneshot
-ExecStart=%h/.config/hypr/scripts/guard-dolphin-palette

@@ -1,60 +1,198 @@
 #!/usr/bin/env bash
-# Matugen has finished writing its palettes. Reload applications which provide
-# a safe live configuration reload; KDE/Qt notifications are handled by the
-# DMS Theme Sync plugin separately.
-pkill -USR1 -x kitty 2>/dev/null || true
+# Make already-running applications pick up a new palette.
+#
+#   reload-themed-apps            everything
+#   reload-themed-apps matugen    only what matugen itself just wrote
+#   reload-themed-apps toolkits   only what the desktop shell writes
+#
+# Two scopes, because the files fall into two groups with different timing.
+# Matugen's own outputs (tmux, cliamp) are ready the instant it exits, and its
+# post_hook runs then. The shell writes kitty's palette, the GTK and Qt colour
+# files and the KDE colour scheme asynchronously around that run, so anything
+# reading those must be triggered by the files themselves, which is what
+# dms-theme-reload.path watches. Signalling kitty from the post_hook would
+# reload the palette it already had.
+#
+# Nothing here may write a file the path unit watches, or the reload triggers
+# itself for ever. kdeglobals is written and deliberately not watched.
+set -u
 
-# cliamp loads custom themes from ~/.config/cliamp/themes. Matugen has just
-# regenerated the dms theme, so ask a running TUI instance to re-read it.
-# Its CLI returns an error when no instance is running; that is harmless.
-if [[ -S "${XDG_CONFIG_HOME:-$HOME/.config}/cliamp/cliamp.sock" ]]; then
-  cliamp theme dms >/dev/null 2>&1 || true
-fi
+scope=${1:-all}
+log() { printf 'reload-themed-apps: %s\n' "$*" >&2; }
 
-# Matugen has regenerated tmux's DMS palette. Apply it to every running tmux
-# client immediately; new servers source the same file from ~/.tmux.conf.
-tmux source-file "${XDG_CONFIG_HOME:-$HOME/.config}/tmux/dms-theme.conf" 2>/dev/null || true
+config="${XDG_CONFIG_HOME:-$HOME/.config}"
+runtime="${XDG_RUNTIME_DIR:-/tmp}"
+scheme="$HOME/.local/share/color-schemes/DankMatugen.colors"
 
-# DMS's KDE template currently paints accents with Material's inverse_primary
-# role. Normalize it from DMS's newly generated current primary color. Do not
-# read kdeglobals here: it still contains the previous theme while Matugen is
-# running, which used to copy Catppuccin lavender into Deep Sage.
-kcolorscheme="$HOME/.local/share/color-schemes/DankMatugen.colors"
-colors_json="$HOME/.cache/DankMaterialShell/dms-colors.json"
-mode=dark
-if [[ $(gsettings get org.gnome.desktop.interface color-scheme 2>/dev/null) == *light* ]]; then
-  mode=light
-fi
-accent_hex="$(jq -r --arg mode "$mode" '.colors[$mode].primary // empty' "$colors_json" 2>/dev/null)"
-accent=""
-if [[ $accent_hex =~ ^#[0-9a-fA-F]{6}$ ]]; then
-  accent="$((16#${accent_hex:1:2})),$((16#${accent_hex:3:2})),$((16#${accent_hex:5:2}))"
-fi
+# ------------------------------------------------------- matugen's own files ---
+reload_matugen_outputs() {
+  # Every running tmux client; new servers source the same file themselves.
+  tmux source-file "$config/tmux/dms-theme.conf" 2>/dev/null || true
 
-if [[ "$accent" =~ ^[0-9]+,[0-9]+,[0-9]+$ && -f "$kcolorscheme" ]]; then
-  corrected="$(mktemp "${kcolorscheme}.XXXXXX")"
-  awk -v accent="$accent" '
-    /^\[/ { section = $0 }
-    /^DecorationFocus=/ || /^DecorationHover=/ {
-      sub(/=.*/, "=" accent)
+  # cliamp reads themes from ~/.config/cliamp/themes. Its CLI errors when no
+  # instance is running, which is harmless.
+  if [[ -S $config/cliamp/cliamp.sock ]]; then
+    cliamp theme dms >/dev/null 2>&1 || true
+  fi
+}
+
+# ------------------------------------------------------------- the toolkits ---
+# The accent, read from the shell's own output rather than from kdeglobals:
+# kdeglobals still holds the previous theme while matugen is running, which is
+# how Catppuccin lavender used to end up inside Deep Sage.
+current_accent() {
+  local mode=dark hex
+  if [[ $(gsettings get org.gnome.desktop.interface color-scheme 2>/dev/null) == *light* ]]; then
+    mode=light
+  fi
+  hex=$(jq -r --arg mode "$mode" '.colors[$mode].primary // empty' \
+    "$HOME/.cache/DankMaterialShell/dms-colors.json" 2>/dev/null) || return 0
+  [[ $hex =~ ^#[0-9a-fA-F]{6}$ ]] || return 0
+  printf '%s,%s,%s' "$((16#${hex:1:2}))" "$((16#${hex:3:2}))" "$((16#${hex:5:2}))"
+}
+
+# The colour scheme, with two repairs applied on the way past, printed to
+# stdout. The file on disk is never rewritten: it is one of the files the path
+# unit watches, and rewriting it would retrigger this script for ever.
+#
+#   1. the shell paints accents with Material's inverse_primary role, so
+#      normalise them to the primary that was actually generated
+#   2. a generated scheme can land with view foreground and background too
+#      close to read, so force one apart when they are
+repaired_scheme() {
+  awk -v accent="$1" '
+    function lum(rgb, a) {
+      split(rgb, a, ",")
+      return 0.2126*a[1] + 0.7152*a[2] + 0.0722*a[3]
     }
-    section == "[Colors:Selection]" && \
-      (/^BackgroundAlternate=/ || /^BackgroundNormal=/) {
-      sub(/=.*/, "=" accent)
+    /^\[/ { section = $0 }
+    accent != "" && (/^DecorationFocus=/ || /^DecorationHover=/) { sub(/=.*/, "=" accent) }
+    accent != "" && section == "[Colors:Selection]" && \
+      (/^BackgroundAlternate=/ || /^BackgroundNormal=/) { sub(/=.*/, "=" accent) }
+    section == "[Colors:View]" && /^BackgroundNormal=/ { bg = substr($0, index($0, "=") + 1) }
+    section == "[Colors:View]" && /^ForegroundNormal=/ {
+      fg = substr($0, index($0, "=") + 1)
+      if (bg != "" && (lum(bg) - lum(fg) < 72) && (lum(fg) - lum(bg) < 72)) {
+        $0 = "ForegroundNormal=" (lum(bg) < 128 ? "235,235,235" : "24,24,24")
+      }
     }
     { print }
-  ' "$kcolorscheme" > "$corrected"
-  chmod --reference="$kcolorscheme" "$corrected"
-  mv "$corrected" "$kcolorscheme"
-fi
+  ' "$scheme"
+}
 
-# Plasma normally broadcasts this after a palette change. In the standalone
-# Hyprland session, send it ourselves so running KDE/Qt applications (notably
-# Dolphin) re-read kdeglobals instead of holding the startup palette.
-dbus-send --session --type=signal /KGlobalSettings \
-  org.kde.KGlobalSettings.notifyChange int32:0 int32:0 2>/dev/null || true
+# KColorScheme applications do not paint from the .colors file. They read the
+# [Colors:*] and [ColorEffects:*] sections copied into kdeglobals.
+apply_kde_palette() {
+  [[ -f $scheme ]] || return 0
+  local kdeglobals="$config/kdeglobals"
+  [[ -f $kdeglobals ]] || return 0
 
-# DMS has just regenerated dms/colors.lua. Reload after generation completes so
-# Hyprland receives the new theme borders and the Nothing-only ring override is
-# evaluated against the newly selected customThemeFile.
-hyprctl reload >/dev/null 2>&1 || true
+  local accent; accent=$(current_accent)
+  local fixed; fixed=$(mktemp "${TMPDIR:-/tmp}/dms-scheme.XXXXXX")
+  repaired_scheme "$accent" >"$fixed" || { rm -f "$fixed"; return 0; }
+
+  local tmp="${kdeglobals}.reload.$$"
+  {
+    awk '/^\[/ { drop = ($0 ~ /^\[Colors:/ || $0 ~ /^\[ColorEffects:/) } !drop { print }' "$kdeglobals"
+    awk '/^\[/ { keep = ($0 ~ /^\[Colors:/ || $0 ~ /^\[ColorEffects:/) } keep  { print }' "$fixed"
+  } >"$tmp"
+  chmod --reference="$kdeglobals" "$tmp" 2>/dev/null || true
+  mv "$tmp" "$kdeglobals"
+
+  if have_cmd kwriteconfig6; then
+    local sel; sel=$(awk '
+      /^\[/ { selection = ($0 == "[Colors:Selection]") }
+      selection && /^BackgroundNormal=/ { print substr($0, index($0, "=") + 1); exit }
+    ' "$fixed")
+    # --notify raises the KConfig change signal that KF6 applications watch.
+    kwriteconfig6 --notify --file kdeglobals --group General --key ColorScheme DankMatugen 2>/dev/null || true
+    if [[ -n $sel ]]; then
+      kwriteconfig6 --notify --file kdeglobals --group General --key AccentColor "$sel" 2>/dev/null || true
+      kwriteconfig6 --notify --file kdeglobals --group General --key LastUsedCustomAccentColor "$sel" 2>/dev/null || true
+    fi
+    kwriteconfig6 --file kdeglobals --group General --key ColorSchemeHash --delete 2>/dev/null || true
+  fi
+  rm -f "$fixed"
+}
+
+have_cmd() { command -v "$1" >/dev/null 2>&1; }
+
+reload_toolkits() {
+  # kitty re-reads its config, and with it the generated palette it includes.
+  # Remote control is not enabled, so the signal is the only way in.
+  pkill -USR1 -x kitty 2>/dev/null || true
+
+  apply_kde_palette
+
+  # Plasma broadcasts this after a palette change; in a bare Hyprland session
+  # nothing does, so running KDE and Qt applications would hold the palette
+  # they started with. GTK 3 applications react to the same signal through
+  # colorreload-gtk-module, which is why kde-gtk-config is installed.
+  #
+  # int32:0 is PaletteChanged. The old int32:1 is FontChanged and did nothing
+  # for colour.
+  dbus-send --session --type=signal /KGlobalSettings \
+    org.kde.KGlobalSettings.notifyChange int32:0 int32:0 2>/dev/null || true
+
+  # qt6ct watches its own config file, not the palette it points at.
+  #
+  # There is no qt5ct equivalent here: QT_QPA_PLATFORMTHEME is qt6ct, which
+  # has no Qt5 plugin, so Qt5 applications never read qt5ct.conf at all. The
+  # KDE ones still follow kdeglobals through the signal above.
+  [[ -e $config/qt6ct/qt6ct.conf ]] && touch "$config/qt6ct/qt6ct.conf"
+
+  # GTK 4 has no reload module. Naming a different theme and naming this one
+  # back rebuilds the style cascade, which is what makes a running GTK 4
+  # application re-read gtk.css. libadwaita applications ignore the theme name
+  # and only follow this at their next start.
+  if have_cmd gsettings; then
+    local theme
+    theme=$(gsettings get org.gnome.desktop.interface gtk-theme 2>/dev/null | tr -d "'")
+    if [[ -n $theme && $theme != Adwaita ]]; then
+      gsettings set org.gnome.desktop.interface gtk-theme Adwaita 2>/dev/null || true
+      gsettings set org.gnome.desktop.interface gtk-theme "$theme" 2>/dev/null || true
+    fi
+  fi
+
+  # The shell regenerates dms/colors.lua, which carries the window borders.
+  hyprctl reload >/dev/null 2>&1 || true
+}
+
+# ---------------------------------------------------------------- dispatch ---
+# One at a time, and a burst of triggers does the work once. The path unit
+# watches four files that the shell writes within a second of each other, so
+# without this every theme change would repaint several times over.
+exec 9>"$runtime/dms-theme-reload.lock"
+flock 9 || exit 0
+sleep 0.4
+
+# A repeat with identical inputs is skipped outright. The shell writes these
+# files twice on some theme changes, and without this the second write costs a
+# visible second repaint of every GTK window.
+stamp_file="$runtime/dms-theme-reload.stamp"
+fingerprint() {
+  local f
+  for f in "$config/kitty/dank-theme.conf" "$config/gtk-3.0/dank-colors.css" \
+           "$config/qt6ct/colors/matugen.conf" "$scheme"; do
+    [[ -f $f ]] && stat -c '%Y %s %n' "$f" 2>/dev/null
+  done
+}
+
+case $scope in
+  matugen) reload_matugen_outputs ;;
+  toolkits)
+    now=$(fingerprint)
+    if [[ -f $stamp_file && $now == "$(cat "$stamp_file" 2>/dev/null)" ]]; then
+      exit 0
+    fi
+    reload_toolkits
+    printf '%s' "$now" >"$stamp_file"
+    ;;
+  *)
+    reload_matugen_outputs
+    reload_toolkits
+    fingerprint >"$stamp_file"
+    ;;
+esac
+
+exit 0
