@@ -16,13 +16,6 @@
 
 </div>
 
-```sh
-sudo dnf install -y git
-git clone https://github.com/Jazzmedo/fedora-dms-hyprland
-cd fedora-dms-hyprland
-./install.sh
-```
-
 One screen. Everything opens ticked; untick what you do not want and press
 Enter. `Space` toggles one item, `a` a whole group, `q` cancels. Nothing is
 touched before Enter, and the password is asked once.
@@ -42,15 +35,15 @@ Add your own by dropping images into
 
 ## ✨ What you get
 
-| | |
-|---|---|
-| 🪟 **Desktop** | Hyprland, scrolling or dwindle tiling, touchpad gestures, per-monitor workspaces |
-| 🎛️ **Shell** | DankMaterialShell: bar, launcher, notifications, control centre, lock screen, nine plugins |
-| 🖼️ **Theming** | matugen everywhere, themed wallpapers, matching login screen, optional boot splash |
-| ⌨️ **Terminal** | zsh, oh-my-zsh, starship, fastfetch greeting, tmux, yazi, eza/bat/ripgrep/fd/fzf |
-| 📦 **Apps** | kitty, Zen, Dolphin, Helium, Brave, Vesktop, Obsidian, OBS, qBittorrent, mpv, Strawberry, CLIAMP, EasyEffects |
-| 🧑‍💻 **Dev** | Neovim + LazyVim, podman, pyenv, nvm, rustup, Go, yt-dlp |
-| 🔒 **Services** | Tailscale, Cloudflare WARP, a niri session, system tweaks |
+|                 |                                                                                                               |
+| --------------- | ------------------------------------------------------------------------------------------------------------- |
+| 🪟 **Desktop**  | Hyprland, scrolling or dwindle tiling, touchpad gestures, per-monitor workspaces                              |
+| 🎛️ **Shell**    | DankMaterialShell: bar, launcher, notifications, control centre, lock screen, nine plugins                    |
+| 🖼️ **Theming**  | matugen everywhere, themed wallpapers, matching login screen, optional boot splash                            |
+| ⌨️ **Terminal** | zsh, oh-my-zsh, starship, fastfetch greeting, tmux, yazi, eza/bat/ripgrep/fd/fzf                              |
+| 📦 **Apps**     | kitty, Zen, Dolphin, Helium, Brave, Vesktop, Obsidian, OBS, qBittorrent, mpv, Strawberry, CLIAMP, EasyEffects |
+| 🧑‍💻 **Dev**      | Neovim + LazyVim, podman, pyenv, nvm, rustup, Go, yt-dlp                                                      |
+| 🔒 **Services** | Tailscale, Cloudflare WARP, a niri session, system tweaks                                                     |
 
 Everything outside the base desktop is optional and shown in the checklist.
 
@@ -62,14 +55,14 @@ Use the **Fedora Everything** ISO, not a spin: a spin brings a desktop of its
 own that would fight this one. Anaconda's **Software Selection** screen decides
 what you start from.
 
-| Software Selection | Choose |
-|---|---|
-| Base Environment | **Fedora Custom Operating System** |
-| Standard | ✅ tick |
-| Hardware Support | ✅ tick, or Wi-Fi and GPU firmware may be missing |
-| Common NetworkManager Submodules | ✅ tick |
-| Guest Agents | ✅ only in a virtual machine |
-| everything else | leave unticked |
+| Software Selection               | Choose                                            |
+| -------------------------------- | ------------------------------------------------- |
+| Base Environment                 | **Fedora Custom Operating System**                |
+| Standard                         | ✅ tick                                           |
+| Hardware Support                 | ✅ tick, or Wi-Fi and GPU firmware may be missing |
+| Common NetworkManager Submodules | ✅ tick                                           |
+| Guest Agents                     | ✅ only in a virtual machine                      |
+| everything else                  | leave unticked                                    |
 
 Also on the summary screen: set the hostname, switch the network **on** before
 you start, leave the root account **disabled**, and tick **Make this user
