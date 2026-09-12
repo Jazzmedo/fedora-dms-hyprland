@@ -144,29 +144,33 @@ for _, gesture in ipairs({
 end
 
 -------------------------------------------------
--- 4 FINGERS – vertical: switch workspace, horizontal: carry the window
+-- 4 FINGERS – vertical: switch workspace, horizontal: move the window
 -------------------------------------------------
 -- Hyprland's built-in workspace swipe tracks the fingers 1:1 and snaps on
 -- release, so one vertical gesture covers both up and down.
 hl.gesture({ fingers = 4, direction = "vertical", action = "workspace" })
 
--- Horizontally, take the focused window along instead. Reuse the same helper as
--- SUPER + CTRL + SHIFT + up/down: Hyprland drops a column's width when moving it
--- across workspaces, and the script measures and restores it. move_workspace is
--- assigned below this block, so spell the path out here.
+-- Horizontally, move the focused window inside the workspace it is already in:
+-- along the scrolling tape it swaps with its neighbouring column, and on a
+-- normal layout it takes Hyprland's directional move.
+--
+-- This used to send the window to the next or previous workspace, which made
+-- the one gesture you reach for while arranging a screen the one that emptied
+-- it. Carrying a window between workspaces is SUPER + CTRL + SHIFT + up/down,
+-- which is deliberate rather than a flick of four fingers.
+--
+-- The window follows the fingers, so swiping left moves it left. That reads as
+-- dragging the window, and it matches the four-finger swipes Hyprgrass binds
+-- when the plugin is loaded.
 for _, gesture in ipairs({
-	{ direction = "left", target = "e+1" },
-	{ direction = "right", target = "e-1" },
+	{ direction = "left", move = "l" },
+	{ direction = "right", move = "r" },
 }) do
 	hl.gesture({
 		fingers = 4,
 		direction = gesture.direction,
 		action = function()
-			hl.dispatch(
-				hl.dsp.exec_cmd(
-					"@@HOME@@/.config/hypr/scripts/move-to-workspace-preserve-width " .. gesture.target
-				)
-			)
+			quattro_move_direction(gesture.move)
 		end,
 	})
 end
