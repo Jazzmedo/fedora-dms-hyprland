@@ -39,7 +39,6 @@ stage_dms() {
     verify_dms_shell
     install_dms_plugins
     deploy_dms_settings
-    fix_dms_service_path
   else
     install_dms_plugins
     deploy_dms_settings

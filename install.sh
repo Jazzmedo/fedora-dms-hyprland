@@ -32,7 +32,12 @@ ONLY=""
 SKIP=""
 SHOW_STATUS=0
 
-ALL_STAGES=(preflight repos gpu packages fonts hyprland dms themes apps shell tweaks sddm optional)
+# Order matters in one place beyond the obvious. The desktop shell comes from
+# somebody else's installer, which sets up a desktop of its own and writes into
+# the same directories this repository does. It therefore runs BEFORE any
+# configuration is deployed, so that what it writes is overwritten by these
+# settings rather than the other way round.
+ALL_STAGES=(preflight repos gpu packages fonts dms hyprland themes apps shell tweaks sddm optional)
 STAGES_TO_RUN=()
 
 usage() {
@@ -273,6 +278,11 @@ main() {
   (( DRY_RUN )) && warn "This is a dry run. Nothing on this machine will be changed."
   save_selection
   sudo_begin
+
+  # Both the shell settings and the window manager settings template the
+  # monitor name in, and either stage can now be the first to need it.
+  detect_outputs
+  TPL_MONITOR=${OUTPUT_NAMES[0]:-}
 
   local start=$SECONDS
   progress_init "${#STAGES_TO_RUN[@]}"

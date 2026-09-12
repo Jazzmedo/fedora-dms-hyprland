@@ -32,6 +32,10 @@ stage_hyprland() {
   ok "Installed the small helper scripts the shortcuts use"
 
   install_systemd_units
+  # The unit is deployed just above and points at wherever the shell's own
+  # installer put the binary, so the correction belongs here rather than in the
+  # stage that installs the shell, which now runs before this one.
+  fix_dms_service_path
   install_session_entry
   install_hyprgrass
 }

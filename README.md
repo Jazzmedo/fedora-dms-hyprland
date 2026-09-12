@@ -95,6 +95,13 @@ administrator". The first boot lands on a text console; that is expected.
 --list-stages      print the stage names
 ```
 
+The steps run in one deliberate order: the software sources, then the graphics
+driver, then every package in a single transaction, then the fonts, then the
+desktop shell, and only then the configuration. The shell is installed before
+any settings are deployed because it comes from its own installer, which sets
+up a desktop of its own and writes into the same directories this repository
+does. Ours land on top of anything it wrote, never underneath.
+
 Re-running is safe. Every step checks before it acts, and anything replaced is
 copied to `~/.fedora-nothing-backup/<timestamp>/` first. To repair one part:
 
