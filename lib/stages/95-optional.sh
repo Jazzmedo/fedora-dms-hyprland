@@ -5,36 +5,39 @@
 stage_optional() {
   local any=0
   for c in tailscale warp niri searxng; do is_selected "$c" && any=1; done
-  (( any )) || { skip "no optional services selected"; return 0; }
+  (( any )) || { skip "No extras were chosen"; return 0; }
 
-  step "Optional services"
 
   if is_selected tailscale; then
     if rpm_has tailscale; then
-      as_root systemctl enable --now tailscaled && ok "tailscaled running" \
-        || soft_fail "could not start tailscaled"
-      info "authenticate with: sudo tailscale up"
+      as_root systemctl enable --now tailscaled && ok "Tailscale is running" \
+        || soft_fail "Could not start Tailscale" "" "sudo systemctl enable --now tailscaled"
+      info "To sign in to Tailscale, run: sudo tailscale up"
     else
-      soft_fail "tailscale is not installed; the dankscale plugin will be inert"
+      soft_fail "Tailscale did not install, so its widget will do nothing" \
+                "Its download source could not be reached earlier." \
+                "./install.sh --only=repos,packages,optional"
     fi
   fi
 
   if is_selected warp; then
     if rpm_has cloudflare-warp; then
-      as_root systemctl enable --now warp-svc && ok "warp-svc running" \
-        || soft_fail "could not start warp-svc"
-      info "register with: warp-cli registration new"
+      as_root systemctl enable --now warp-svc && ok "Cloudflare WARP is running" \
+        || soft_fail "Could not start Cloudflare WARP" "" "sudo systemctl enable --now warp-svc"
+      info "To set up Cloudflare WARP, run: warp-cli registration new"
     else
-      soft_fail "cloudflare-warp is not installed; the warpToggle plugin will be inert"
+      soft_fail "Cloudflare WARP did not install, so its widget will do nothing" \
+                "Its download source could not be reached earlier." \
+                "./install.sh --only=repos,packages,optional"
     fi
   fi
 
   if is_selected niri; then
     if rpm_has niri; then
       deploy_tree "$REPO_DIR/config/desktop/niri" "$HOME/.config/niri"
-      ok "niri session configured; pick it at the login screen"
+      ok "The niri session is set up. Pick it at the login screen if you want it."
     else
-      soft_fail "niri is not installed"
+      soft_fail "niri did not install, so that session is not available" "" "./install.sh --only=packages,optional"
     fi
   fi
 
@@ -44,18 +47,20 @@ stage_optional() {
 }
 
 install_searxng() {
-  have podman-compose || { soft_fail "podman-compose missing; SearXNG skipped"; return 0; }
+  have podman-compose || { soft_fail "SearXNG needs podman-compose, which is not installed" \
+                        "It runs as a set of containers." \
+                        "sudo dnf install podman-compose"; return 0; }
   local dest="$HOME/SelfHosted/searxng"
   if [[ -f $dest/docker-compose.yml ]]; then
-    skip "SearXNG already set up in ${dest/#$HOME/\~}"
+    skip "SearXNG is already set up"
     return 0
   fi
-  deploy_tree "$REPO_DIR/config/services/searxng" "$dest" || { soft_fail "SearXNG files missing"; return 0; }
+  deploy_tree "$REPO_DIR/config/services/searxng" "$dest" || { soft_fail "The SearXNG files are missing from this repository"; return 0; }
   # The secret key must not be the one committed to the repo.
   if [[ -f $dest/.env.example ]] && cp "$dest/.env.example" "$dest/.env"
   [[ -f $dest/.env ]] && ! (( DRY_RUN )); then
     local key; key=$(openssl rand -hex 32)
     sed -i "s|^SEARXNG_SECRET=.*|SEARXNG_SECRET=$key|" "$dest/.env" 2>/dev/null || true
   fi
-  ok "SearXNG staged in ${dest/#$HOME/\~}; start it with: cd $dest && podman-compose up -d"
+  ok "SearXNG is ready. Start it with: cd ${dest/#$HOME/\~} && podman-compose up -d"
 }

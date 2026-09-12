@@ -28,7 +28,6 @@ declare -A DMS_PLUGIN_VENDOR=(
 )
 
 stage_dms() {
-  step "DankMaterialShell"
   ensure_quickshell
   install_dms_runtime
   verify_dms_shell
@@ -45,16 +44,18 @@ fix_dms_service_path() {
   [[ -f $unit ]] || return 0
   local dms_path; dms_path=$(command -v dms 2>/dev/null || true)
   if [[ -z $dms_path ]]; then
-    soft_fail "dms is not on PATH, so dms.service was left pointing at /usr/bin/dms"
+    soft_fail "Could not find the desktop shell program to point the startup file at" \
+              "The dms command is not on your PATH." \
+              "./install.sh --only=dms"
     return 0
   fi
   if grep -q "ExecStart=$dms_path " "$unit"; then
-    skip "dms.service already points at $dms_path"
+    skip "The desktop shell startup file is already correct"
     return 0
   fi
   run sed -i -E "s|^ExecStart=.*/dms run|ExecStart=$dms_path run|" "$unit"
   run systemctl --user daemon-reload
-  ok "dms.service points at $dms_path"
+  ok "Pointed the startup file at the desktop shell"
 }
 
 # The lowest quickshell this shell's QML is known to run on. Below it the
@@ -93,30 +94,33 @@ ensure_quickshell() {
   have quickshell || have qs || return 0
 
   local v; v=$(quickshell_version) || {
-    warn "quickshell is installed but would not report a version"
+    warn "quickshell is installed but will not say which version it is"
     return 0
   }
 
   # sort -V -C succeeds when the input is already ascending, so this is true
   # exactly when v is at or above the floor.
   if printf '%s\n%s\n' "$QUICKSHELL_FLOOR" "$v" | sort -V -C; then
-    skip "quickshell $v is new enough"
+    skip "quickshell $v is new enough to draw the desktop"
     return 0
   fi
 
-  warn "quickshell $v predates $QUICKSHELL_FLOOR and cannot parse this shell's QML"
+  warn "quickshell $v is too old to draw this desktop; it needs $QUICKSHELL_FLOOR or newer"
 
   if ! rpm_has quickshell; then
-    soft_fail "quickshell $v did not come from an rpm, so it cannot be removed here.
-     Remove it by hand and re-run: the DMS installer then supplies its own build."
+    soft_fail "A too-old quickshell is in the way and cannot be removed automatically" \
+              "It was not installed by Fedora's package manager, so this installer will not delete it." \
+              "Remove it by hand, then run ./install.sh again"
     return 0
   fi
 
-  info "removing the rpm so the DMS installer can supply the build it expects"
+  info "Removing the old quickshell so the correct one can be installed"
   if as_root dnf remove -y quickshell; then
-    ok "quickshell $v removed"
+    ok "Removed the old quickshell"
   else
-    soft_fail "could not remove quickshell $v; the shell will fail to start"
+    soft_fail "Could not remove the old quickshell $v" \
+              "The desktop will not appear while it is in the way." \
+              "sudo dnf remove quickshell, then run ./install.sh again"
   fi
   return 0
 }
@@ -130,19 +134,23 @@ install_dms_runtime() {
   if have dms && ( have quickshell || have qs ) \
      && { dms_embeds_shell || shell_qml_path >/dev/null; }; then
     local _v; _v=$(dms --version 2>/dev/null | head -1)
-    skip "dms already installed${_v:+ ($_v)}"
+    skip "The desktop shell is already installed${_v:+ ($_v)}"
     return 0
   fi
-  info "running the DankMaterialShell installer"
+  info "Downloading and installing the desktop shell. This takes a few minutes."
   if (( DRY_RUN )); then
     info '$ curl -fsSL https://install.danklinux.com | sh'
     return 0
   fi
   if ! curl -fsSL https://install.danklinux.com | sh; then
-    die "the DankMaterialShell installer failed; see https://github.com/AvengeMedia/DankMaterialShell"
+    die "The desktop shell installer failed" \
+        "It downloads from the internet, so this is usually a connection problem." \
+        "Check your connection, then run ./install.sh again."
   fi
-  have dms || die "the DMS installer completed but dms is not on PATH"
-  ok "dms installed"
+  have dms || die "The desktop shell installer finished but did not leave a working program" \
+                 "The dms command is still not found." \
+                 "Try running it by hand: curl -fsSL https://install.danklinux.com | sh"
+  ok "Installed the desktop shell"
 }
 
 # The `dms` binary is only a supervisor. What draws the bar is a quickshell
@@ -164,21 +172,20 @@ verify_dms_shell() {
   local entry
 
   if dms_embeds_shell; then
-    skip "dms $(dms_version) carries its shell internally; nothing to check on disk"
+    skip "This version of the desktop shell carries everything it needs internally"
     return 0
   fi
 
   if entry=$(shell_qml_path); then
-    ok "shell QML present at ${entry/#$HOME/\~}"
+    ok "The desktop shell has the files it draws from"
     return 0
   fi
 
-  (( DRY_RUN )) && { info "would verify the shell QML"; return 0; }
+  (( DRY_RUN )) && { info "Would check the desktop shell files are present"; return 0; }
 
-  soft_fail "the dms binary is installed but its shell QML is missing from ${root/#$HOME/\~}.
-     This is why the bar never appears even though \`dms restart\` reports success.
-     Re-run the upstream installer on a connection that is not intercepting HTTP:
-       curl -fsSL https://install.danklinux.com | sh"
+  soft_fail "The desktop shell program is installed but the files it draws from are missing" \
+            "Those files download separately, and the download failed. This is why the bar never appears even though the shell reports that it started." \
+            "curl -fsSL https://install.danklinux.com | sh"
   return 0
 }
 
@@ -200,7 +207,7 @@ install_one_plugin() {
   local plugins="$DMS_CONFIG/plugins"
 
   if [[ -e $plugins/$name && -z ${DMS_PLUGIN_VENDOR[$name]:-} ]]; then
-    skip "plugin $name present"
+    skip "The $name add-on is already installed"
     return 0
   fi
 
@@ -209,7 +216,7 @@ install_one_plugin() {
   # the registry would hand back upstream and silently replace a fork.
   if [[ -z ${DMS_PLUGIN_PINNED[$name]:-} ]]; then
     if have dms && dms plugins install "$name" >/dev/null 2>&1; then
-      ok "plugin $name (via dms)"
+      ok "Installed the $name add-on"
       return 0
     fi
   fi
@@ -220,7 +227,9 @@ install_one_plugin() {
     local vdir
     IFS='|' read -r vdir sub <<< "${DMS_PLUGIN_VENDOR[$name]}"
     source="$REPO_DIR/assets/dms-plugins/$vdir"
-    [[ -d $source ]] || { soft_fail "plugin $name: $vdir missing from assets/dms-plugins"; return 0; }
+    [[ -d $source ]] || { soft_fail "The $name add-on is missing from this repository" \
+         "It should be in assets/dms-plugins/$vdir." \
+         "git pull, then ./install.sh --only=dms"; return 0; }
     hash=$(printf 'vendor:%s' "$vdir" | sha256sum | cut -c1-16)
     dir="$plugins/.repos/$hash"
     run rm -rf "$dir"
@@ -231,7 +240,7 @@ install_one_plugin() {
   else
     local spec=${DMS_PLUGIN_REPO[$name]:-}
     if [[ -z $spec ]]; then
-      soft_fail "plugin $name: no known source, skipped"
+      soft_fail "Do not know where to get the $name add-on, so it was skipped"
       return 0
     fi
     IFS='|' read -r repo sub branch <<< "$spec"
@@ -239,18 +248,20 @@ install_one_plugin() {
     dir="$plugins/.repos/$hash"
 
     if [[ -d $dir/.git ]]; then
-      run git -C "$dir" fetch --depth 1 origin "${branch:-HEAD}" || warn "could not fetch $name"
-      run git -C "$dir" checkout -q FETCH_HEAD || warn "could not update $name"
+      run git -C "$dir" fetch --depth 1 origin "${branch:-HEAD}" || warn "Could not download an update for the $name add-on"
+      run git -C "$dir" checkout -q FETCH_HEAD || warn "Could not update the $name add-on"
     else
       local -a clone=(git clone --depth 1)
       [[ -n $branch ]] && clone+=(--branch "$branch")
-      retry 3 "${clone[@]}" "$repo" "$dir" || { soft_fail "plugin $name: clone failed"; return 0; }
+      retry 3 "${clone[@]}" "$repo" "$dir" || { soft_fail "Could not download the $name add-on" \
+           "The download from $repo failed." \
+           "./install.sh --only=dms"; return 0; }
     fi
   fi
 
   local target="$dir"
   [[ $sub != "." ]] && target="$dir/$sub"
-  [[ -d $target ]] || { soft_fail "plugin $name: $sub missing from $repo"; return 0; }
+  [[ -d $target ]] || { soft_fail "The $name add-on downloaded but does not contain what was expected"; return 0; }
 
   # Relative, so the link survives a different \$HOME. The captured config had
   # these pointing at an absolute /home/hanafi.
@@ -263,7 +274,7 @@ install_one_plugin() {
   fi
   (( DRY_RUN )) || printf 'repo=%s\npath=%s\nrepodir=%s\nbranch=%s\n' \
     "$repo" "$sub" "$hash" "${branch:-HEAD}" > "$plugins/$name.meta"
-  ok "plugin $name${branch:+ (branch $branch)}"
+  ok "Installed the $name add-on"
 
   plugin_post_install "$name" "$dir"
 
@@ -276,8 +287,10 @@ plugin_post_install() {
     quickCapture)
       # A Rust screenshot backend that has to be compiled.
       [[ -x $repo_dir/scripts/install-backend.sh ]] || return 0
-      have cargo || { soft_fail "$name needs cargo to build its backend"; return 0; }
-      run_visible "$repo_dir/scripts/install-backend.sh" || soft_fail "$name backend build failed"
+      have cargo || { soft_fail "The $name add-on needs the Rust toolchain, which is not installed" \
+                            "Part of it has to be compiled." \
+                            "Re-run ./install.sh and tick language runtimes"; return 0; }
+      run_visible "$repo_dir/scripts/install-backend.sh" || soft_fail "The $name add-on did not finish building" "" "./install.sh --only=dms"
       ;;
     cliampDms)  install_cliamp "$repo_dir" ;;
     lyricsOnPanel) install_lyrics_backend "$repo_dir" ;;
@@ -289,14 +302,15 @@ plugin_post_install() {
 install_cliamp() {
   local repo_dir=$1
   if have cliamp; then
-    skip "cliamp already installed"
+    skip "The CLIAMP music player is already installed"
   elif ! have go; then
-    soft_fail "cliamp needs Go to build; select the language runtimes component"
+    soft_fail "The CLIAMP music player needs the Go toolchain, which is not installed" \
+                "It has to be compiled from source." \
+                "Re-run ./install.sh and tick language runtimes"
   else
-    info "building CLIAMP with go install"
-    run_visible env GOBIN="$HOME/.local/bin" go install github.com/bjarneo/cliamp@latest \
-      || soft_fail "could not build cliamp"
-    have cliamp && ok "cliamp installed"
+    run_quiet "Building the CLIAMP music player" -- \
+      env GOBIN="$HOME/.local/bin" go install github.com/bjarneo/cliamp@latest \
+      || soft_fail "The CLIAMP music player did not build" "" "./install.sh --only=dms"
   fi
 
   # Helper scripts the widget shells out to, and the optional Lua bridge that
@@ -309,7 +323,7 @@ install_cliamp() {
   if [[ -f $repo_dir/cliamp/cliamp-dms-bridge.lua ]]; then
     deploy_file "$repo_dir/cliamp/cliamp-dms-bridge.lua" \
       "$HOME/.config/cliamp/plugins/cliamp-dms-bridge.lua"
-    info "CLIAMP bridge staged; trust it from the plugin's Radio tab, then restart cliamp"
+    info "CLIAMP radio support is ready. Turn it on from the Radio tab in the widget, then restart CLIAMP."
   fi
 }
 
@@ -322,7 +336,7 @@ install_lyrics_backend() {
   local dest="$HOME/.local/share/lyrics-on-panel"
   local unit="Universal-Mpris-LyricServer.service"
 
-  [[ -d $repo_dir/backend ]] || { soft_fail "lyrics backend missing from the checkout"; return 0; }
+  [[ -d $repo_dir/backend ]] || { soft_fail "The lyrics add-on is missing the part that fetches the words"; return 0; }
 
   # The sources are refreshed every run, since the vendored copy is what
   # changes; only the virtualenv is expensive enough to reuse.
@@ -331,17 +345,17 @@ install_lyrics_backend() {
     || run cp -a "$repo_dir/backend/." "$dest/backend/"
 
   if [[ -x $dest/backend/.venv/bin/python ]]; then
-    skip "lyrics backend virtualenv already built"
+    skip "The lyrics helper is already built"
   else
-    (( DRY_RUN )) || {
-      # dbus-python has no wheel and compiles against dbus-devel and glib2-devel.
-      python3 -m venv "$dest/backend/.venv" \
-        && "$dest/backend/.venv/bin/pip" install --quiet --upgrade pip \
-        && "$dest/backend/.venv/bin/pip" install --quiet \
-             -r "$dest/backend/requirements.txt" \
-        || { soft_fail "lyrics backend dependencies failed to build"; return 0; }
-    }
-    ok "lyrics backend built in ${dest/#$HOME/\~}"
+    # dbus-python has no wheel and compiles against dbus-devel and glib2-devel,
+    # so this is a real build and not a download.
+    run_quiet "Building the lyrics helper" -- \
+      bash -c 'python3 -m venv "$1/.venv" \
+        && "$1/.venv/bin/pip" install --upgrade pip \
+        && "$1/.venv/bin/pip" install -r "$1/requirements.txt"' _ "$dest/backend" \
+      || { soft_fail "The lyrics helper did not finish building" \
+           "It compiles small Python pieces that need development headers." \
+           "sudo dnf install dbus-devel glib2-devel, then ./install.sh --only=dms"; return 0; }
   fi
 
   (( DRY_RUN )) || cat > "$dest/backend/run.sh" <<EOF
@@ -367,8 +381,8 @@ RestartSec=5
 WantedBy=default.target
 EOF
   run systemctl --user daemon-reload
-  run systemctl --user enable "$unit" || soft_fail "could not enable $unit"
-  ok "lyrics backend service enabled (ws://127.0.0.1:23560)"
+  run systemctl --user enable "$unit" || soft_fail "Could not set the lyrics helper to start automatically" "" "systemctl --user enable $unit"
+  ok "The lyrics helper will start when you log in"
 }
 
 # settings.json and plugin_settings.json, rewritten for this install.
@@ -376,7 +390,7 @@ deploy_dms_settings() {
   local src="$REPO_DIR/config/shell-ui/DankMaterialShell"
   run mkdir -p "$DMS_CONFIG/themes"
   deploy_tree "$src/themes" "$DMS_CONFIG/themes"
-  ok "$(ls "$src/themes" | wc -l) themes installed"
+  ok "Installed $(ls "$src/themes" | wc -l) colour themes"
 
   backup_path "$DMS_CONFIG/settings.json"
   backup_path "$DMS_CONFIG/plugin_settings.json"
@@ -392,16 +406,18 @@ deploy_dms_settings() {
   # `set -e` aborted the whole installer here. Hence the newline in
   # detect_resolution, and the guard.
   read -r width height < <(detect_resolution) || true
-  info "clock geometry computed for ${width}x${height}"
+  info "Sized the desktop clock for a ${width}x${height} screen"
 
-  (( DRY_RUN )) && { info "would rewrite settings.json"; return 0; }
+  (( DRY_RUN )) && { info "Would write the desktop shell settings"; return 0; }
 
   KEEP_PLUGINS="$keep" DEAD_PLUGINS="$dead" \
   OUTPUT_NAME="$TPL_MONITOR" SCREEN_W="$width" SCREEN_H="$height" \
   python3 "$REPO_DIR/lib/dms_settings.py" \
     "$DMS_CONFIG/settings.json" "$DMS_CONFIG/plugin_settings.json" \
-    || die "could not rewrite the DMS settings"
-  ok "settings.json rewritten: nothingMatrix theme, Nothing Clock, $(wc -w <<<"${keep//,/ }") plugins"
+    || die "Could not write the desktop shell settings" \
+         "The settings file could not be read or written." \
+         "./install.sh --only=dms"
+  ok "Set the Nothing Matrix theme, the desktop clock and $(wc -w <<<"${keep//,/ }") add-ons"
 }
 
 # The preferred mode of the output the session will actually use. Reading the

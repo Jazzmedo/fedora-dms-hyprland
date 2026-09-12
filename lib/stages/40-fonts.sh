@@ -5,20 +5,19 @@
 NERD_FONT_VERSION="3.4.0"
 
 stage_fonts() {
-  step "Fonts"
 
   local dest=/usr/share/fonts/nothing
   if [[ -f $dest/Ndot57-Regular.otf ]]; then
-    skip "Nothing fonts already installed"
+    skip "The Nothing typefaces are already installed"
   else
     as_root mkdir -p "$dest"
     as_root cp "$REPO_DIR"/assets/fonts/nothing/*.otf "$dest/"
-    ok "Nothing fonts installed (Ndot 55/57, NType 82)"
+    ok "Installed the Nothing typefaces: Ndot 55, Ndot 57 and NType 82"
   fi
 
   local nerd=/usr/share/fonts/jetbrains-nerd
   if [[ -d $nerd && -n $(ls -A "$nerd" 2>/dev/null) ]]; then
-    skip "JetBrainsMono Nerd Font already installed"
+    skip "The terminal typeface is already installed"
   else
     local tmp; tmp=$(mktemp -d)
     local url="https://github.com/ryanoasis/nerd-fonts/releases/download/v${NERD_FONT_VERSION}/JetBrainsMono.tar.xz"
@@ -26,9 +25,11 @@ stage_fonts() {
       as_root mkdir -p "$nerd"
       run tar -xf "$tmp/jb.tar.xz" -C "$tmp"
       as_root bash -c "cp '$tmp'/*.ttf '$nerd'/"
-      ok "JetBrainsMono Nerd Font installed"
+      ok "Installed JetBrains Mono, the typeface the terminal and editor use"
     else
-      soft_fail "could not download JetBrainsMono Nerd Font; terminals will fall back"
+      soft_fail "Could not download the terminal typeface" \
+                  "The download from GitHub failed. Your terminal will use a plainer font." \
+                  "./install.sh --only=fonts"
     fi
     rm -rf "$tmp"
   fi
@@ -38,7 +39,7 @@ stage_fonts() {
   # and code remain aligned and legible.
   local conf=/etc/fonts/local.conf
   if [[ -f $conf ]] && grep -q "Ndot 57" "$conf"; then
-    skip "fontconfig defaults already set"
+    skip "The system fonts are already set"
   else
     as_root tee "$conf" >/dev/null <<'XML'
 <?xml version="1.0"?>
@@ -68,25 +69,25 @@ stage_fonts() {
   </alias>
 </fontconfig>
 XML
-    ok "fontconfig: sans → Ndot 57, monospace → JetBrainsMono Nerd Font Mono"
+    ok "Set Ndot 57 as the system font and JetBrains Mono for code"
   fi
 
   as_root fc-cache -f >/dev/null
-  ok "font cache rebuilt"
+  ok "Told the system about the new fonts"
 
   # Cursor and icon themes referenced by the DMS settings and by Dolphin.
   local icons="$HOME/.local/share/icons"
   run mkdir -p "$icons"
   if [[ -d $icons/Afterglow-cursors ]]; then
-    skip "Afterglow cursors present"
+    skip "The mouse cursor theme is already installed"
   else
     run tar -xf "$REPO_DIR/assets/icons/Afterglow-cursors.tar.zst" -C "$icons"
-    ok "Afterglow cursor theme installed"
+    ok "Installed the Afterglow mouse cursors"
   fi
   if [[ -d "$icons/Cawnonical Mono-Glyph Icon Suite (White)" ]]; then
-    skip "Cawnonical icon theme present"
+    skip "The icon set is already installed"
   else
     run tar -xf "$REPO_DIR/assets/icons/cawnonical-mono-glyph-white.tar.zst" -C "$icons"
-    ok "Cawnonical icon theme installed"
+    ok "Installed the Cawnonical icon set"
   fi
 }

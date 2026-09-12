@@ -21,7 +21,7 @@ ART
   printf '  %sHyprland · DankMaterialShell · Nothing%s\n\n' "$C_GREY" "$C_OFF"
   printf '  %s↑↓/jk%s move   %sspace%s toggle   %sa%s whole group   %senter%s install   %sq%s abort\n' \
     "$C_BOLD" "$C_OFF" "$C_BOLD" "$C_OFF" "$C_BOLD" "$C_OFF" "$C_BOLD" "$C_OFF" "$C_BOLD" "$C_OFF"
-  printf '  %s%s%s\n' "$C_GREY" "$(printf '─%.0s' $(seq 1 "${UI_WIDTH:-72}"))" "$C_OFF"
+  printf '  %s%s%s\n' "$C_GREY" "$(printf '─%.0s' $(seq 1 "$UI_WIDTH"))" "$C_OFF"
 }
 
 _ui_build_rows() {
@@ -98,7 +98,7 @@ _ui_render() {
     fi
   done
   local n; n=$(selected_count)
-  printf '\n  %s%s%s\n' "$C_GREY" "$(printf '─%.0s' $(seq 1 "${UI_WIDTH:-72}"))" "$C_OFF"
+  printf '\n  %s%s%s\n' "$C_GREY" "$(printf '─%.0s' $(seq 1 "$UI_WIDTH"))" "$C_OFF"
   printf '  %s%d selected%s   %s✓ already installed   ~ partial   [·] always installed%s\n' \
     "$C_BOLD" "$n" "$C_OFF" "$C_GREY" "$C_OFF"
 }
@@ -125,8 +125,6 @@ _ui_key() {
 
 # The picker. Returns non-zero if the user aborted.
 ui_select_components() {
-  UI_WIDTH=$(_tput cols); UI_WIDTH=${UI_WIDTH:-80}; (( UI_WIDTH > 96 )) && UI_WIDTH=96
-
   if [[ ! -t 0 || ! -t 1 ]]; then
     info "not a terminal, using the default selection"
     return 0
@@ -192,13 +190,57 @@ confirm() {
 }
 
 # Print the plan the installer is about to execute.
+# Wrap a long value under a fixed-width label, so a list of twenty components
+# does not run off the side of a narrow terminal.
+#
+# Items are comma-separated, not space-separated: component names contain
+# spaces ("Nothing fonts", "zsh + oh-my-zsh"), so wrapping on whitespace ran
+# them into each other and there was no telling where one ended.
+_plan_row() {
+  local label=$1 value=$2 colour=${3:-}
+  local indent=18
+  local width=$(( UI_WIDTH - indent ))
+  (( width < 24 )) && width=24
+
+  local -a items=()
+  local IFS=,
+  read -ra items <<< "$value"
+  unset IFS
+
+  local first=1 line="" item
+  _emit() {
+    if (( first )); then
+      printf '  %s%-14s%s  %s%s%s\n' "$C_GREY" "$label" "$C_OFF" "$colour" "$1" "${colour:+$C_OFF}"
+      first=0
+    else
+      printf '%*s%s%s%s\n' "$indent" '' "$colour" "$1" "${colour:+$C_OFF}"
+    fi
+  }
+
+  for item in "${items[@]}"; do
+    item=${item#"${item%%[![:space:]]*}"}          # strip the leading space
+    [[ -n $item ]] || continue
+    if [[ -n $line ]] && (( ${#line} + ${#item} + 2 > width )); then
+      _emit "$line,"
+      line=$item
+    else
+      line="${line:+$line, }$item"
+    fi
+  done
+  _emit "${line:-none}"
+  unset -f _emit
+}
+
+# Join the arguments with ", " for _plan_row.
+_join() { local IFS=,; printf '%s' "$*"; }
+
 ui_show_plan() {
-  step "Plan"
-  printf '  %-14s %s\n' "GPU"     "${GPU_VENDOR}"
-  printf '  %-14s %s\n' "Layout"  "${HYPR_LAYOUT}"
-  printf '  %-14s %s\n' "Displays" "${OUTPUT_SUMMARY:-detected at install time}"
-  printf '  %-14s %s\n' "Stages" "${STAGES_TO_RUN[*]}"
-  printf '  %-14s %s\n' "Backups" "$( (( NO_BACKUP )) && echo disabled || echo "~/.fedora-nothing-backup/" )"
+  printf '\n  %sHere is what will happen%s\n\n' "$C_BOLD" "$C_OFF"
+  _plan_row "Graphics"  "${GPU_VENDOR}"
+  _plan_row "Windows"   "arranged the ${HYPR_LAYOUT} way"
+  _plan_row "Screens"   "${OUTPUT_SUMMARY:-worked out while installing}"
+  _plan_row "Steps"     "${#STAGES_TO_RUN[@]} of them, about 15-40 minutes"
+  _plan_row "Backups"   "$( (( NO_BACKUP )) && echo "off" || echo "replaced files go to ~/.fedora-nothing-backup/" )"
   local k names=() fresh=() repair=() satisfied=0
   for k in "${COMPONENT_ORDER[@]}"; do
     [[ ${COMPONENT_GROUP[$k]} == gpu || ${COMPONENT_GROUP[$k]} == layout ]] && continue
@@ -210,10 +252,10 @@ ui_show_plan() {
       *)         fresh+=("${COMPONENT_NAME[$k]}") ;;
     esac
   done
-  printf '  %-14s %s\n' "Optional" "${names[*]:-none}"
-  printf '  %-14s %s\n' "Already set" "$satisfied component(s), which will be checked and skipped"
-  printf '  %-14s %s\n' "To install"  "${fresh[*]:-nothing}"
-  printf '  %-14s %s\n' "To repair"   "${repair[*]:-nothing}"
+  printf '\n'
+  _plan_row "Already there" "$satisfied thing(s), which will be checked and left alone" "$C_GREY"
+  _plan_row "To install"    "$(_join ${fresh[@]+"${fresh[@]}"})"   "$C_OK"
+  _plan_row "To repair"     "$(_join ${repair[@]+"${repair[@]}"})" "$C_WARN"
 }
 
 # ---------------------------------------------------------------- identity ---

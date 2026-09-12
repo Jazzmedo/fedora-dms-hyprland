@@ -2,7 +2,6 @@
 # The Nothing login screen, and the switch from a TTY to a graphical boot.
 
 stage_sddm() {
-  step "Login screen"
 
   local dest=/usr/share/sddm/themes/nothing
 
@@ -11,7 +10,7 @@ stage_sddm() {
   as_root mkdir -p /usr/share/sddm/themes /etc/sddm.conf.d
   as_root rm -rf "$dest"
   as_root cp -r "$REPO_DIR/assets/sddm/nothing" "$dest"
-  ok "Nothing SDDM theme installed (MIT, Darkkal44)"
+  ok "Installed the Nothing login screen"
 
   # The theme carries its own NDot55 and NType82 and loads them with a
   # FontLoader, because the greeter runs before any user session and cannot
@@ -35,9 +34,9 @@ GreeterEnvironment=QT_WAYLAND_SHELL_INTEGRATION=layer-shell,QT_QPA_PLATFORMTHEME
 [Wayland]
 CompositorCommand=$compositor
 EOF
-    ok "Wayland greeter via ${compositor%% *}"
+    ok "The login screen will run in modern graphics mode"
   else
-    warn "no Wayland compositor for the greeter; falling back to X11"
+    warn "Falling back to the older graphics mode for the login screen"
     as_root rm -f /etc/sddm.conf.d/10-wayland.conf
   fi
 
@@ -55,15 +54,15 @@ InputMethod=
 MaximumUid=60000
 MinimumUid=1000
 EOF
-  ok "theme set to nothing"
+  ok "The Nothing theme is now the login screen"
 
   # Fedora's own /etc/sddm.conf, if present, overrides conf.d on some builds.
   [[ -f /etc/sddm.conf ]] && as_root mv /etc/sddm.conf /etc/sddm.conf.fedora-nothing.bak && \
-    info "moved /etc/sddm.conf aside so conf.d wins"
+    info "Moved an old login screen config aside so these settings take effect"
 
   as_root systemctl enable sddm
   as_root systemctl set-default graphical.target
-  ok "graphical boot enabled"
+  ok "The computer will boot straight to the login screen"
 }
 
 # A QML theme whose imports cannot be resolved does not fail loudly: SDDM logs
@@ -98,14 +97,18 @@ verify_sddm_theme() {
   done
 
   if (( ${#missing[@]} == 0 )); then
-    ok "every QML module the theme imports is present"
+    ok "Everything the login screen needs to draw itself is installed"
     return 0
   fi
 
   local m
   for m in "${missing[@]}"; do
-    soft_fail "the login theme imports $m, which is not installed"
+    soft_fail "The login screen needs $m, which is missing" \
+               "Without it the screen cannot draw and Fedora shows its plain one instead." \
+               "sudo dnf install ${provider[$m]}"
   done
-  soft_fail "SDDM will fall back to its default greeter until those are installed"
+  soft_fail "Until those are installed you will see Fedora's plain login screen" \
+            "The Nothing theme is installed but cannot load." \
+            "Install the packages listed above, then restart."
   return 0
 }

@@ -13,6 +13,39 @@ cd ~/fedora-dms-hyprland-setup
 The installer opens a checklist first. Space toggles a component, `a` toggles a
 whole group, enter starts. Nothing is touched before you press enter.
 
+## What a run looks like
+
+Each step announces itself, says what it is about to do, and shows how far
+along you are. Slow steps show a spinner with a running clock, so nothing ever
+looks frozen.
+
+```
+╭──────────────────────────────────────────────────────────────────────╮
+│  Step 6 of 13  ·  Window manager                                     │
+│  Sets up the window manager and works out your screen layout.        │
+│  ███████████████████████░░░░░░░░░░░░░░░░░░░░░░░░░░   46%    4m 12s   │
+╰──────────────────────────────────────────────────────────────────────╯
+
+  ✓ Copied the window manager settings into place
+  → Screen eDP-1: 1920x1080, landscape
+  · Windows already arrange themselves the scrolling way
+  ⠹ Building the touchpad gesture add-on 38s
+```
+
+`✓` done, `→` worth knowing, `·` already there so nothing to do, `▲` a warning,
+`✗` a part that failed. Nothing that fails leaves you guessing:
+
+```
+  ✗ The CLIAMP music player needs the Go toolchain, which is not installed
+      Why:  It has to be compiled from source.
+      Fix:  Re-run ./install.sh and tick language runtimes
+      This part did not finish. Everything else carries on.
+```
+
+Anything still outstanding is repeated at the end, cause and command together.
+Colour turns itself off when the output is piped or `NO_COLOR` is set; use
+`--color=always` to keep it through `tee`.
+
 ## Installing Fedora first
 
 Use the **Fedora Everything** ISO. On the Software Selection screen:
@@ -40,6 +73,8 @@ administrator". The first boot lands on a text console; that is expected.
 --skip=A,B         run everything except these stages
 --dry-run          print every command without running one
 --no-backup        do not copy replaced files aside
+--color=WHEN       auto | always | never
+--status           report what is already installed, then exit
 --list-stages      print the stage names
 ```
 

@@ -3,8 +3,7 @@
 # policy, name resolution, and writeback tuning.
 
 stage_tweaks() {
-  is_selected tweaks || { skip "system tweaks not selected"; return 0; }
-  step "System tweaks"
+  is_selected tweaks || { skip "System settings were not chosen"; return 0; }
   install_browser_policies
   configure_nsswitch
   install_sysctl
@@ -23,14 +22,14 @@ install_browser_policies() {
     as_root mkdir -p "$dir"
     as_root cp "$ff" "$dir/policies.json"
   done
-  ok "Firefox-family search policy installed (Zen, Firefox)"
+  ok "Set your custom search engine in Zen and Firefox"
 
   for dir in /etc/chromium/policies/managed /etc/brave/policies/managed \
              /etc/opt/chrome/policies/managed /etc/helium/policies/managed; do
     as_root mkdir -p "$dir"
     as_root cp "$cr" "$dir/searxng_policy.json"
   done
-  ok "Chromium-family search policy installed (Chromium, Brave, Chrome, Helium)"
+  ok "Set your custom search engine in Chromium, Brave, Chrome and Helium"
 }
 
 # mdns4_minimal resolves .local names from Avahi, which is what the SearXNG
@@ -38,16 +37,18 @@ install_browser_policies() {
 configure_nsswitch() {
   local want='hosts:          files dns mdns4_minimal mymachines'
   if grep -qx "$want" /etc/nsswitch.conf 2>/dev/null; then
-    skip "nsswitch hosts line already set"
+    skip "Local network name lookup is already set up"
     return 0
   fi
   as_root cp /etc/nsswitch.conf /etc/nsswitch.conf.fedora-nothing.bak
   as_root sed -i "s|^hosts:.*|$want|" /etc/nsswitch.conf
   grep -q '^hosts:' /etc/nsswitch.conf || as_root bash -c "printf '%s\n' '$want' >> /etc/nsswitch.conf"
-  ok "nsswitch hosts: files dns mdns4_minimal mymachines"
+  ok "Set up name lookup so devices on your network resolve by name"
 
   if ! rpm_has nss-mdns; then
-    as_root dnf install -y nss-mdns avahi || soft_fail "nss-mdns unavailable; .local names will not resolve"
+    as_root dnf install -y nss-mdns avahi || soft_fail "Could not install the local name lookup service" \
+         "Addresses ending in .local will not work." \
+         "sudo dnf install nss-mdns avahi"
     as_root systemctl enable --now avahi-daemon || true
   fi
 }
@@ -55,10 +56,10 @@ configure_nsswitch() {
 install_sysctl() {
   local f=/etc/sysctl.d/99-usb-copy-fix.conf
   if [[ -f $f ]] && cmp -s "$REPO_DIR/config/system/sysctl/99-usb-copy-fix.conf" "$f"; then
-    skip "writeback tuning already applied"
+    skip "The USB copying fix is already applied"
     return 0
   fi
   as_root cp "$REPO_DIR/config/system/sysctl/99-usb-copy-fix.conf" "$f"
   as_root sysctl --system >/dev/null
-  ok "writeback capped at 16 MB background / 32 MB total"
+  ok "Copying to USB drives will no longer make the system freeze"
 }

@@ -33,8 +33,18 @@ ALL_STAGES=(preflight repos gpu packages fonts hyprland dms themes apps shell tw
 STAGES_TO_RUN=()
 
 usage() {
-  sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//'
   cat <<'EOF'
+fedora-nothing — turns a barebones Fedora into the Nothing desktop: the
+Hyprland window manager, the DankMaterialShell bar and widgets, the Nothing
+login screen and typefaces, and kitty, Zen and Dolphin as the defaults.
+
+  ./install.sh                    choose what to install, then install it
+  ./install.sh --yes              install the usual set, ask nothing
+  ./install.sh --dry-run          show what would happen, change nothing
+  ./install.sh --only=themes,dms  redo just those parts
+
+Safe to run again. Every step checks before it acts, and anything it replaces
+is copied to ~/.fedora-nothing-backup/ first.
 
 Options:
   --yes, -y             accept the default selection, ask nothing
@@ -46,6 +56,7 @@ Options:
   --dry-run             print what would happen, change nothing
   --no-backup           do not copy replaced files aside
   --status              report what is already installed, then exit
+  --color=WHEN          auto | always | never   (always keeps colour in a pipe)
   --list-stages         print the stage names and exit
   --help, -h            this text
 EOF
@@ -64,6 +75,8 @@ for arg in "$@"; do
     --skip=*)        SKIP=${arg#*=} ;;
     --list-stages)   printf '%s\n' "${ALL_STAGES[@]}"; exit 0 ;;
     --status)        SHOW_STATUS=1 ;;
+    --color=*)       COLOR_MODE=${arg#*=}; COLOR_MODE_EXPLICIT=1 ;;
+    --no-color)      COLOR_MODE=never; COLOR_MODE_EXPLICIT=1 ;;
     -h|--help)       usage; exit 0 ;;
     *)               printf 'unknown option: %s\n\n' "$arg" >&2; usage; exit 2 ;;
   esac
@@ -72,6 +85,8 @@ done
 # ------------------------------------------------------------------ library ---
 # shellcheck source=lib/common.sh
 source "$REPO_DIR/lib/common.sh"
+# shellcheck source=lib/progress.sh
+source "$REPO_DIR/lib/progress.sh"
 # shellcheck source=lib/components.sh
 source "$REPO_DIR/lib/components.sh"
 # shellcheck source=lib/detect.sh
@@ -87,7 +102,8 @@ LOG_FILE="$HOME/.cache/fedora-nothing/install-$(date +%Y%m%d-%H%M%S).log"
 mkdir -p "$(dirname "$LOG_FILE")"
 : > "$LOG_FILE"
 
-trap 'install_exit_trap "$?"' EXIT
+trap 'spin_cleanup; install_exit_trap "$?"' EXIT
+trap 'spin_cleanup; printf "\n"; exit 130' INT
 
 # ------------------------------------------------------------------- stages ---
 resolve_stages() {
@@ -101,15 +117,15 @@ resolve_stages() {
   for s in "${wanted[@]}"; do
     [[ $s == preflight ]] || [[ $skip_list != *",$s,"* ]] || continue
     printf '%s\n' " ${ALL_STAGES[*]} " | grep -q " $s " \
-      || die "unknown stage: $s (see --list-stages)"
+      || die "There is no step called \"$s\"" "" "./install.sh --list-stages shows the names"
     STAGES_TO_RUN+=("$s")
   done
 }
 
 run_stage() {
   local name=$1
-  printf '%s\n' " ${STAGES_TO_RUN[*]} " | grep -q " $name " || return 0
   CURRENT_STAGE=$name
+  progress_stage_begin "$name"
   "stage_${name}"
 }
 
@@ -155,9 +171,9 @@ choose_components() {
 
   if [[ -n $PRESET ]]; then
     apply_preset "$PRESET"
-    info "preset: $PRESET"
+    info "Installing the \"$PRESET\" set of components"
   elif load_selection; then
-    info "reusing the selection from ${SELECTION_FILE/#$HOME/\~}"
+    info "Using the same choices as last time"
     # Anything already on the machine is worth keeping selected, so a re-run
     # verifies it instead of silently leaving it out.
     reselect_installed
@@ -170,14 +186,14 @@ choose_components() {
   # An explicit flag wins over the saved value, which wins over the picker.
   select_gpu "${GPU_VENDOR:-$detected}"
   [[ $HYPR_LAYOUT == scrolling || $HYPR_LAYOUT == dwindle ]] \
-    || die "unknown layout: $HYPR_LAYOUT (scrolling|dwindle)"
+    || die "\"$HYPR_LAYOUT\" is not a window layout this installer knows" "" "Use --layout=scrolling or --layout=dwindle"
   select_layout "$HYPR_LAYOUT"
 
   # Gear Lever is only distributed as a Flatpak, so picking it turns Flatpak on
   # rather than failing later with an app that cannot be installed.
   if is_selected gearlever && ! is_selected flatpak; then
     select_component flatpak
-    info "Gear Lever needs Flatpak, so Flatpak was enabled too"
+    info "Gear Lever only comes as a Flatpak, so Flatpak was switched on too"
   fi
 
   # Summarise the displays for the plan; the hyprland stage re-reads them.
@@ -200,8 +216,16 @@ reselect_installed() {
     [[ $(component_state "$k") == installed ]] || continue
     select_component "$k"; (( ++n ))
   done
-  (( n )) && info "$n component(s) already installed were re-selected so they get verified"
+  (( n )) && info "$n thing(s) you already have were re-ticked, so they get checked"
   return 0
+}
+
+# The picker clears the screen and draws its own banner, so a run that skips
+# the picker used to show no title at all.
+install_banner() {
+  printf '\n  %s%s███%s  %sfedora-nothing%s\n' "$C_RED" "$C_BOLD" "$C_OFF" "$C_BOLD" "$C_OFF"
+  printf '  %sTurns this Fedora into the Nothing desktop.%s\n' "$C_GREY" "$C_OFF"
+  printf '  %s%s%s\n' "$C_GREY" "$(rule)" "$C_OFF"
 }
 
 # -------------------------------------------------------------------- main ---
@@ -212,29 +236,22 @@ main() {
     exit 0
   fi
   resolve_stages
+  install_banner
   choose_components
   ui_show_plan
 
-  (( DRY_RUN )) && warn "dry run: nothing will be changed"
-  if ! (( ASSUME_YES )) && ! confirm "Proceed?"; then
-    die "cancelled"
+  (( DRY_RUN )) && warn "This is a dry run. Nothing on this machine will be changed."
+  if ! (( ASSUME_YES )) && ! confirm "Start installing?"; then
+    die "Cancelled. Nothing was changed."
   fi
   save_selection
 
   local start=$SECONDS
-  run_stage preflight
-  run_stage repos
-  run_stage gpu
-  run_stage packages
-  run_stage fonts
-  run_stage hyprland
-  run_stage dms
-  run_stage themes
-  run_stage apps
-  run_stage shell
-  run_stage tweaks
-  run_stage sddm
-  run_stage optional
+  progress_init "${#STAGES_TO_RUN[@]}"
+  local s
+  for s in "${STAGES_TO_RUN[@]}"; do
+    run_stage "$s"
+  done
 
   INSTALL_COMPLETED=1
   summary $(( SECONDS - start ))
@@ -242,28 +259,51 @@ main() {
 
 summary() {
   local secs=$1
-  step "Done in $(( secs / 60 ))m $(( secs % 60 ))s"
 
+  printf '\n%s%s%s\n' "$C_RED" "$(rule)" "$C_OFF"
   if (( ${#SOFT_FAILURES[@]} )); then
-    printf '\n  %s%d step(s) did not complete:%s\n' "$C_WARN" "${#SOFT_FAILURES[@]}" "$C_OFF"
-    printf '    · %s\n' "${SOFT_FAILURES[@]}"
+    printf '  %s%s Finished in %dm %02ds, with %d thing(s) to look at%s\n' \
+      "$C_WARN" "$C_BOLD" $(( secs / 60 )) $(( secs % 60 )) "${#SOFT_FAILURES[@]}" "$C_OFF"
+  else
+    printf '  %s%s✓ All done, in %dm %02ds%s\n' \
+      "$C_OK" "$C_BOLD" $(( secs / 60 )) $(( secs % 60 )) "$C_OFF"
+  fi
+  printf '%s%s%s\n' "$C_RED" "$(rule)" "$C_OFF"
+
+  # Cause and command reprinted together, rather than the flattened one-line
+  # list this used to show.
+  if (( ${#SOFT_FAILURES[@]} )); then
+    printf '\n  %sThese parts did not finish. The rest of your desktop is fine.%s\n\n' \
+      "$C_BOLD" "$C_OFF"
+    local i
+    for i in "${!SOFT_FAILURES[@]}"; do
+      printf '   %s%d.%s %s\n' "$C_WARN" $(( i + 1 )) "$C_OFF" "${SOFT_FAILURES[i]}"
+      [[ -n ${SOFT_WHY[i]} ]] && printf '      %sWhy:%s  %s\n' "$C_GREY" "$C_OFF" "${SOFT_WHY[i]}"
+      [[ -n ${SOFT_FIX[i]} ]] && printf '      %sFix:%s  %s%s%s\n' \
+        "$C_GREY" "$C_OFF" "$C_BOLD" "${SOFT_FIX[i]}" "$C_OFF"
+      printf '\n'
+    done
   fi
 
-  [[ -n $BACKUP_DIR ]] && info "replaced files are in ${BACKUP_DIR/#$HOME/\~}"
-  info "full log: ${LOG_FILE/#$HOME/\~}"
+  printf '  %sFull log%s        %s\n' "$C_GREY" "$C_OFF" "${LOG_FILE/#$HOME/\~}"
+  [[ -n $BACKUP_DIR ]] && \
+    printf '  %sReplaced files%s  %s\n' "$C_GREY" "$C_OFF" "${BACKUP_DIR/#$HOME/\~}"
 
-  (( DRY_RUN )) && return 0
+  (( DRY_RUN )) && {
+    printf '\n  %sThat was a dry run. Nothing on this machine changed.%s\n\n' "$C_CYAN" "$C_OFF"
+    return 0
+  }
 
-  cat <<EOF
+  printf '\n  %sWhat happens next%s\n' "$C_BOLD" "$C_OFF"
+  printf '   %s1.%s Restart the computer.\n' "$C_RED" "$C_OFF"
+  printf '   %s2.%s At the login screen, pick %sHyprland%s as the session, then log in.\n' \
+    "$C_RED" "$C_OFF" "$C_BOLD" "$C_OFF"
+  printf '   %s3.%s Press %sSuper + Return%s for a terminal, %sSuper + /%s for every shortcut.\n' \
+    "$C_RED" "$C_OFF" "$C_BOLD" "$C_OFF" "$C_BOLD" "$C_OFF"
+  printf '\n  %sIf the desktop looks empty after logging in, run ./doctor.sh — it says why.%s\n\n' \
+    "$C_GREY" "$C_OFF"
 
-  ${C_BOLD}Next:${C_OFF}
-    1. reboot
-    2. log in through the Nothing greeter, choosing the Hyprland session
-    3. SUPER + Return opens kitty, SUPER + / lists every keybinding
-
-  ${C_GREY}If the shell does not appear, check: systemctl --user status dms.service${C_OFF}
-EOF
-  confirm "Reboot now?" && as_root systemctl reboot
+  confirm "Restart now?" && as_root systemctl reboot
 }
 
 main "$@"

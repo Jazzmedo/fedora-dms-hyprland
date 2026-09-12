@@ -17,20 +17,22 @@ detect_gpu() {
 }
 
 stage_gpu() {
-  step "Graphics"
-  info "$(lspci -nn 2>/dev/null | grep -Ei 'vga|3d controller' | sed 's/^/    /' | head -3)"
-  ok "driver set: ${GPU_VENDOR}"
+  local card
+  card=$(lspci 2>/dev/null | grep -Ei 'vga|3d controller' | head -1 | sed 's/.*: //')
+  [[ -n $card ]] && info "Found: ${card}"
+  ok "Graphics card: ${GPU_VENDOR}. The matching driver will be installed."
 
   case $GPU_VENDOR in
     nvidia)
-      warn "NVIDIA: the akmod builds on first boot and can take several minutes"
+      warn "The NVIDIA driver finishes building the first time you restart, which takes a few minutes"
       if mokutil --sb-state 2>/dev/null | grep -qi enabled; then
-        warn "Secure Boot is on. The module will not load until you enrol a MOK:"
+        warn "Secure Boot is on, so the NVIDIA driver will not load until you approve it"
+        warn "  Run this, set a password, then reboot and choose Enroll MOK:"; \
         warn "  sudo kmodgenca -a && sudo mokutil --import /etc/pki/akmods/certs/public_key.der"
       fi
       ;;
     vm)
-      info "VM detected: Hyprland will be told to render cursors in software"
+      info "This is a virtual machine, so the mouse cursor will be drawn in software"
       ;;
   esac
 }

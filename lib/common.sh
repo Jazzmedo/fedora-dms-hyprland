@@ -19,39 +19,112 @@ install_exit_trap() {
   printf '  %sexit status%s  %s\n' "$C_GREY" "$C_OFF" "$code" >&2
   [[ -n ${LOG_FILE:-} ]] && \
     printf '  %slast log line%s %s\n' "$C_GREY" "$C_OFF" "$(tail -1 "$LOG_FILE" 2>/dev/null)" >&2
-  printf '  %sNothing after this stage ran. Collect details with:%s ./report.sh\n\n' \
+  # Naming the stages that never ran is the fact that was missing when this
+  # died mid-install and six stages were skipped without a word.
+  local -a remaining=()
+  local seen=0 s
+  for s in "${STAGES_TO_RUN[@]:-}"; do
+    [[ $s == "$CURRENT_STAGE" ]] && { seen=1; continue; }
+    (( seen )) && remaining+=("${STAGE_TITLE[$s]:-$s}")
+  done
+  if (( ${#remaining[@]} )); then
+    printf '  %sthese did not run:%s %s\n' "$C_GREY" "$C_OFF" "${remaining[*]}" >&2
+  fi
+
+  printf '\n  %sWhat to do:%s re-run ./install.sh — it picks up where it stopped.\n' \
     "$C_GREY" "$C_OFF" >&2
+  printf '  %sFor help:%s    ./doctor.sh, or ./report.sh to collect the details.%s\n\n' \
+    "$C_GREY" "$C_OFF" "$C_OFF" >&2
   _log_raw "FATAL stage=$CURRENT_STAGE status=$code"
 }
 
 # ---------------------------------------------------------------- colours ---
-if [[ -t 1 && ${NO_COLOR:-} == "" ]]; then
-  C_RED=$'\e[38;2;215;25;33m'; C_DIM=$'\e[2m'; C_BOLD=$'\e[1m'
-  C_GREY=$'\e[38;5;245m';      C_OK=$'\e[38;5;114m'; C_WARN=$'\e[38;5;179m'
-  C_OFF=$'\e[0m';              C_INV=$'\e[7m'
-else
-  C_RED=""; C_DIM=""; C_BOLD=""; C_GREY=""; C_OK=""; C_WARN=""; C_OFF=""; C_INV=""
-fi
+# One decision for both streams. Testing stdout alone, as this used to, gave
+# uncoloured warnings when stdout was redirected and raw escape codes in the
+# file when stderr was.
+#   COLOR_MODE=auto    colour when either stream is a terminal (the default)
+#   COLOR_MODE=always  colour regardless, for `| tee run.log`
+#   COLOR_MODE=never   never, same as NO_COLOR=1
+COLOR_MODE=${COLOR_MODE:-auto}
+# An explicit --color= wins over the environment; NO_COLOR only decides the
+# default.
+[[ -n ${NO_COLOR:-} && -z ${COLOR_MODE_EXPLICIT:-} ]] && COLOR_MODE=never
+
+set_colors() {
+  COLOR_ON=0
+  case $COLOR_MODE in
+    always) COLOR_ON=1 ;;
+    never)  COLOR_ON=0 ;;
+    *)      [[ -t 1 || -t 2 ]] && COLOR_ON=1 ;;
+  esac
+
+  if (( COLOR_ON )); then
+    C_RED=$'\e[38;2;215;25;33m'   # Nothing red
+    C_OK=$'\e[38;5;114m'          # done
+    C_WARN=$'\e[38;5;179m'        # needs attention
+    C_CYAN=$'\e[38;5;80m'         # happening now
+    C_BLUE=$'\e[38;5;75m'
+    C_MAGENTA=$'\e[38;5;176m'
+    C_GREY=$'\e[38;5;245m'
+    C_DIM=$'\e[2m'; C_BOLD=$'\e[1m'; C_OFF=$'\e[0m'
+  else
+    C_RED=""; C_OK=""; C_WARN=""; C_CYAN=""; C_BLUE=""; C_MAGENTA=""
+    C_GREY=""; C_DIM=""; C_BOLD=""; C_OFF=""
+  fi
+}
+set_colors
 
 LOG_FILE=${LOG_FILE:-}
-
-_stamp() { date '+%H:%M:%S'; }
 
 _log_raw() {
   [[ -n $LOG_FILE ]] && printf '%s %s\n' "$(date '+%F %T')" "$*" >>"$LOG_FILE"
   return 0
 }
 
+# Each class gets its own glyph and colour. They used to share: info and skip
+# were both a grey dot, so "doing this" and "not doing this" looked identical,
+# and soft_fail rendered exactly like warn, so a broken step read as an aside.
 step()  { printf '\n%s▌ %s%s\n' "$C_RED$C_BOLD" "$*" "$C_OFF";     _log_raw "STEP  $*"; }
-info()  { printf '  %s·%s %s\n'  "$C_GREY" "$C_OFF" "$*";           _log_raw "INFO  $*"; }
+info()  { printf '  %s→%s %s\n'  "$C_CYAN" "$C_OFF" "$*";           _log_raw "INFO  $*"; }
 ok()    { printf '  %s✓%s %s\n'  "$C_OK"   "$C_OFF" "$*";           _log_raw "OK    $*"; }
 skip()  { printf '  %s·%s %s%s%s\n' "$C_GREY" "$C_OFF" "$C_DIM" "$*" "$C_OFF"; _log_raw "SKIP  $*"; }
-warn()  { printf '  %s!%s %s\n'  "$C_WARN" "$C_OFF" "$*" >&2;       _log_raw "WARN  $*"; }
-die()   { printf '\n%s✘ %s%s\n\n' "$C_RED$C_BOLD" "$*" "$C_OFF" >&2; _log_raw "FATAL $*"; exit 1; }
+warn()  { printf '  %s▲%s %s\n'  "$C_WARN" "$C_OFF" "$*" >&2;       _log_raw "WARN  $*"; }
 
-# A stage failure that must not abort the whole install.
-soft_fail() { warn "$*"; SOFT_FAILURES+=("$*"); }
+# why/fix: an indented explanation under a failure. Callers pass them as the
+# second and third arguments; every one-argument call site still works.
+_detail() {
+  local why=${1:-} fix=${2:-}
+  [[ -n $why ]] && printf '      %sWhy:%s  %s\n' "$C_GREY" "$C_OFF" "$why" >&2
+  [[ -n $fix ]] && printf '      %sFix:%s  %s%s%s\n' "$C_GREY" "$C_OFF" "$C_BOLD" "$fix" "$C_OFF" >&2
+  return 0
+}
+
+die() {
+  printf '\n  %s✘ %s%s\n' "$C_RED$C_BOLD" "$1" "$C_OFF" >&2
+  _detail "${2:-}" "${3:-}"
+  printf '\n' >&2
+  _log_raw "FATAL $1${2:+ | why: $2}${3:+ | fix: $3}"
+  exit 1
+}
+
+# A stage failure that must not abort the whole install. Recorded in three
+# parallel arrays rather than one string, so the closing summary can reprint
+# the cause and the command together instead of a flattened line.
 SOFT_FAILURES=()
+SOFT_WHY=()
+SOFT_FIX=()
+
+soft_fail() {
+  printf '  %s✗%s %s\n' "$C_WARN$C_BOLD" "$C_OFF" "$1" >&2
+  _detail "${2:-}" "${3:-}"
+  printf '      %sThis part did not finish. Everything else carries on.%s\n' \
+    "$C_GREY" "$C_OFF" >&2
+  _log_raw "SOFT  $1${2:+ | why: $2}${3:+ | fix: $3}"
+  SOFT_FAILURES+=("$1")
+  SOFT_WHY+=("${2:-}")
+  SOFT_FIX+=("${3:-}")
+  return 0
+}
 
 # ------------------------------------------------------------- execution ---
 # run <cmd...> — echo in dry-run, execute otherwise, and log either way.
@@ -69,7 +142,10 @@ run() {
   fi
 }
 
-# Same, but the output is meant for the user to watch (dnf, git clone).
+# Same, but the output is meant for the user to watch (dnf, git clone). It is
+# also teed into the log: this output is the bulk of what a failing run prints,
+# and it used to reach the terminal only, so "see the log" pointed at a file
+# that did not contain the error.
 run_visible() {
   if (( DRY_RUN )); then
     printf '  %s$ %s%s\n' "$C_DIM" "$*" "$C_OFF"
@@ -77,7 +153,12 @@ run_visible() {
     return 0
   fi
   _log_raw "RUN   $*"
-  "$@"
+  if [[ -n $LOG_FILE ]]; then
+    # pipefail is set, so the status is the command's, not tee's.
+    "$@" 2>&1 | tee -a "$LOG_FILE"
+  else
+    "$@"
+  fi
 }
 
 as_root() { run_visible sudo "$@"; }
@@ -88,7 +169,7 @@ retry() {
   local n=1
   until run_visible "$@"; do
     (( n++ >= attempts )) && return 1
-    warn "failed, retrying ($n/$attempts): $1"
+    warn "that did not work, trying again ($n of $attempts)"
     sleep $(( n * 2 ))
   done
 }
@@ -107,7 +188,7 @@ backup_path() {
   if [[ -z $BACKUP_DIR ]]; then
     BACKUP_DIR="$HOME/.fedora-nothing-backup/$(date +%Y%m%d-%H%M%S)"
     run mkdir -p "$BACKUP_DIR"
-    info "backing up replaced files to ${BACKUP_DIR/#$HOME/\~}"
+    info "Anything replaced is being copied to ${BACKUP_DIR/#$HOME/\~} first"
   fi
   local rel=${target#"$HOME"/}
   run mkdir -p "$BACKUP_DIR/$(dirname "$rel")"
@@ -187,7 +268,7 @@ deploy_tree() {
 ini_set() {
   local file=$1 section=$2 key=$3 value=$4
   run mkdir -p "$(dirname "$file")"
-  (( DRY_RUN )) && { info "ini: [$section] $key=$value -> $file"; return 0; }
+  (( DRY_RUN )) && { _log_raw "DRY   ini [$section] $key=$value -> $file"; return 0; }
   python3 - "$file" "$section" "$key" "$value" <<'PY'
 import sys, os, re
 path, section, key, value = sys.argv[1:5]
@@ -215,7 +296,7 @@ PY
 # Edit a JSON file with a python lambda over the parsed object.
 json_edit() {
   local file=$1 script=$2
-  (( DRY_RUN )) && { info "json: edit $file"; return 0; }
+  (( DRY_RUN )) && { _log_raw "DRY   json edit $file"; return 0; }
   python3 - "$file" "$script" <<'PY'
 import sys, json
 path, script = sys.argv[1], sys.argv[2]

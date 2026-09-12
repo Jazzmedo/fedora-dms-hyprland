@@ -5,10 +5,9 @@ ZEN_INSTALL_DIR=/opt/zen
 HELIUM_INSTALL_DIR=/opt/helium
 
 stage_apps() {
-  step "Applications"
   deploy_file "$REPO_DIR/config/terminal/kitty/kitty.conf" "$HOME/.config/kitty/kitty.conf"
   deploy_tree "$REPO_DIR/config/terminal/kitty" "$HOME/.config/kitty"
-  ok "kitty configured"
+  ok "Set up the kitty terminal"
 
   install_zen
   is_selected helium   && install_helium
@@ -22,19 +21,21 @@ stage_apps() {
 # from the matugen-generated userChrome.css.
 install_zen() {
   if [[ -x $ZEN_INSTALL_DIR/zen ]]; then
-    skip "Zen already installed in $ZEN_INSTALL_DIR"
+    skip "The Zen browser is already installed"
   else
     local tmp; tmp=$(mktemp -d)
     local url="https://github.com/zen-browser/desktop/releases/latest/download/zen.linux-x86_64.tar.xz"
     if ! retry 3 curl -fL --progress-bar -o "$tmp/zen.tar.xz" "$url"; then
-      rm -rf "$tmp"; soft_fail "could not download Zen; the default browser will be unset"; return 0
+      rm -rf "$tmp"; soft_fail "Could not download the Zen browser" \
+      "The download failed, so you will have no default browser yet." \
+      "./install.sh --only=apps"; return 0
     fi
     as_root rm -rf "$ZEN_INSTALL_DIR"
     as_root mkdir -p "$ZEN_INSTALL_DIR"
     as_root tar -xf "$tmp/zen.tar.xz" -C "$tmp"
     as_root bash -c "cp -a '$tmp/zen/.' '$ZEN_INSTALL_DIR/'"
     rm -rf "$tmp"
-    ok "Zen installed to $ZEN_INSTALL_DIR"
+    ok "Installed the Zen browser"
   fi
 
   as_root ln -sfn "$ZEN_INSTALL_DIR/zen" /usr/local/bin/zen
@@ -54,24 +55,24 @@ MimeType=text/html;text/xml;application/xhtml+xml;x-scheme-handler/http;x-scheme
 Name=New Private Window
 Exec=$ZEN_INSTALL_DIR/zen --private-window %u
 EOF
-  ok "Zen desktop entry registered"
+  ok "Zen now appears in the app launcher"
 }
 
 install_helium() {
   if [[ -x $HELIUM_INSTALL_DIR/helium ]]; then
-    skip "Helium already installed"; return 0
+    skip "The Helium browser is already installed"; return 0
   fi
   local tmp; tmp=$(mktemp -d)
   local url; url=$(curl -fsSL https://api.github.com/repos/imputnet/helium-linux/releases/latest 2>/dev/null \
     | grep -oP '"browser_download_url":\s*"\K[^"]*x86_64[^"]*\.tar\.xz' | head -1)
   if [[ -z $url ]] || ! retry 3 curl -fL --progress-bar -o "$tmp/helium.tar.xz" "$url"; then
-    rm -rf "$tmp"; soft_fail "could not download Helium"; return 0
+    rm -rf "$tmp"; soft_fail "Could not download the Helium browser" "The download failed." "./install.sh --only=apps"; return 0
   fi
   as_root mkdir -p "$HELIUM_INSTALL_DIR"
   as_root tar -xf "$tmp/helium.tar.xz" -C "$HELIUM_INSTALL_DIR" --strip-components=1
   as_root ln -sfn "$HELIUM_INSTALL_DIR/helium" /usr/local/bin/helium
   rm -rf "$tmp"
-  ok "Helium installed to $HELIUM_INSTALL_DIR"
+  ok "Installed the Helium browser"
 }
 
 # Install an application from the .rpm its own project publishes. Preferred
@@ -84,11 +85,11 @@ install_github_rpm() {
   local repo=$1 pattern=$2 binary=$3 label=$4
 
   if rpm -q --whatprovides "$binary" >/dev/null 2>&1 || have "$binary"; then
-    skip "$label already installed"
+    skip "$label is already installed"
     return 0
   fi
   if (( DRY_RUN )); then
-    info "would install $label from the newest $repo release"
+    info "Would install the newest $label"
     return 0
   fi
 
@@ -100,16 +101,18 @@ install_github_rpm() {
         | head -1)
 
   if [[ -z $url ]]; then
-    soft_fail "$label: no rpm matching /$pattern/ in the newest $repo release"
+    soft_fail "Could not find an installer for $label" \
+              "Its newest release does not contain a Fedora package." \
+              "Download it yourself from github.com/$repo/releases"
     return 0
   fi
 
   local tmp; tmp=$(mktemp -d)
   if retry 3 curl -fL --progress-bar -o "$tmp/pkg.rpm" "$url"; then
-    as_root dnf install -y "$tmp/pkg.rpm" && ok "$label installed ($(basename "$url"))" \
-      || soft_fail "$label: rpm failed to install"
+    as_root dnf install -y "$tmp/pkg.rpm" && ok "Installed $label" \
+      || soft_fail "Downloaded $label but it would not install" "" "./install.sh --only=apps"
   else
-    soft_fail "$label: download failed"
+    soft_fail "Could not download $label" "The download from GitHub failed." "./install.sh --only=apps"
   fi
   rm -rf "$tmp"
 }
@@ -121,7 +124,7 @@ install_app_configs() {
   is_selected qbittorrent && deploy_tree "$a/qbittorrent" "$HOME/.config/qBittorrent"
   is_selected easyeffects && deploy_tree "$a/easyeffects" "$HOME/.config/easyeffects"
   is_selected cliamp      && deploy_tree "$REPO_DIR/config/tools/cliamp" "$HOME/.config/cliamp"
-  ok "application configs deployed"
+  ok "Copied the settings for your apps into place"
 }
 
 # Written rather than copied: the captured mimeapps.list points at Gwenview,
@@ -129,7 +132,7 @@ install_app_configs() {
 write_mimeapps() {
   local f="$HOME/.config/mimeapps.list"
   backup_path "$f"
-  (( DRY_RUN )) && { info "would write $f"; return 0; }
+  (( DRY_RUN )) && { info "Would set which app opens which kind of file"; return 0; }
 
   local image=org.kde.dolphin.desktop pdf=app.zen_browser.zen.desktop
   local text=nvim.desktop
@@ -175,14 +178,14 @@ EOF
     is_selected obsidian    && echo "x-scheme-handler/obsidian=md.obsidian.Obsidian.desktop"
     :
   } > "$f"
-  ok "mimeapps.list written"
+  ok "Chose which app opens which kind of file"
 
   have update-desktop-database && run update-desktop-database "$HOME/.local/share/applications" 2>/dev/null
   run xdg-settings set default-web-browser app.zen_browser.zen.desktop 2>/dev/null \
-    || warn "could not set Zen as the default browser through xdg-settings"
+    || warn "Could not make Zen the default browser automatically; set it in Zen's own settings"
   run xdg-mime default org.kde.dolphin.desktop inode/directory 2>/dev/null
   # Dolphin, Ark and friends read the plasma-prefixed menu, which only exists
   # once kbuildsycoca6 has run against this session's XDG_MENU_PREFIX.
   have kbuildsycoca6 && run kbuildsycoca6 --noincremental 2>/dev/null
-  ok "XDG defaults applied"
+  ok "Zen opens links, Dolphin opens folders, kitty opens terminals"
 }
