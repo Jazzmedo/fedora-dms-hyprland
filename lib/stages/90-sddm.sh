@@ -36,6 +36,65 @@ make_sddm_the_login_screen() {
   return 0
 }
 
+# Which display server the greeter itself runs on.
+#
+# Wayland where the hardware can draw it, X11 in a virtual machine. There the
+# graphics are software-rendered through llvmpipe, and a Qt greeter on a
+# layer-shell compositor on top of that is the combination that hangs with a
+# black screen and no way in.
+configure_greeter_display_server() {
+  if [[ ${GPU_VENDOR:-} == vm ]]; then
+    info "This is a virtual machine, so the login screen uses the older graphics mode, which is reliable here"
+    as_root rm -f /etc/sddm.conf.d/10-wayland.conf
+    ensure_x11_greeter
+    return 0
+  fi
+
+  # The captured config named kwin_wayland, which this install does not have;
+  # weston is what Fedora ships for the job.
+  if ! have weston && ! have kwin_wayland; then
+    info "The login screen needs a small compositor to draw on; installing weston"
+    record_new_pkgs weston
+    as_root dnf install -y weston >/dev/null 2>&1 || true
+  fi
+
+  local compositor=""
+  if have weston;         then compositor="weston --shell=fullscreen-shell.so"
+  elif have kwin_wayland; then compositor="kwin_wayland --no-lockscreen"
+  fi
+
+  if [[ -z $compositor ]]; then
+    warn "No compositor for the login screen, so it falls back to the older graphics mode"
+    as_root rm -f /etc/sddm.conf.d/10-wayland.conf
+    ensure_x11_greeter
+    return 0
+  fi
+
+  as_root tee /etc/sddm.conf.d/10-wayland.conf >/dev/null <<EOF
+[General]
+DisplayServer=wayland
+GreeterEnvironment=QT_WAYLAND_SHELL_INTEGRATION=layer-shell,QT_QPA_PLATFORMTHEME=qt6ct
+
+[Wayland]
+CompositorCommand=$compositor
+EOF
+  record file /etc/sddm.conf.d/10-wayland.conf
+  ok "The login screen will run in modern graphics mode"
+  return 0
+}
+
+# X11 mode needs an X server, which a @core Fedora does not necessarily have.
+# Without it SDDM starts, finds nothing to draw on, and retries forever.
+ensure_x11_greeter() {
+  have Xorg && return 0
+  record_new_pkgs xorg-x11-server-Xorg
+  as_root dnf install -y xorg-x11-server-Xorg >/dev/null 2>&1 || true
+  have Xorg || soft_fail "The login screen has no display server to draw on" \
+      "Neither a Wayland compositor nor Xorg is installed." \
+      "sudo dnf install xorg-x11-server-Xorg"
+  return 0
+}
+
 stage_sddm() {
 
   local dest=/usr/share/sddm/themes/nothing
@@ -57,33 +116,7 @@ stage_sddm() {
 
   verify_sddm_theme
 
-  # A Wayland greeter needs a compositor. The captured config named kwin_wayland,
-  # which this install does not have; weston is what Fedora ships for the job.
-  local compositor=""
-  if ! have weston && ! have kwin_wayland; then
-    info "The login screen needs a small compositor to draw on; installing weston"
-    record_new_pkgs weston
-    as_root dnf install -y weston >/dev/null 2>&1 || true
-  fi
-  if have weston;      then compositor="weston --shell=fullscreen-shell.so"
-  elif have kwin_wayland; then compositor="kwin_wayland --no-lockscreen"
-  fi
-
-  if [[ -n $compositor ]]; then
-    as_root tee /etc/sddm.conf.d/10-wayland.conf >/dev/null <<EOF
-[General]
-DisplayServer=wayland
-GreeterEnvironment=QT_WAYLAND_SHELL_INTEGRATION=layer-shell,QT_QPA_PLATFORMTHEME=qt6ct
-
-[Wayland]
-CompositorCommand=$compositor
-EOF
-    record file /etc/sddm.conf.d/10-wayland.conf
-    ok "The login screen will run in modern graphics mode"
-  else
-    warn "Falling back to the older graphics mode for the login screen"
-    as_root rm -f /etc/sddm.conf.d/10-wayland.conf
-  fi
+  configure_greeter_display_server
 
   as_root tee /etc/sddm.conf.d/20-nothing.conf >/dev/null <<'EOF'
 [Theme]

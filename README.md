@@ -218,6 +218,35 @@ Components already present are re-selected automatically on a re-run, because
 deselecting one would not uninstall it, only stop the installer from checking
 it.
 
+### If it will not reach the login screen
+
+A machine that hangs after a reboot is not stuck, it is waiting on a login
+screen that cannot draw. Press **ctrl-alt-F3** for a text console and log in
+there. Nothing about the installed system prevents that.
+
+```sh
+systemctl status sddm            # is it running, or restarting in a loop
+journalctl -b -u sddm -n 50      # why it stopped
+sudo systemctl set-default multi-user.target && sudo reboot   # boot to a console instead
+```
+
+The usual cause in a virtual machine is the greeter's graphics mode. The
+installer now picks the older X11 mode there, because the software rendering a
+virtual machine provides cannot reliably run a Qt greeter on a Wayland
+compositor. To apply that to a machine installed before this:
+
+```sh
+sudo rm -f /etc/sddm.conf.d/10-wayland.conf
+sudo dnf install xorg-x11-server-Xorg
+sudo systemctl restart sddm
+```
+
+To put the graphical boot back afterwards:
+
+```sh
+sudo systemctl set-default graphical.target
+```
+
 ### Reporting a failed install
 
 ```sh
