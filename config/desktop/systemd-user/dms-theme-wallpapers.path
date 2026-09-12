@@ -3,12 +3,19 @@ Description=Watch DMS theme selection for matching wallpaper collections
 StartLimitIntervalSec=0
 
 [Path]
+# Only the settings file, which is where the chosen theme is recorded.
+#
+# This used to watch a session.json in the same directory, which does not
+# exist: the shell keeps its session state in ~/.local/state, and that is also
+# where the wallpaper of each monitor is stored. Watching that file would be
+# worse than watching nothing, because then every wallpaper change, including
+# each step of the carousel, would restart this service and it would put its
+# own choice back.
+#
 # PathChanged fires when the file is closed after writing, which misses a
-# shell that keeps its settings file open and flushes into it. PathModified
-# catches those, and the service's own guards make a duplicate trigger a
-# no-op.
+# shell that keeps the file open and flushes into it. PathModified catches
+# those; a duplicate trigger is a no-op.
 PathChanged=%h/.config/DankMaterialShell/settings.json
-PathChanged=%h/.config/DankMaterialShell/session.json
 PathModified=%h/.config/DankMaterialShell/settings.json
 Unit=dms-theme-wallpapers.service
 

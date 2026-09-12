@@ -90,7 +90,7 @@ while IFS= read -r -d '' candidate; do
     collection="$candidate"
     break
   fi
-done < <(find "$base" -mindepth 1 -maxdepth 1 -type d -print0 | sort -z)
+done < <(find -L "$base" -mindepth 1 -maxdepth 1 -type d -print0 | sort -z)
 
 # A theme with no matching folder should not disturb the current wallpapers.
 if [[ -z "$collection" ]]; then
@@ -100,7 +100,7 @@ fi
 log "theme '$theme_id' -> $(basename "$collection")"
 
 list_images() {
-  find "$1" -maxdepth 1 -type f \
+  find -L "$1" -maxdepth 1 -type f \
     \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.webp' \
        -o -iname '*.bmp' -o -iname '*.avif' -o -iname '*.jxl' \) 2>/dev/null | sort
 }
