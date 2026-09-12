@@ -15,14 +15,18 @@ install_wallpapers() {
   local set_dir name
   for set_dir in "$src"/*/; do
     name=$(basename "$set_dir")
-    if [[ -d $dest/$name/horizontal ]] && \
-       [[ $(ls -A "$dest/$name/horizontal" 2>/dev/null | wc -l) -gt 0 ]]; then
+    local have_n want_n
+    want_n=$(find "$set_dir/horizontal" -type f 2>/dev/null | wc -l)
+    have_n=$(find "$dest/$name/horizontal" -type f 2>/dev/null | wc -l)
+    # Compared by count, not merely "is it non-empty": the old check meant new
+    # images added to this repo never reached a machine that had the set.
+    if (( have_n >= want_n )) && (( want_n > 0 )); then
       skip "The $name wallpapers are already there"
       continue
     fi
     run mkdir -p "$dest/$name/horizontal" "$dest/$name/vertical"
     run cp -a "$set_dir/horizontal/." "$dest/$name/horizontal/"
-    ok "Added $(ls "$set_dir/horizontal" | wc -l) $name wallpapers"
+    ok "Added $want_n $name wallpapers"
   done
   # The theme-sync script falls back to the horizontal image on portrait
   # outputs when a vertical set is absent, so empty vertical/ dirs are fine.

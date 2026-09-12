@@ -10,6 +10,9 @@ stage_sddm() {
   as_root mkdir -p /usr/share/sddm/themes /etc/sddm.conf.d
   as_root rm -rf "$dest"
   as_root cp -r "$REPO_DIR/assets/sddm/nothing" "$dest"
+  # SDDM reads theme.conf.user as an override on top of theme.conf, so shipping
+  # both means the override silently wins over anything edited in the base.
+  as_root rm -f "$dest/theme.conf.user"
   ok "Installed the Nothing login screen"
 
   # The theme carries its own NDot55 and NType82 and loads them with a
@@ -21,6 +24,10 @@ stage_sddm() {
   # A Wayland greeter needs a compositor. The captured config named kwin_wayland,
   # which this install does not have; weston is what Fedora ships for the job.
   local compositor=""
+  if ! have weston && ! have kwin_wayland; then
+    info "The login screen needs a small compositor to draw on; installing weston"
+    as_root dnf install -y weston >/dev/null 2>&1 || true
+  fi
   if have weston;      then compositor="weston --shell=fullscreen-shell.so"
   elif have kwin_wayland; then compositor="kwin_wayland --no-lockscreen"
   fi
@@ -63,6 +70,18 @@ EOF
   as_root systemctl enable sddm
   as_root systemctl set-default graphical.target
   ok "The computer will boot straight to the login screen"
+
+  # Read back what SDDM will actually load, rather than trusting that the copy
+  # and the config write both landed.
+  local active
+  active=$(sed -n 's/^Current=//p' /etc/sddm.conf.d/*.conf /etc/sddm.conf 2>/dev/null | tail -1)
+  if [[ $active == nothing ]]; then
+    ok "Confirmed: the login screen is set to the Nothing theme"
+  else
+    soft_fail "The login screen is set to \"${active:-nothing at all}\", not the Nothing theme" \
+              "Another file in /etc/sddm.conf.d is overriding this one." \
+              "grep -r Current= /etc/sddm.conf.d /etc/sddm.conf"
+  fi
 }
 
 # A QML theme whose imports cannot be resolved does not fail loudly: SDDM logs

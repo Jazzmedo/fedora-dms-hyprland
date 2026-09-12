@@ -9,8 +9,19 @@
 CURRENT_STAGE="startup"
 INSTALL_COMPLETED=0
 
+# The ONE exit handler. Bash traps are global, not scoped to a function, so a
+# stage that installs its own `trap ... EXIT` silently replaces this one.
+# 00-preflight.sh used to do exactly that to kill its sudo keepalive, which
+# meant twelve of the thirteen stages ran with no crash report at all: a stage
+# that died took the rest of the run with it and printed nothing.
+SUDO_KEEPALIVE=""
+
 install_exit_trap() {
   local code=$1
+
+  spin_cleanup 2>/dev/null || true
+  [[ -n $SUDO_KEEPALIVE ]] && { kill "$SUDO_KEEPALIVE" 2>/dev/null || true; }
+
   (( INSTALL_COMPLETED )) && return 0
   (( code == 0 )) && return 0        # an intentional early exit, such as --status
 
@@ -161,7 +172,41 @@ run_visible() {
   fi
 }
 
-as_root() { run_visible sudo "$@"; }
+# Ask for the password once, up front, and hold the grant open for the run.
+# Called from main() before any stage, so the prompt happens at a predictable
+# moment rather than in the middle of somebody's dnf output.
+sudo_begin() {
+  (( DRY_RUN )) && return 0
+
+  if ! sudo -n true 2>/dev/null; then
+    printf '\n  %s→%s %sYour password is needed to install software. This is the only time.%s\n' \
+      "$C_CYAN" "$C_OFF" "$C_BOLD" "$C_OFF"
+    sudo -v || die "That password was not accepted." "" "Run ./install.sh again."
+  fi
+
+  # sudoers can be configured to forget the password immediately, in which case
+  # every one of the fifty-odd privileged commands asks again and no keepalive
+  # can help. Say so rather than let it look like a bug in the installer.
+  if sudo -n true 2>/dev/null; then
+    ( while kill -0 $$ 2>/dev/null; do sudo -n true 2>/dev/null || break; sleep 50; done ) &
+    SUDO_KEEPALIVE=$!
+  else
+    warn "This system is set to forget the password immediately (timestamp_timeout=0), so it will ask again for each step"
+  fi
+  return 0
+}
+
+# Refresh before handing the command to the pipeline below. sudo writes its
+# prompt to the terminal, but its errors go to stderr, and run_visible merges
+# stderr into a pipe to tee -- so a prompt that appears there is confusing and
+# a failure message is buried. Prompting here keeps both in front of the user.
+sudo_refresh() {
+  (( DRY_RUN )) && return 0
+  sudo -n true 2>/dev/null && return 0
+  sudo -v
+}
+
+as_root() { sudo_refresh; run_visible sudo "$@"; }
 
 # retry <attempts> <cmd...> — for network-bound commands.
 retry() {

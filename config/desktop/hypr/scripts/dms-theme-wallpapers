@@ -53,6 +53,26 @@ collection=""
 # The state file is written before the IPC calls, to stop those calls
 # retriggering this service, so a first run that records the theme and then
 # fails to apply it would otherwise suppress every retry from then on.
+# The desktop shell is started in the same chain that starts this script, so
+# on a fresh login it is usually not answering yet. Waiting is the difference
+# between a wallpaper appearing and this quietly giving up.
+wait_for_dms() {
+  local waited=0
+  while (( waited < 30 )); do
+    dms ipc call wallpaper get >/dev/null 2>&1 && return 0
+    # An error reply still proves the shell is up and listening.
+    dms ipc call wallpaper getFor _probe >/dev/null 2>&1 && return 0
+    sleep 1
+    waited=$(( waited + 1 ))
+  done
+  return 1
+}
+
+if ! wait_for_dms; then
+  printf 'dms-theme-wallpapers: the desktop shell never answered; giving up\n' >&2
+  exit 1
+fi
+
 any_set=0
 [[ -n "$(dms ipc call wallpaper get 2>/dev/null)" ]] && any_set=1
 

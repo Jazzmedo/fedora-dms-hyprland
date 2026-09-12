@@ -21,14 +21,6 @@ stage_preflight() {
        "Only accounts in the wheel group can use sudo, and $USER is not one." \
        "From an administrator account: sudo usermod -aG wheel $USER"
 
-  if ! sudo -n true 2>/dev/null; then
-    info "Installing software needs your password. You will be asked once."
-    sudo -v || die "That password was not accepted." "" "Run ./install.sh again."
-  fi
-  # Hold the sudo timestamp open for the length of the run.
-  ( while kill -0 $$ 2>/dev/null; do sudo -n true 2>/dev/null; sleep 50; done ) &
-  SUDO_KEEPALIVE=$!
-  trap 'kill $SUDO_KEEPALIVE 2>/dev/null || true' EXIT
 
   local need=(curl git tar python3 rpm)
   local missing=()

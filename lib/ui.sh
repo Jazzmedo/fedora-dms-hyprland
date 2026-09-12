@@ -19,7 +19,9 @@ _ui_banner() {
 ART
   printf '%s' "$C_OFF"
   printf '  %sHyprland · DankMaterialShell · Nothing%s\n\n' "$C_GREY" "$C_OFF"
-  printf '  %s↑↓/jk%s move   %sspace%s toggle   %sa%s whole group   %senter%s install   %sq%s abort\n' \
+  printf '  %sCustomisable installation%s  everything is ticked; untick what you do not want\n\n' \
+    "$C_BOLD" "$C_OFF"
+  printf '  %s↑↓/jk%s move   %sspace%s tick   %sa%s whole group   %senter%s install   %sq%s cancel\n' \
     "$C_BOLD" "$C_OFF" "$C_BOLD" "$C_OFF" "$C_BOLD" "$C_OFF" "$C_BOLD" "$C_OFF" "$C_BOLD" "$C_OFF"
   printf '  %s%s%s\n' "$C_GREY" "$(printf '─%.0s' $(seq 1 "$UI_WIDTH"))" "$C_OFF"
 }
@@ -183,7 +185,7 @@ _ui_toggle_group() {
 confirm() {
   local prompt=$1 reply
   (( ASSUME_YES )) && return 0
-  [[ ! -t 0 ]] && return 0
+  [[ ! -t 0 ]] && return 1
   printf '  %s?%s %s [Y/n] ' "$C_RED" "$C_OFF" "$prompt"
   read -r reply
   [[ -z $reply || $reply == [yY]* ]]
@@ -256,32 +258,4 @@ ui_show_plan() {
   _plan_row "Already there" "$satisfied thing(s), which will be checked and left alone" "$C_GREY"
   _plan_row "To install"    "$(_join ${fresh[@]+"${fresh[@]}"})"   "$C_OK"
   _plan_row "To repair"     "$(_join ${repair[@]+"${repair[@]}"})" "$C_WARN"
-}
-
-# ---------------------------------------------------------------- identity ---
-# The owner's fast path. Answering yes installs every component with the
-# defaults this repo was captured from and skips the picker entirely.
-ui_identity_prompt() {
-  (( ASSUME_YES )) && return 0
-  [[ -t 0 && -t 1 ]] || return 0
-
-  _tput clear
-  _ui_banner
-  local reply
-  printf '\n  %sAre you Jazzmedo?%s\n\n' "$C_BOLD" "$C_OFF"
-  printf '  %syes%s  install everything, exactly as this repo was captured.\n' "$C_RED" "$C_OFF"
-  printf '       No questions, no picker.\n\n'
-  printf '  %sno%s   choose what to install from a checklist.\n\n' "$C_RED" "$C_OFF"
-  printf '  [y/N] '
-  read -r reply
-
-  if [[ $reply == [yY]* ]]; then
-    OWNER_MODE=1
-    apply_preset full
-    select_layout scrolling
-    printf '\n  %s✓%s welcome back. Installing the full configuration.\n\n' "$C_OK" "$C_OFF"
-    sleep 1
-    return 0
-  fi
-  return 1
 }

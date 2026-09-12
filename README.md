@@ -10,8 +10,10 @@ cd ~/fedora-dms-hyprland-setup
 ./install.sh
 ```
 
-The installer opens a checklist first. Space toggles a component, `a` toggles a
-whole group, enter starts. Nothing is touched before you press enter.
+One screen. The checklist opens with everything ticked; untick what you do not
+want, press Enter, and it installs. Space toggles one component, `a` toggles a
+whole group, `q` cancels. Nothing is touched before you press Enter, and your
+password is asked for once, straight after.
 
 ## What a run looks like
 
@@ -43,6 +45,20 @@ looks frozen.
 ```
 
 Anything still outstanding is repeated at the end, cause and command together.
+The run then checks its own work, because a command succeeding is not the same
+as the outcome happening: `chsh` can return zero while the login shell stays
+put, and copying a greeter theme succeeds whether or not the login screen will
+load it.
+
+```
+  Checking it actually worked
+
+  ✓ zsh is your login shell
+  ✓ The login screen is set to the Nothing theme
+  ✗ The Nothing typefaces are installed
+      Fix:  ./install.sh --only=fonts
+```
+
 Colour turns itself off when the output is piped or `NO_COLOR` is set; use
 `--color=always` to keep it through `tee`.
 
@@ -73,6 +89,7 @@ administrator". The first boot lands on a text console; that is expected.
 --skip=A,B         run everything except these stages
 --dry-run          print every command without running one
 --no-backup        do not copy replaced files aside
+--reset-selection  forget last run's choices and start from all-ticked
 --color=WHEN       auto | always | never
 --status           report what is already installed, then exit
 --list-stages      print the stage names
@@ -86,7 +103,8 @@ copied to `~/.fedora-nothing-backup/<timestamp>/` first. To repair one part:
 ```
 
 Your choices are remembered in `~/.config/fedora-nothing/selection.conf` and
-reused on the next run.
+come back ticked on the next run. The checklist is always shown, so a choice
+made once can always be changed; `--reset-selection` throws the file away.
 
 ## What gets installed
 

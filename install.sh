@@ -24,7 +24,10 @@ NO_BACKUP=0
 OWNER_MODE=0
 PRESET=""
 GPU_VENDOR=""
+GPU_VENDOR_FLAG=""
 HYPR_LAYOUT="scrolling"
+LAYOUT_FLAG=""
+RESET_SELECTION=0
 ONLY=""
 SKIP=""
 SHOW_STATUS=0
@@ -56,6 +59,7 @@ Options:
   --dry-run             print what would happen, change nothing
   --no-backup           do not copy replaced files aside
   --status              report what is already installed, then exit
+  --reset-selection     forget the remembered choices and start from all-ticked
   --color=WHEN          auto | always | never   (always keeps colour in a pipe)
   --list-stages         print the stage names and exit
   --help, -h            this text
@@ -69,12 +73,13 @@ for arg in "$@"; do
     --no-backup)     NO_BACKUP=1 ;;
     --owner)         OWNER_MODE=1; ASSUME_YES=1; PRESET=full ;;
     --preset=*)      PRESET=${arg#*=} ;;
-    --gpu=*)         GPU_VENDOR=${arg#*=} ;;
-    --layout=*)      HYPR_LAYOUT=${arg#*=} ;;
+    --gpu=*)         GPU_VENDOR=${arg#*=}; GPU_VENDOR_FLAG=1 ;;
+    --layout=*)      HYPR_LAYOUT=${arg#*=}; LAYOUT_FLAG=1 ;;
     --only=*)        ONLY=${arg#*=} ;;
     --skip=*)        SKIP=${arg#*=} ;;
     --list-stages)   printf '%s\n' "${ALL_STAGES[@]}"; exit 0 ;;
     --status)        SHOW_STATUS=1 ;;
+    --reset-selection) RESET_SELECTION=1 ;;
     --color=*)       COLOR_MODE=${arg#*=}; COLOR_MODE_EXPLICIT=1 ;;
     --no-color)      COLOR_MODE=never; COLOR_MODE_EXPLICIT=1 ;;
     -h|--help)       usage; exit 0 ;;
@@ -91,6 +96,8 @@ source "$REPO_DIR/lib/progress.sh"
 source "$REPO_DIR/lib/components.sh"
 # shellcheck source=lib/detect.sh
 source "$REPO_DIR/lib/detect.sh"
+# shellcheck source=lib/verify.sh
+source "$REPO_DIR/lib/verify.sh"
 # shellcheck source=lib/ui.sh
 source "$REPO_DIR/lib/ui.sh"
 for f in "$REPO_DIR"/lib/stages/*.sh; do
@@ -102,7 +109,7 @@ LOG_FILE="$HOME/.cache/fedora-nothing/install-$(date +%Y%m%d-%H%M%S).log"
 mkdir -p "$(dirname "$LOG_FILE")"
 : > "$LOG_FILE"
 
-trap 'spin_cleanup; install_exit_trap "$?"' EXIT
+trap 'install_exit_trap "$?"' EXIT
 trap 'spin_cleanup; printf "\n"; exit 130' INT
 
 # ------------------------------------------------------------------- stages ---
@@ -132,16 +139,22 @@ run_stage() {
 # ---------------------------------------------------------------- selection ---
 SELECTION_FILE="$HOME/.config/fedora-nothing/selection.conf"
 
+# Pre-ticks for the picker, nothing more. This used to double as a reason to
+# skip the picker entirely, so a single run that left zsh unticked disabled the
+# whole shell stage on every run after it, invisibly and permanently.
 load_selection() {
   [[ -f $SELECTION_FILE ]] || return 1
+  (( RESET_SELECTION )) && return 1
+
   local k
   for k in "${COMPONENT_ORDER[@]}"; do
     component_locked "$k" || deselect_component "$k"
   done
   while read -r k; do
     [[ -z $k || $k == \#* ]] && continue
-    [[ $k == gpu=* ]]    && { GPU_VENDOR=${k#gpu=}; continue; }
-    [[ $k == layout=* ]] && { HYPR_LAYOUT=${k#layout=}; continue; }
+    # A flag given on the command line has to win over a remembered value.
+    [[ $k == gpu=* ]]    && { [[ -z $GPU_VENDOR_FLAG ]] && GPU_VENDOR=${k#gpu=}; continue; }
+    [[ $k == layout=* ]] && { [[ -z $LAYOUT_FLAG ]] && HYPR_LAYOUT=${k#layout=}; continue; }
     [[ -n ${COMPONENT_NAME[$k]:-} ]] && select_component "$k"
   done < "$SELECTION_FILE"
   return 0
@@ -172,14 +185,13 @@ choose_components() {
   if [[ -n $PRESET ]]; then
     apply_preset "$PRESET"
     info "Installing the \"$PRESET\" set of components"
-  elif load_selection; then
-    info "Using the same choices as last time"
-    # Anything already on the machine is worth keeping selected, so a re-run
-    # verifies it instead of silently leaving it out.
-    reselect_installed
-  elif ui_identity_prompt; then
-    : # owner mode already applied the full preset
   else
+    # Everything ticked to start with, then last run's choices on top of that.
+    apply_preset full
+    load_selection && info "Your choices from last time are already ticked"
+    # Anything already on the machine stays ticked, so a re-run verifies it
+    # instead of silently leaving it out.
+    reselect_installed
     ui_select_components
   fi
 
@@ -241,10 +253,8 @@ main() {
   ui_show_plan
 
   (( DRY_RUN )) && warn "This is a dry run. Nothing on this machine will be changed."
-  if ! (( ASSUME_YES )) && ! confirm "Start installing?"; then
-    die "Cancelled. Nothing was changed."
-  fi
   save_selection
+  sudo_begin
 
   local start=$SECONDS
   progress_init "${#STAGES_TO_RUN[@]}"
@@ -254,6 +264,7 @@ main() {
   done
 
   INSTALL_COMPLETED=1
+  (( DRY_RUN )) || verify_install
   summary $(( SECONDS - start ))
 }
 
@@ -303,7 +314,11 @@ summary() {
   printf '\n  %sIf the desktop looks empty after logging in, run ./doctor.sh — it says why.%s\n\n' \
     "$C_GREY" "$C_OFF"
 
-  confirm "Restart now?" && as_root systemctl reboot
+  if [[ -t 0 ]] && ! (( ASSUME_YES )); then
+    confirm "Restart now?" && as_root systemctl reboot
+  else
+    printf '  %sRestart when you are ready:%s sudo systemctl reboot\n\n' "$C_GREY" "$C_OFF"
+  fi
 }
 
 main "$@"

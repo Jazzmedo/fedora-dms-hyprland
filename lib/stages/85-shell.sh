@@ -3,9 +3,8 @@
 # the fragments assume are on PATH.
 
 stage_shell() {
-  is_selected zsh || is_selected editor || { skip "The terminal and editor setup was not chosen"; return 0; }
-  is_selected zsh    && install_zsh
-  is_selected editor && install_neovim
+  if is_selected zsh; then install_zsh; else skip "zsh was not chosen"; fi
+  if is_selected editor; then install_neovim; else skip "Neovim was not chosen"; fi
   install_tool_configs
   install_runtime_managers
   return 0
@@ -83,7 +82,7 @@ set_login_shell() {
   grep -qx "$zsh_path" /etc/shells 2>/dev/null \
     || as_root bash -c "printf '%s\n' '$zsh_path' >> /etc/shells"
 
-  if as_root chsh -s "$zsh_path" "$USER"; then
+  if as_root chsh -s "$zsh_path" "$USER" && [[ $(getent passwd "$USER" | cut -d: -f7) == "$zsh_path" ]]; then
     ok "zsh is now your login shell. This takes effect the next time you log in."
   else
     soft_fail "Could not make zsh your login shell" \

@@ -13,6 +13,12 @@
 
 set -uo pipefail
 C=$'\033[1;31m'; B=$'\033[1m'; D=$'\033[2m'; O=$'\033[0m'
+
+# The outcome checks are defined once, in lib/verify.sh, and used both here and
+# at the end of an install.
+DOCTOR_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+# shellcheck source=lib/verify.sh
+[[ -r $DOCTOR_DIR/lib/verify.sh ]] && source "$DOCTOR_DIR/lib/verify.sh"
 sec() { printf '\n%s── %s %s%s\n' "$C" "$1" "$(printf '─%.0s' $(seq 1 $(( 60 - ${#1} ))))" "$O"; }
 kv()  { printf '  %-26s %s\n' "$1" "${2:-—}"; }
 
@@ -160,7 +166,7 @@ kv ".zshrc"      "$([[ -f $HOME/.zshrc ]] && echo "$(wc -l < "$HOME/.zshrc") lin
 kv "zshrc.d"     "$(ls "${XDG_CONFIG_HOME:-$HOME/.config}/zsh/zshrc.d"/*.zsh 2>/dev/null | wc -l) fragment(s)"
 
 sec "login screen"
-kv "configured theme" "$(sed -n 's/^Current=//p' /etc/sddm.conf.d/*.conf /etc/sddm.conf 2>/dev/null | tail -1)"
+kv "configured theme" "$(sddm_configured_theme)"
 kv "theme installed"  "$([[ -f /usr/share/sddm/themes/nothing/Main.qml ]] && echo yes || echo NO)"
 kv "default target"   "$(systemctl get-default 2>/dev/null)"
 # A QML import the greeter cannot resolve makes SDDM fall back to its own
