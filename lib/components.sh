@@ -219,6 +219,9 @@ detect 'all_of "[[ -e $HOME/.config/DankMaterialShell/plugins/lyricsOnPanel ]]" 
 pkgs "python3 python3-devel dbus-devel glib2-devel pkgconf gcc"
 dms_plugin "lyricsOnPanel"
 
+component mpv         apps on  "mpv"          "video player; becomes the default for video files"
+pkgs "mpv"
+
 component strawberry  apps on  "Strawberry"   "music player for a local library, with a Qt interface"
 pkgs "strawberry"
 

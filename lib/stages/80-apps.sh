@@ -179,6 +179,20 @@ image/svg+xml=$image
 image/bmp=$image
 image/tiff=$image
 EOF
+    # Video and audio had no handler at all until these two arrived, so a
+    # double-clicked film opened in whatever the desktop guessed.
+    if is_selected mpv; then
+      printf 'video/mp4=mpv.desktop\nvideo/x-matroska=mpv.desktop\nvideo/webm=mpv.desktop\n'
+      printf 'video/quicktime=mpv.desktop\nvideo/x-msvideo=mpv.desktop\nvideo/mpeg=mpv.desktop\n'
+      printf 'video/x-flv=mpv.desktop\nvideo/ogg=mpv.desktop\n'
+    fi
+    if is_selected strawberry; then
+      local sb=org.strawberrymusicplayer.strawberry.desktop
+      printf 'audio/mpeg=%s\naudio/flac=%s\naudio/x-vorbis+ogg=%s\naudio/x-wav=%s\naudio/mp4=%s\naudio/opus=%s\n' \
+        "$sb" "$sb" "$sb" "$sb" "$sb" "$sb"
+    elif is_selected mpv; then
+      printf 'audio/mpeg=mpv.desktop\naudio/flac=mpv.desktop\naudio/x-wav=mpv.desktop\n'
+    fi
     is_selected vesktop     && echo "x-scheme-handler/discord=dev.vencord.Vesktop.desktop"
     is_selected qbittorrent && printf 'application/x-bittorrent=org.qbittorrent.qBittorrent.desktop\nx-scheme-handler/magnet=org.qbittorrent.qBittorrent.desktop\n'
     is_selected obsidian    && echo "x-scheme-handler/obsidian=md.obsidian.Obsidian.desktop"
