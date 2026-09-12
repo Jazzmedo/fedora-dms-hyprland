@@ -26,16 +26,18 @@ install_zen() {
     local tmp; tmp=$(mktemp -d)
     local url="https://github.com/zen-browser/desktop/releases/latest/download/zen.linux-x86_64.tar.xz"
     if ! retry 3 curl -fL --progress-bar -o "$tmp/zen.tar.xz" "$url"; then
-      rm -rf "$tmp"; soft_fail "Could not download the Zen browser" \
+      clean_tmp "$tmp"; soft_fail "Could not download the Zen browser" \
       "The download failed, so you will have no default browser yet." \
       "./install.sh --only=apps"; return 0
     fi
     as_root rm -rf "$ZEN_INSTALL_DIR"
     as_root mkdir -p "$ZEN_INSTALL_DIR"
-    as_root tar -xf "$tmp/zen.tar.xz" -C "$tmp"
+    # Unpacked as you, not as root. Root-owned files in your own scratch
+    # directory cannot be deleted afterwards, and that failure is fatal.
+    tar -xf "$tmp/zen.tar.xz" -C "$tmp"
     as_root bash -c "cp -a '$tmp/zen/.' '$ZEN_INSTALL_DIR/'"
     record file "$ZEN_INSTALL_DIR"
-    rm -rf "$tmp"
+    clean_tmp "$tmp"
     ok "Installed the Zen browser"
   fi
 
@@ -69,14 +71,14 @@ install_helium() {
   local url; url=$(curl -fsSL https://api.github.com/repos/imputnet/helium-linux/releases/latest 2>/dev/null \
     | grep -oP '"browser_download_url":\s*"\K[^"]*x86_64[^"]*\.tar\.xz' | head -1)
   if [[ -z $url ]] || ! retry 3 curl -fL --progress-bar -o "$tmp/helium.tar.xz" "$url"; then
-    rm -rf "$tmp"; soft_fail "Could not download the Helium browser" "The download failed." "./install.sh --only=apps"; return 0
+    clean_tmp "$tmp"; soft_fail "Could not download the Helium browser" "The download failed." "./install.sh --only=apps"; return 0
   fi
   as_root mkdir -p "$HELIUM_INSTALL_DIR"
   as_root tar -xf "$tmp/helium.tar.xz" -C "$HELIUM_INSTALL_DIR" --strip-components=1
   as_root ln -sfn "$HELIUM_INSTALL_DIR/helium" /usr/local/bin/helium
   record file "$HELIUM_INSTALL_DIR"
   record symlink /usr/local/bin/helium
-  rm -rf "$tmp"
+  clean_tmp "$tmp"
   ok "Installed the Helium browser"
 }
 
@@ -120,7 +122,7 @@ install_github_rpm() {
   else
     soft_fail "Could not download $label" "The download from GitHub failed." "./install.sh --only=apps"
   fi
-  rm -rf "$tmp"
+  clean_tmp "$tmp"
 }
 
 install_app_configs() {

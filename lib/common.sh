@@ -234,6 +234,18 @@ count_files() {
   printf '%s' "$n"
 }
 
+# Throwing away a scratch directory must never end the run. Anything unpacked
+# or copied by a root command leaves root-owned files behind, and then the
+# user's own `rm -rf` fails with "Permission denied", which under `set -e` is
+# fatal. That is what killed the apps stage after Zen had installed correctly.
+clean_tmp() {
+  local d=${1:-}
+  [[ -n $d && -d $d && $d == /tmp/* ]] || return 0
+  rm -rf "$d" 2>/dev/null && return 0
+  as_root rm -rf "$d" 2>/dev/null || true
+  return 0
+}
+
 have()      { command -v "$1" >/dev/null 2>&1; }
 rpm_has()   { rpm -q "$1" >/dev/null 2>&1; }
 

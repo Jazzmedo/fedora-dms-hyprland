@@ -211,7 +211,7 @@ install_dms_runtime() {
     }
   done
   if (( ! got )); then
-    rm -rf "$tmp"
+    clean_tmp "$tmp"
     soft_fail "The desktop shell could not be downloaded" \
         "Its download server could not be reached. Everything else on this machine is unaffected." \
         "When the connection is working: ./install.sh --only=dms"
@@ -231,7 +231,7 @@ install_dms_runtime() {
       sleep $(( attempt * 5 ))
     }
   done
-  rm -rf "$tmp"
+  clean_tmp "$tmp"
 
   if (( ! ok_run )) || ! have dms; then
     soft_fail "The desktop shell could not be downloaded" \
@@ -413,9 +413,9 @@ install_cliamp() {
     local got=0
     run curl -fsSL -o "$tmp/cliamp-install.sh" https://cliamp.stream/install.sh && got=1
     if (( got )) && run_quiet "Installing the CLIAMP music player" -- sh "$tmp/cliamp-install.sh"; then
-      rm -rf "$tmp"
+      clean_tmp "$tmp"
       have cliamp && record file "$(command -v cliamp)"
-    elif rm -rf "$tmp"; have go; then
+    elif clean_tmp "$tmp"; have go; then
       warn "the download failed, building it from source instead"
       run_quiet "Building the CLIAMP music player" -- \
         env GOBIN="$HOME/.local/bin" go install github.com/bjarneo/cliamp@latest \

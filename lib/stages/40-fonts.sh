@@ -33,7 +33,7 @@ stage_fonts() {
                   "The download from GitHub failed. Your terminal will use a plainer font." \
                   "./install.sh --only=fonts"
     fi
-    rm -rf "$tmp"
+    clean_tmp "$tmp"
   fi
 
   # Ndot is a dot-matrix display face with no monospace metrics. It becomes the
