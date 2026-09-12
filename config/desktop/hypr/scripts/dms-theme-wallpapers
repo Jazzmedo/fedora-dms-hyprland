@@ -4,8 +4,6 @@ set -u
 settings="$HOME/.config/DankMaterialShell/settings.json"
 base="$HOME/Pictures/Wallpapers/theme-collections"
 lock="$XDG_RUNTIME_DIR/dms-theme-wallpapers.lock"
-state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/dms-theme-wallpapers"
-theme_state="$state_dir/last-theme"
 
 # Everything printed here lands in the journal:
 #   journalctl --user -u dms-theme-wallpapers -n 40
@@ -33,31 +31,36 @@ slugify() {
     | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//; s/-+/-/g'
 }
 
-# What identifies the selected theme. A theme picked from the DMS registry is
-# named directly in settings.json and never touches customThemeFile, so keying
-# off that file alone makes every registry switch look like no change at all
-# and the wallpaper never follows.
+# Which theme is selected. A theme picked from the DMS registry is named
+# directly in settings.json and never touches customThemeFile, so reading that
+# file alone missed every registry switch.
 if [[ -n "$name" && "$name" != "custom" ]]; then
   theme_id="$name"
   theme_name="$name"
-  identity="${category:-registry}:$name"
 else
-  [[ -f "$theme_file" ]] || exit 0
+  if [[ ! -f "$theme_file" ]]; then
+    log "no theme selected: currentThemeName is '$name' and customThemeFile is '$theme_file'"
+    exit 0
+  fi
   theme_id="$(basename "$(dirname "$theme_file")")"
   theme_name="$(jq -r '.name // ""' "$theme_file" 2>/dev/null)"
-  identity="file:$theme_file"
 fi
 
 theme_slug="$(slugify "$theme_id")"
 name_slug="$(slugify "$theme_name")"
 collection=""
 
-# Wallpaper changes also rewrite settings.json. Only a genuine theme change
-# should select a new collection; follow-up settings writes must be no-ops.
-# A recorded theme means nothing if no wallpaper actually reached a monitor.
-# The state file is written before the IPC calls, to stop those calls
-# retriggering this service, so a first run that records the theme and then
-# fails to apply it would otherwise suppress every retry from then on.
+# There is no record of the last theme applied any more.
+#
+# Wallpaper changes rewrite settings.json and so retrigger this service, and a
+# remembered theme was how that loop was broken. It also broke everything
+# else: any run that recorded a theme and then failed to reach a monitor made
+# every later attempt exit before doing anything, and the desktop picture
+# stopped following the theme until the state file was deleted by hand.
+#
+# The per-output check below already ends the loop. A second run finds the
+# right image on every screen, writes nothing, and stops there.
+#
 # The desktop shell is started in the same chain that starts this script, so
 # on a fresh login it is usually not answering yet. Waiting is the difference
 # between a wallpaper appearing and this quietly giving up.
@@ -77,12 +80,6 @@ if ! wait_for_dms; then
   log "the desktop shell never answered; giving up"
   exit 1
 fi
-
-any_set=0
-[[ -n "$(dms ipc call wallpaper get 2>/dev/null)" ]] && any_set=1
-
-last_theme="$(cat "$theme_state" 2>/dev/null || true)"
-[[ "$last_theme" != "$identity" || $any_set -eq 0 ]] || exit 0
 
 while IFS= read -r -d '' candidate; do
   candidate_slug="$(slugify "$(basename "$candidate")")"
@@ -139,11 +136,6 @@ fi
 [[ -n "$vertical" ]] || vertical="$horizontal"
 [[ -n "$horizontal" ]] || exit 0
 
-# Record the theme before asking DMS to change wallpapers. Those IPC calls
-# rewrite settings.json and immediately trigger this service again.
-mkdir -p "$state_dir"
-printf '%s\n' "$identity" > "$theme_state"
-
 # Wallpaper writes update DMS settings and regenerate Matugen colors. Since
 # this service watches the settings file, only write when the selected file is
 # genuinely different; the resulting follow-up event then becomes a no-op.
@@ -188,7 +180,6 @@ done
 log "applied $applied of ${#outputs[@]} outputs from $(basename "$collection")"
 
 if (( applied == 0 )); then
-  rm -f "$theme_state"
   log "no wallpaper applied; will retry"
   exit 1
 fi
