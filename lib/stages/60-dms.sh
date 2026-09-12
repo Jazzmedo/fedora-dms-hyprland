@@ -182,6 +182,23 @@ dank_run_installer() {
 
 # Upstream's installer knows which quickshell revision it needs; reproducing
 # that here would rot. Run it, then layer our config on top.
+# The rpm route, used only when the upstream installer has failed. The COPR is
+# enabled on demand, because a run that never reached the installer will not
+# have it.
+dms_from_copr() {
+  local project=avengemedia/dms
+  info "Trying the package version of the desktop shell instead"
+  if ! dnf repolist --enabled 2>/dev/null | grep -q "avengemedia:dms"; then
+    as_root dnf copr enable -y "$project" || return 1
+    record copr "$project"
+  fi
+  record_new_pkgs dms          # recorded before installing, or it looks present
+  run_quiet "Installing the desktop shell from its package" -- \
+    as_root dnf install -y dms || return 1
+  have dms || return 1
+  ok "Installed the desktop shell from its package"
+}
+
 install_dms_runtime() {
   # `dms` being present is not enough: the installer also places quickshell and
   # the shell QML, and a run that got as far as the binary may have stopped
@@ -233,11 +250,17 @@ install_dms_runtime() {
   done
   clean_tmp "$tmp"
 
+  # Upstream asks GitHub which release to fetch, and that one request is the
+  # part that keeps failing here. By the time it fails it has already added its
+  # own COPR, and that COPR carries the same program as an rpm, so try it
+  # before giving up on the whole shell.
   if (( ! ok_run )) || ! have dms; then
-    soft_fail "The desktop shell could not be downloaded" \
-        "Its installer could not reach GitHub to find out which version to fetch. Everything else on this machine is unaffected." \
-        "When the connection is working: ./install.sh --only=dms"
-    return 1
+    dms_from_copr || {
+      soft_fail "The desktop shell could not be installed" \
+          "Its installer could not reach GitHub to find out which version to fetch, and the package was not available either. Everything else on this machine is unaffected." \
+          "When the connection is working: ./install.sh --only=dms"
+      return 1
+    }
   fi
   # The upstream installer decides its own paths, so what it left is read back
   # rather than assumed.

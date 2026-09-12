@@ -11,10 +11,13 @@ set -uo pipefail
 REPO_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 source "$REPO_DIR/lib/common.sh"
 
+# The installer writes its log beside itself, in the repo, and only falls back
+# to the cache when the repo is not writable. Looking in one place made every
+# report say "no log found" and threw away the one section worth reading.
 LOG_DIR="$HOME/.cache/fedora-nothing"
 OUT=${1:-"$LOG_DIR/report-$(date +%Y%m%d-%H%M%S).txt"}
 
-latest_log=$(ls -1t "$LOG_DIR"/install-*.log 2>/dev/null | head -1)
+latest_log=$(ls -1t "$REPO_DIR"/logs/install-*.log "$LOG_DIR"/install-*.log 2>/dev/null | head -1)
 
 redact() {
   # The hostname is only worth hiding when it is actually identifying. On this
@@ -93,7 +96,7 @@ generate() {
   echo "## Installer log: ${latest_log:-none found}"
   if [[ -n $latest_log ]]; then
     echo "  --- warnings and failures"
-    grep -E ' (WARN|FATAL) ' "$latest_log" | sed 's/^/  /' || echo "  (none)"
+    grep -E ' (WARN|SOFT|FATAL) ' "$latest_log" | sed 's/^/  /' || echo "  (none)"
     echo
     echo "  --- dnf and download errors"
     grep -inE 'error|failed|cannot|no match|unable|timed out|404|conflict' "$latest_log" \
