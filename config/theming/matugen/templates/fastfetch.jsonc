@@ -12,7 +12,8 @@
         "type": "builtin",
         "source": "Fedora_small",
         "padding": {
-            "top": 2,
+            // Sinks the nine-line logo to the middle of the specs beside it.
+            "top": 7,
             "right": 3
         },
         "color": {
