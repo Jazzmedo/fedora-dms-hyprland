@@ -1,0 +1,8 @@
+[Plymouth Theme]
+Name=Nothing
+Description=Dot-matrix boot splash, to match the desktop
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/nothing
+ScriptFile=/usr/share/plymouth/themes/nothing/nothing.script

@@ -287,7 +287,7 @@ remove_path() {
 declare -a IGNORED_PATHS=()
 declare -a P_FILES=() P_PKGS=() P_FLATPAKS=() P_COPRS=() P_REPOFILES=()
 declare -a P_UNITS_USER=() P_UNITS_SYSTEM=() P_MOVED=() P_EDITED=() P_BACKUPS=()
-P_SHELL_USER=""; P_SHELL_WAS=""; P_TARGET=""; P_DM=""
+P_SHELL_USER=""; P_SHELL_WAS=""; P_TARGET=""; P_DM=""; P_PLYMOUTH=""
 
 # Packages whose removal would break the machine rather than the desktop.
 CRITICAL_PKGS=" kernel kernel-core dnf dnf5 rpm systemd systemd-libs systemd-udev \
@@ -325,6 +325,12 @@ build_plan() {
   P_SHELL_USER=${first%%$'\t'*}; P_SHELL_WAS=${first#*$'\t'}
   P_TARGET=$(collect target | head -1); P_TARGET=${P_TARGET%%$'\t'*}
   P_DM=$(collect dm | head -1); P_DM=${P_DM%%$'\t'*}
+  P_PLYMOUTH=$(collect plymouth | head -1); P_PLYMOUTH=${P_PLYMOUTH%%$'\t'*}
+  # A swept removal takes the theme's files, which leaves the boot pointing at
+  # a theme that is gone. Fedora's own is the safe landing place.
+  if (( SWEPT )) && [[ -z $P_PLYMOUTH ]] && [[ -d /usr/share/plymouth/themes/nothing ]]; then
+    P_PLYMOUTH=bgrt
+  fi
 }
 
 count_line() {
@@ -358,6 +364,8 @@ show_plan() {
     "$C_BOLD" "$C_OFF" "$P_TARGET"
   [[ -n $P_DM ]] && printf '    %s   ·%s  %s becomes the login screen again\n' \
     "$C_BOLD" "$C_OFF" "${P_DM%.service}"
+  [[ -n $P_PLYMOUTH ]] && printf '    %s   ·%s  the boot splash goes back to %s\n' \
+    "$C_BOLD" "$C_OFF" "$P_PLYMOUTH"
   (( RESTORE )) && count_line "${#P_BACKUPS[@]}" "backups to put back afterwards"
 
   if (( ${#P_EDITED[@]} )); then
@@ -418,6 +426,16 @@ undo_services() {
     as_root systemctl disable --now "$u" || true
   done
   (( ${#P_UNITS_SYSTEM[@]} )) && ok "Switched off the system services it turned on"
+  return 0
+}
+
+undo_boot_splash() {
+  [[ -n $P_PLYMOUTH ]] || return 0
+  have plymouth-set-default-theme || return 0
+  [[ -d /usr/share/plymouth/themes/$P_PLYMOUTH ]] || return 0
+  # -R rebuilds the startup image; without it the boot still looks for ours.
+  as_root plymouth-set-default-theme -R "$P_PLYMOUTH" \
+    && ok "The boot splash is back to $P_PLYMOUTH"
   return 0
 }
 
@@ -566,6 +584,7 @@ main() {
 
   step "Services"
   undo_services
+  undo_boot_splash
   undo_display_manager
   undo_boot_target
   undo_login_shell

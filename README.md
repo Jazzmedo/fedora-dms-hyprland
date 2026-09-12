@@ -139,7 +139,8 @@ backend is built into a virtualenv and run as a user service.
 yazi, the modern CLI set (eza, bat, ripgrep, fd, fzf, trash-cli), btop,
 fastfetch, cava, podman, pyenv, nvm, Rust, Go, Helium, Brave Origin, Vesktop,
 qBittorrent, OBS, Obsidian, CLIAMP, mpv, Strawberry, EasyEffects, Tailscale,
-Cloudflare WARP, the niri session, and a set of system tweaks.
+Cloudflare WARP, the niri session, a Nothing-styled boot splash, and a set of
+system tweaks.
 
 ## Layout
 
@@ -217,6 +218,34 @@ will be repaired from what is already satisfied.
 Components already present are re-selected automatically on a re-run, because
 deselecting one would not uninstall it, only stop the installer from checking
 it.
+
+### The boot splash
+
+Ticking **Boot splash** replaces the wall of service messages at startup with a
+row of dots and the name, drawn in Ndot. It is a Plymouth theme, built from
+four solid-colour images scaled at runtime rather than from artwork, so it is
+sharp at any resolution and adds under a kilobyte to the startup image.
+
+Installing it rebuilds the initrd, which is the slow part of that step and the
+part that matters: a theme that is only on disk is never seen. The typeface is
+copied into the startup image too, through a dracut drop-in, since
+`/usr/share/fonts` does not exist that early.
+
+On a machine with an encrypted disk, the splash is also what asks for the
+passphrase, so the theme implements the password prompt. Without one you get a
+splash that never asks and a boot that stops there.
+
+To see what it looks like without rebooting:
+
+```sh
+sudo plymouthd; sudo plymouth --show-splash; sleep 8; sudo plymouth --quit
+```
+
+To go back to Fedora's own:
+
+```sh
+sudo plymouth-set-default-theme -R bgrt
+```
 
 ### If it will not reach the login screen
 

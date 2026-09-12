@@ -117,6 +117,8 @@ artifact_system_paths() {
     /opt/helium \
     /etc/sysctl.d/99-usb-copy-fix.conf \
     /etc/systemd/system/numlock-on.service \
+    /usr/share/plymouth/themes/nothing \
+    /etc/dracut.conf.d/99-fedora-nothing-splash.conf \
     /etc/zen/policies/policies.json \
     /etc/firefox/policies/policies.json \
     /etc/librewolf/policies.json \
