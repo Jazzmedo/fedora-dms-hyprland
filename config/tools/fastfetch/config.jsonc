@@ -5,7 +5,7 @@
     "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
     "logo": {
         "type": "builtin",
-        "source": "Fedora",
+        "source": "Fedora_small",
         "padding": {
             "top": 2,
             "right": 3
@@ -26,7 +26,7 @@
         "break",
         {
             "type": "custom",
-            "format": "\u001b[38;2;215;25;33m  hardware\u001b[0m"
+            "format": "\u001b[38;2;215;25;33m\u001b[1mH A R D W A R E\u001b[0m"
         },
         {
             "type": "os",
@@ -61,7 +61,7 @@
         "break",
         {
             "type": "custom",
-            "format": "\u001b[38;2;215;25;33m  desktop\u001b[0m"
+            "format": "\u001b[38;2;215;25;33m\u001b[1mD E S K T O P\u001b[0m"
         },
         {
             "type": "de",
@@ -79,7 +79,7 @@
         "break",
         {
             "type": "custom",
-            "format": "\u001b[38;2;215;25;33m  system\u001b[0m"
+            "format": "\u001b[38;2;215;25;33m\u001b[1mS Y S T E M\u001b[0m"
         },
         {
             "type": "packages",
@@ -91,8 +91,8 @@
         },
         {
             "type": "disk",
-            "keyIcon": "",
             "key": "\u001b[38;2;200;200;200m{icon}  Age \u001b[38;2;215;25;33m───────────────\u001b[0m",
+            "keyIcon": "󰃭",
             "folders": "/",
             "format": "{create-time:10} [{days} days]"
         },
