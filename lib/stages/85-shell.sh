@@ -156,6 +156,10 @@ install_runtime_managers() {
       || soft_fail "Could not install Rust" "The installer script failed to download." "./install.sh --only=shell"
   fi
 
-  run systemctl --user enable --now podman.socket 2>/dev/null && record unit-user podman.socket || true
+  if user_bus_ok; then
+    run systemctl --user enable --now podman.socket 2>/dev/null && record unit-user podman.socket || true
+  else
+    enable_user_unit podman.socket && record unit-user podman.socket || true
+  fi
   ok "The version managers for Node, Python and Rust are ready"
 }

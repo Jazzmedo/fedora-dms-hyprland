@@ -222,12 +222,13 @@ install_systemd_units() {
   for unit in dms.service dms-theme-wallpapers.path dms-dolphin-palette.path \
               hypr-real-mouse-focus.service; do
     [[ -f $dest/$unit ]] || { warn "A startup file is missing: $unit"; continue; }
-    run systemctl --user enable "$unit" && record unit-user "$unit" || soft_fail "Could not set $unit to start automatically" "" "systemctl --user enable $unit"
+    enable_user_unit "$unit" && record unit-user "$unit" \
+      || soft_fail "Could not set $unit to start automatically" "" "systemctl --user enable $unit"
   done
   is_selected core && [[ -f $dest/dms-kdeconnect.service ]] && \
-    run systemctl --user enable dms-kdeconnect.service && record unit-user dms-kdeconnect.service
+    enable_user_unit dms-kdeconnect.service && record unit-user dms-kdeconnect.service
 
-  run systemctl --user daemon-reload
+  user_daemon_reload
   ok "The desktop will now start these services when you log in"
 }
 

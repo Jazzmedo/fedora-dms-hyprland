@@ -22,6 +22,15 @@ stage_preflight() {
        "From an administrator account: sudo usermod -aG wheel $USER"
 
 
+  # Said once here rather than four times later as a failure per service.
+  if user_bus_ok; then
+    ok "Your login session can manage its own background services"
+  else
+    warn "This session has no service manager of its own, so services cannot be started from here"
+    _detail "systemctl --user cannot reach a bus. It happens when a terminal was opened with su, or over a connection that did not create a full login session." \
+            "Nothing is lost: the services are still set up, and they start the next time you log in normally."
+  fi
+
   local need=(curl git tar python3 rpm)
   local missing=()
   local t; for t in "${need[@]}"; do have "$t" || missing+=("$t"); done

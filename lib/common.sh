@@ -237,6 +237,67 @@ count_files() {
 have()      { command -v "$1" >/dev/null 2>&1; }
 rpm_has()   { rpm -q "$1" >/dev/null 2>&1; }
 
+# --------------------------------------------------- user services ---
+# `systemctl --user` talks to a systemd instance that only exists inside a
+# registered login session. Started over su, or from a session logind never
+# registered, every call fails with
+#
+#   Failed to connect to user scope bus via local transport: Operation not permitted
+#
+# and one unguarded call ended an entire install, taking six later stages with
+# it. Nothing here may ever be fatal.
+USER_BUS_STATE=""
+
+user_bus_ok() {
+  if [[ -z $USER_BUS_STATE ]]; then
+    if systemctl --user show-environment >/dev/null 2>&1; then
+      USER_BUS_STATE=ok
+    else
+      USER_BUS_STATE=unavailable
+    fi
+  fi
+  [[ $USER_BUS_STATE == ok ]]
+}
+
+_unit_file() {
+  local unit=$1 d
+  for d in "$HOME/.config/systemd/user" /etc/systemd/user \
+           /usr/local/lib/systemd/user /usr/lib/systemd/user; do
+    [[ -f $d/$unit ]] && { printf '%s' "$d/$unit"; return 0; }
+  done
+  return 1
+}
+
+# Enabling a unit is only a symlink into <target>.wants. With no bus to ask,
+# make the symlink directly: at the next login the result is identical, which
+# is the login where these services were going to start anyway.
+enable_user_unit() {
+  local unit=$1 file
+  file=$(_unit_file "$unit") || return 1
+
+  if user_bus_ok; then
+    run systemctl --user enable "$unit" && return 0
+  fi
+
+  local dir="$HOME/.config/systemd/user"
+  local target ok=1
+  while read -r target; do
+    [[ -n $target ]] || continue
+    ok=0
+    run mkdir -p "$dir/$target.wants"
+    run ln -sfn "$file" "$dir/$target.wants/$unit"
+  done < <(sed -n 's/^WantedBy=//p' "$file" | tr ' ' '\n')
+  return "$ok"
+}
+
+# Pointless without a bus, and harmless to skip: a user manager that is not
+# running reads every unit fresh when it starts.
+user_daemon_reload() {
+  user_bus_ok || return 0
+  run systemctl --user daemon-reload || true
+  return 0
+}
+
 # --------------------------------------------------------------- ledger ---
 # What this run changed, in a form a machine can undo.
 #

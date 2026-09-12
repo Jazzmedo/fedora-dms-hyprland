@@ -65,7 +65,7 @@ fix_dms_service_path() {
     return 0
   fi
   run sed -i -E "s|^ExecStart=.*/dms run|ExecStart=$dms_path run|" "$unit"
-  run systemctl --user daemon-reload
+  user_daemon_reload
   ok "Pointed the startup file at the desktop shell"
 }
 
@@ -443,9 +443,10 @@ install_cliamp() {
       if run cliamp plugins trust cliamp-dms-bridge; then
         ok "CLIAMP radio support is ready. Turn it on from the Radio tab in the widget."
       else
-        soft_fail "Could not mark the CLIAMP radio add-on as trusted" \
-                  "CLIAMP will refuse to load it until it is." \
-                  "cliamp plugins trust cliamp-dms-bridge"
+        # Not a failure of the install: CLIAMP will not trust a plugin it has
+        # never seen, and it only scans for them when it starts.
+        warn "CLIAMP has not seen the radio add-on yet, so it could not be trusted from here"
+        info "Start CLIAMP once, then run: cliamp plugins trust cliamp-dms-bridge"
       fi
     else
       info "CLIAMP radio support is in place. Once CLIAMP is installed: cliamp plugins trust cliamp-dms-bridge"
@@ -507,8 +508,9 @@ RestartSec=5
 [Install]
 WantedBy=default.target
 EOF
-  run systemctl --user daemon-reload
-  run systemctl --user enable "$unit" && record unit-user "$unit" || soft_fail "Could not set the lyrics helper to start automatically" "" "systemctl --user enable $unit"
+  user_daemon_reload
+  enable_user_unit "$unit" && record unit-user "$unit" \
+    || soft_fail "Could not set the lyrics helper to start automatically" "" "systemctl --user enable $unit"
   ok "The lyrics helper will start when you log in"
 }
 
@@ -517,7 +519,8 @@ deploy_dms_settings() {
   local src="$REPO_DIR/config/shell-ui/DankMaterialShell"
   run mkdir -p "$DMS_CONFIG/themes"
   deploy_tree "$src/themes" "$DMS_CONFIG/themes"
-  ok "Installed $(count_files "$src/themes" -maxdepth 1) colour themes"
+  local n; n=$(find "$src/themes" -mindepth 1 -maxdepth 1 2>/dev/null | wc -l)
+  ok "Installed $n colour themes"
 
   backup_path "$DMS_CONFIG/settings.json"
   backup_path "$DMS_CONFIG/plugin_settings.json"
