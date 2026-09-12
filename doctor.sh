@@ -150,7 +150,7 @@ kv "ColorScheme" "$(sed -n 's/^ColorScheme=//p' "$kg" 2>/dev/null | head -1)"
 kv "qt6ct palette" "$([[ -f $HOME/.config/qt6ct/colors/matugen.conf ]] && echo present || echo MISSING)"
 
 sec "shell"
-login=$(getent passwd "$USER" | cut -d: -f7)
+login=$(getent passwd "$USER" | cut -d: -f7) || login=""
 zsh=$(command -v zsh 2>/dev/null)
 if [[ -n $zsh && $login == "$zsh" ]]; then
   kv "login shell" "$login"

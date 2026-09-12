@@ -18,7 +18,10 @@ detect_gpu() {
 
 stage_gpu() {
   local card
-  card=$(lspci 2>/dev/null | grep -Ei 'vga|3d controller' | head -1 | sed 's/.*: //')
+  # `|| card=""` is load-bearing. grep exits 1 when it matches nothing, and a
+  # VM without lspci matches nothing; pipefail then makes the assignment fail
+  # and set -e ends the run on a line that only wanted a label to print.
+  card=$(lspci 2>/dev/null | grep -Ei 'vga|3d controller' | head -1 | sed 's/.*: //') || card=""
   [[ -n $card ]] && info "Found: ${card}"
   ok "Graphics card: ${GPU_VENDOR}. The matching driver will be installed."
 

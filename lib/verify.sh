@@ -34,8 +34,20 @@ check_zshrc() { [[ -s $HOME/.zshrc ]]; }
 
 # The theme SDDM will actually load, which is the last Current= across
 # everything in conf.d plus the legacy file.
+#
+# Each file is checked for existence first. Handing sed a path that is not
+# there makes it exit 2, and under `set -euo pipefail` that ends the run: the
+# login screen stage did all of its work, moved /etc/sddm.conf aside, and then
+# died reading back the file it had just moved.
 sddm_configured_theme() {
-  sed -n 's/^Current=//p' /etc/sddm.conf.d/*.conf /etc/sddm.conf 2>/dev/null | tail -1
+  local f line out=""
+  for f in /etc/sddm.conf.d/*.conf /etc/sddm.conf; do
+    [[ -r $f ]] || continue
+    while IFS= read -r line; do
+      [[ $line == Current=* ]] && out=${line#Current=}
+    done <"$f"
+  done
+  printf '%s' "$out"
 }
 
 check_sddm_theme() {

@@ -127,7 +127,7 @@ EOF
   fi
 
   local active
-  active=$(sed -n 's/^Current=//p' /etc/sddm.conf.d/*.conf /etc/sddm.conf 2>/dev/null | tail -1)
+  active=$(sddm_configured_theme)
   if [[ $active == nothing ]]; then
     ok "Confirmed: the login screen is set to the Nothing theme"
   else

@@ -528,7 +528,7 @@ deploy_dms_settings() {
   deploy_file "$src/plugin_settings.json" "$DMS_CONFIG/plugin_settings.json"
 
   local keep dead
-  keep=$(selected_dms_plugins | paste -sd, -)
+  keep=$(selected_dms_plugins | paste -sd, -) || keep=""
   dead=$(printf '%s,' "${DMS_DEAD_PLUGINS[@]}")
 
   local width height

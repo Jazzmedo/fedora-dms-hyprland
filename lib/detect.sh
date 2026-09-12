@@ -95,7 +95,7 @@ all_of() {
 # ------------------------------------------------------------ system facts ---
 # Things that belong to a stage rather than to a component, shown by --status.
 system_checks() {
-  local theme; theme=$(awk -F= '/^Current=/{print $2}' /etc/sddm.conf.d/*.conf 2>/dev/null | tail -1)
+  local theme; theme=$(sddm_configured_theme)
   printf '%s\t%s\n' "SDDM theme"      "${theme:-not set}"
   printf '%s\t%s\n' "SDDM theme files" \
     "$( [[ -f /usr/share/sddm/themes/nothing/Main.qml ]] && echo present || echo missing )"
