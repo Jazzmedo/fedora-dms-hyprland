@@ -19,7 +19,13 @@ _tput() { tput "$@" 2>/dev/null || true; }
 
 # The picker runs on the alternate screen where the terminal has one, so the
 # scrollback the user had before the installer is still there afterwards.
+UI_STTY=""
+
 _ui_enter_screen() {
+  # read -s only silences echo while it is actually reading. Anything typed
+  # between two reads lands on the screen as a raw escape sequence.
+  UI_STTY=$(stty -g 2>/dev/null) || UI_STTY=""
+  stty -echo 2>/dev/null || true
   local seq
   seq=$(tput smcup 2>/dev/null) || seq=""
   if [[ -n $seq ]]; then
@@ -33,6 +39,7 @@ UI_COMPACT=0
 }
 
 _ui_leave_screen() {
+  [[ -n $UI_STTY ]] && { stty "$UI_STTY" 2>/dev/null || true; UI_STTY=""; }
   _tput cnorm
   if (( UI_ALTSCREEN )); then _tput rmcup; else _tput clear; fi
   UI_ALTSCREEN=0
@@ -148,8 +155,10 @@ _ui_body() {
       mark="[ ]"
     fi
     # What the machine already has, so a re-run reads as repair, not reinstall.
+    # Read straight out of the cache detect_all_components filled: a $( ) here
+    # is a fork per row per repaint, and a cache miss inside one is invisible.
     local badge
-    case $(component_state "$key") in
+    case ${COMPONENT_STATE[$key]:-missing} in
       installed) badge="${C_OK}✓${C_OFF}" ;;
       partial)   badge="${C_WARN}~${C_OFF}" ;;
       *)         badge=" " ;;
@@ -265,6 +274,13 @@ ui_select_components() {
   if [[ ! -t 0 || ! -t 1 ]]; then
     info "not a terminal, using the default selection"
     return 0
+  fi
+
+  # Normally already done by main; here as well so the picker is never the
+  # thing that pays for it, whoever calls it.
+  if (( ! DETECT_COMPONENTS_READY )); then
+    printf '  %sChecking what is already installed%s\n' "$C_GREY" "$C_OFF"
+    detect_all_components
   fi
 
   _ui_build_rows

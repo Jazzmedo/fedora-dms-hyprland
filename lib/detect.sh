@@ -62,6 +62,25 @@ component_state() {
   printf '%s' "$state"
 }
 
+# Work out every component's state once, in this shell.
+#
+# component_state caches into COMPONENT_STATE, but the picker asks for it
+# inside $( ), and a subshell's writes are discarded when it exits. So the
+# cache never survived a single call: every repaint re-ran `rpm -qa` and
+# `flatpak list` once per component, which is thirty-four of each per
+# keypress. On a VM that is tens of seconds of the interface being deaf.
+DETECT_COMPONENTS_READY=0
+
+detect_all_components() {
+  (( DETECT_COMPONENTS_READY )) && return 0
+  detect_snapshot
+  local k
+  for k in "${COMPONENT_ORDER[@]}"; do
+    component_state "$k" >/dev/null
+  done
+  DETECT_COMPONENTS_READY=1
+}
+
 # Count how many of the given tests pass, then collapse. Each argument is a
 # shell expression; this is what the detectors in components.sh are built from.
 all_of() {

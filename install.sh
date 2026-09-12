@@ -189,6 +189,10 @@ choose_components() {
     # Everything ticked to start with, then last run's choices on top of that.
     apply_preset full
     load_selection && info "Your choices from last time are already ticked"
+    # One rpm -qa and one flatpak list for the whole run. Without this every
+    # caller below forks a pair of them per component.
+    printf '  %sChecking what is already installed%s\n' "$C_GREY" "$C_OFF"
+    detect_all_components
     # Anything already on the machine stays ticked, so a re-run verifies it
     # instead of silently leaving it out.
     reselect_installed
