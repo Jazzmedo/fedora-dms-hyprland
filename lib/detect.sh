@@ -110,8 +110,8 @@ system_checks() {
   printf '%s\t%s\n' "default browser" "$(xdg-settings get default-web-browser 2>/dev/null || echo unset)"
   local plugins=0
   [[ -d $HOME/.config/DankMaterialShell/plugins ]] && \
-    plugins=$(find "$HOME/.config/DankMaterialShell/plugins" -maxdepth 1 -mindepth 1 \
-              \( -type d -o -type l \) ! -name '.*' 2>/dev/null | wc -l)
+    plugins=$( { find "$HOME/.config/DankMaterialShell/plugins" -maxdepth 1 -mindepth 1 \
+              \( -type d -o -type l \) ! -name '.*' 2>/dev/null || true; } | wc -l )
   printf '%s\t%s\n' "DMS plugins"    "$plugins installed"
   return 0
 }

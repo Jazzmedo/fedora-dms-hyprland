@@ -219,6 +219,21 @@ retry() {
   done
 }
 
+# Count matching files under a directory, 0 when it does not exist.
+#
+# The obvious `n=$(find "$d" -type f | wc -l)` is a trap under `set -euo
+# pipefail`: find exits 1 for a missing directory, pipefail makes that the
+# status of the whole pipeline, and set -e then ends the run with nothing
+# printed. That is what stopped the themes stage on a machine that did not have
+# a wallpaper collection yet, and took five later stages with it.
+count_files() {
+  local dir=$1; shift
+  [[ -d $dir ]] || { printf '0'; return 0; }
+  local n
+  n=$( { find "$dir" "$@" -type f 2>/dev/null || true; } | wc -l )
+  printf '%s' "$n"
+}
+
 have()      { command -v "$1" >/dev/null 2>&1; }
 rpm_has()   { rpm -q "$1" >/dev/null 2>&1; }
 

@@ -400,14 +400,29 @@ install_cliamp() {
   local repo_dir=$1
   if have cliamp; then
     skip "The CLIAMP music player is already installed"
-  elif ! have go; then
-    soft_fail "The CLIAMP music player needs the Go toolchain, which is not installed" \
-                "It has to be compiled from source." \
-                "Re-run ./install.sh and tick language runtimes"
   else
-    run_quiet "Building the CLIAMP music player" -- \
-      env GOBIN="$HOME/.local/bin" go install github.com/bjarneo/cliamp@latest \
-      || soft_fail "The CLIAMP music player did not build" "" "./install.sh --only=dms"
+    # The project publishes a prebuilt binary and a one-line installer for it.
+    # Compiling from source was the fallback and is now only that: it needs the
+    # Go toolchain, takes minutes, and fails on any machine without it.
+    # Downloaded to a file and then run, never `curl ... | sh`: pipefail does
+    # not apply inside the new shell, so a failed download feeds an empty
+    # script to sh, which exits 0 and reports the install as a success.
+    local tmp; tmp=$(mktemp -d)
+    local got=0
+    run curl -fsSL -o "$tmp/cliamp-install.sh" https://cliamp.stream/install.sh && got=1
+    if (( got )) && run_quiet "Installing the CLIAMP music player" -- sh "$tmp/cliamp-install.sh"; then
+      rm -rf "$tmp"
+      have cliamp && record file "$(command -v cliamp)"
+    elif rm -rf "$tmp"; have go; then
+      warn "the download failed, building it from source instead"
+      run_quiet "Building the CLIAMP music player" -- \
+        env GOBIN="$HOME/.local/bin" go install github.com/bjarneo/cliamp@latest \
+        || soft_fail "The CLIAMP music player did not build" "" "./install.sh --only=dms"
+    else
+      soft_fail "The CLIAMP music player could not be downloaded" \
+                "Its download server could not be reached, and there is no Go toolchain here to build it from source." \
+                "curl -fsSL https://cliamp.stream/install.sh | sh"
+    fi
   fi
 
   # Helper scripts the widget shells out to, and the optional Lua bridge that
@@ -420,7 +435,19 @@ install_cliamp() {
   if [[ -f $repo_dir/cliamp/cliamp-dms-bridge.lua ]]; then
     deploy_file "$repo_dir/cliamp/cliamp-dms-bridge.lua" \
       "$HOME/.config/cliamp/plugins/cliamp-dms-bridge.lua"
-    info "CLIAMP radio support is ready. Turn it on from the Radio tab in the widget, then restart CLIAMP."
+    # CLIAMP refuses to load a Lua plugin it has not been told to trust, and
+    # says so only in its own startup output. Copying the file is not enough.
+    if have cliamp; then
+      if run cliamp plugins trust cliamp-dms-bridge; then
+        ok "CLIAMP radio support is ready. Turn it on from the Radio tab in the widget."
+      else
+        soft_fail "Could not mark the CLIAMP radio add-on as trusted" \
+                  "CLIAMP will refuse to load it until it is." \
+                  "cliamp plugins trust cliamp-dms-bridge"
+      fi
+    else
+      info "CLIAMP radio support is in place. Once CLIAMP is installed: cliamp plugins trust cliamp-dms-bridge"
+    fi
   fi
 }
 
@@ -488,7 +515,7 @@ deploy_dms_settings() {
   local src="$REPO_DIR/config/shell-ui/DankMaterialShell"
   run mkdir -p "$DMS_CONFIG/themes"
   deploy_tree "$src/themes" "$DMS_CONFIG/themes"
-  ok "Installed $(ls "$src/themes" | wc -l) colour themes"
+  ok "Installed $(count_files "$src/themes" -maxdepth 1) colour themes"
 
   backup_path "$DMS_CONFIG/settings.json"
   backup_path "$DMS_CONFIG/plugin_settings.json"

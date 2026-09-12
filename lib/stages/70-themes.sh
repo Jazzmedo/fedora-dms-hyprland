@@ -16,8 +16,8 @@ install_wallpapers() {
   for set_dir in "$src"/*/; do
     name=$(basename "$set_dir")
     local have_n want_n
-    want_n=$(find "$set_dir/horizontal" -type f 2>/dev/null | wc -l)
-    have_n=$(find "$dest/$name/horizontal" -type f 2>/dev/null | wc -l)
+    want_n=$(count_files "$set_dir/horizontal")
+    have_n=$(count_files "$dest/$name/horizontal")
     # Compared by count, not merely "is it non-empty": the old check meant new
     # images added to this repo never reached a machine that had the set.
     if (( have_n >= want_n )) && (( want_n > 0 )); then
