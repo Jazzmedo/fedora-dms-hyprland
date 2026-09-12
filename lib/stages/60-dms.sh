@@ -163,8 +163,19 @@ dank_run_installer() {
     printf '\n  %s→%s The next screen belongs to the desktop shell'"'"'s own installer,\n' "$C_CYAN" "$C_OFF"
     printf '    not to this one. Its defaults already match what you chose.\n'
     printf '    %sPress Enter to continue.%s\n\n' "$C_BOLD" "$C_OFF"
+    sleep 2
   fi
-  sh "$script" "$@"
+
+  # Give it a clean screen to start on and take the terminal back afterwards.
+  # It draws its own frames and can leave the cursor hidden, the colours set,
+  # or half a line of its last screen behind.
+  # Screen only, not the scrollback: `tput clear` on the console also throws
+  # away everything the earlier stages printed.
+  local rc=0
+  printf '\033[H\033[2J'
+  sh "$script" "$@" || rc=$?
+  printf '\033[0m\033[?25h\033[H\033[2J'
+  return "$rc"
 }
 
 # Upstream's installer knows which quickshell revision it needs; reproducing
