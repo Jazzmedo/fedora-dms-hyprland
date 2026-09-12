@@ -143,6 +143,41 @@ apply_kde_palette() {
   rm -f "$fixed"
 }
 
+# Qt applications get their palette from qt6ct, not from kdeglobals:
+# QT_QPA_PLATFORMTHEME names qt6ct, so its plugin owns QApplication's palette
+# and the KDE colour scheme only reaches applications that read kdeglobals
+# themselves. (There is no qt5ct half to this. qt6ct has no Qt5 plugin, so Qt5
+# applications never read qt5ct.conf at all.)
+#
+# The plugin re-reads qt6ct.conf whenever that file changes, but it does not
+# re-read the palette file the config points at, so rewriting the palette in
+# place changes nothing until the application restarts. Point the config at the
+# palette under two names in turn instead: a changed path is a new file to read.
+#
+# The names used here are not the file the path unit watches.
+apply_qt6ct_palette() {
+  local conf="$config/qt6ct/qt6ct.conf" dir="$config/qt6ct/colors"
+  [[ -f $conf && -f $dir/matugen.conf ]] || return 0
+
+  local current next
+  current=$(awk -F= '$1 == "color_scheme_path" { print $2; exit }' "$conf")
+  next="$dir/matugen-live-a.conf"
+  [[ $current == "$next" ]] && next="$dir/matugen-live-b.conf"
+
+  cp -f "$dir/matugen.conf" "$next" 2>/dev/null || return 0
+
+  local tmp="${conf}.reload.$$"
+  awk -v path="$next" '
+    /^\[/ { appearance = ($0 == "[Appearance]") }
+    appearance && /^color_scheme_path=/ { $0 = "color_scheme_path=" path; seen = 1 }
+    appearance && /^custom_palette=/    { $0 = "custom_palette=true" }
+    { print }
+    END { if (!seen) exit 1 }
+  ' "$conf" >"$tmp" || { rm -f "$tmp"; return 0; }
+  chmod --reference="$conf" "$tmp" 2>/dev/null || true
+  mv "$tmp" "$conf"
+}
+
 have_cmd() { command -v "$1" >/dev/null 2>&1; }
 
 reload_toolkits() {
@@ -162,12 +197,7 @@ reload_toolkits() {
   dbus-send --session --type=signal /KGlobalSettings \
     org.kde.KGlobalSettings.notifyChange int32:0 int32:0 2>/dev/null || true
 
-  # qt6ct watches its own config file, not the palette it points at.
-  #
-  # There is no qt5ct equivalent here: QT_QPA_PLATFORMTHEME is qt6ct, which
-  # has no Qt5 plugin, so Qt5 applications never read qt5ct.conf at all. The
-  # KDE ones still follow kdeglobals through the signal above.
-  [[ -e $config/qt6ct/qt6ct.conf ]] && touch "$config/qt6ct/qt6ct.conf"
+  apply_qt6ct_palette
 
   # GTK 4 has no reload module. Naming a different theme and naming this one
   # back rebuilds the style cascade, which is what makes a running GTK 4

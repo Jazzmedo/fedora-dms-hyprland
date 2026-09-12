@@ -31,6 +31,8 @@ EXCLUDES=(
   --exclude='dank-colors.css' --exclude='colors/matugen.conf'
   --exclude='DankMatugen.colors' --exclude='DankMatugenDark.colors'
   --exclude='DankMatugenLight.colors' --exclude='DankMatugenLavender.colors'
+  # The two names the live recolour alternates between, on both sides.
+  --exclude='DankMatugenLive*.colors' --exclude='matugen-live-*.conf'
   --exclude='seed/'
 )
 
@@ -41,6 +43,12 @@ untemplate() {
     -e "s|$HOME|@@HOME@@|g" \
     -e "s|\\b$USER\\b|@@USER@@|g" \
     "$f"
+
+  # The live recolour points qt6ct at one of two palette copies in turn; the
+  # repository always ships the name the shell itself writes.
+  if [[ $f == */qt6ct.conf ]]; then
+    sed -i -e 's|^color_scheme_path=.*|color_scheme_path=@@HOME@@/.config/qt6ct/colors/matugen.conf|' "$f"
+  fi
 }
 
 each_entry() {
