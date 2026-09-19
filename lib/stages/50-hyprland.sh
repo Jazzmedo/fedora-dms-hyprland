@@ -217,13 +217,19 @@ append_gpu_env() {
 # and both broadcast a palette change, which repaints every window twice.
 retire_old_units() {
   local dest="$HOME/.config/systemd/user" unit
-  for unit in dms-dolphin-palette.path dms-dolphin-palette.service; do
+  for unit in dms-dolphin-palette.path dms-dolphin-palette.service \
+              hypr-real-mouse-focus.service; do
     [[ -e $dest/$unit ]] || continue
     run systemctl --user disable --now "$unit" 2>/dev/null || true
     run rm -f "$dest/$unit" "$dest"/*.wants/"$unit"
     ok "Removed the old $unit"
   done
   run rm -f "$HOME/.config/hypr/scripts/guard-dolphin-palette"
+  # The hover-focus watcher polled top-level clients only, so a right-click
+  # menu taller than its window lost focus to the window underneath and
+  # closed. Hyprland does this natively with follow_mouse = 1 plus
+  # mouse_refocus = false, both set in config/desktop/hypr/hyprland.lua.
+  run rm -f "$HOME/.config/hypr/scripts/focus-follows-real-mouse"
   return 0
 }
 
@@ -236,8 +242,7 @@ install_systemd_units() {
   # The backup committed *.target.wants/ symlinks pointing at an absolute
   # /home/hanafi. Let systemd create them instead.
   local unit
-  for unit in dms.service dms-theme-wallpapers.path dms-theme-reload.path \
-              hypr-real-mouse-focus.service; do
+  for unit in dms.service dms-theme-wallpapers.path dms-theme-reload.path; do
     [[ -f $dest/$unit ]] || { warn "A startup file is missing: $unit"; continue; }
     enable_user_unit "$unit" && record unit-user "$unit" \
       || soft_fail "Could not set $unit to start automatically" "" "systemctl --user enable $unit"

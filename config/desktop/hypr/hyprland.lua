@@ -31,7 +31,7 @@ hl.on("hyprland.start", function()
 	-- Keep this ordered: services must inherit the KDE environment before the
 	-- application database is built or DMS launches applications.
 	hl.exec_cmd(
-		"dbus-update-activation-environment --systemd --all && kbuildsycoca6 --noincremental && systemctl --user daemon-reload && systemctl --user start dms.service && systemctl --user restart hypr-real-mouse-focus.service && systemctl --user start dms-theme-wallpapers.path dms-theme-wallpapers.service dms-theme-reload.path"
+		"dbus-update-activation-environment --systemd --all && kbuildsycoca6 --noincremental && systemctl --user daemon-reload && systemctl --user start dms.service && systemctl --user start dms-theme-wallpapers.path dms-theme-wallpapers.service dms-theme-reload.path"
 	)
 end)
 
@@ -49,16 +49,16 @@ hl.config({
 		repeat_rate = 40,
 		repeat_delay = 300,
 		numlock_by_default = true,
-		-- Hyprland's mode 1 re-evaluates the window below the pointer on
-		-- unrelated surface/title updates.  In a scrolling layout that can move
-		-- the whole column while the mouse is completely still.  Mode 2 plus the
-		-- movement watcher below gives Niri's behaviour: hover focus follows real
-		-- pointer movement, while stationary bar/title updates cannot steal it.
-		follow_mouse = 2,
-		-- Keep Niri-like hover focus when the pointer actually moves, but do not
-		-- refocus a window merely because a DMS popup closed beneath a stationary
-		-- pointer. This also stops fullscreen/scroller windows from stealing focus
-		-- back immediately after DMS Settings is opened from the bar.
+		-- Niri-like hover focus, done natively.  mouse_refocus = false is what
+		-- stops a stationary pointer being refocused when a bar or title animates
+		-- beneath it, and it only takes effect when follow_mouse = 1 -- so the two
+		-- must stay paired.  This used to be mode 2 plus a polling watcher script
+		-- (hypr-real-mouse-focus.service), which left mouse_refocus inert.  That
+		-- watcher could only see top-level clients, never xdg popups, so a
+		-- right-click menu taller than its window made the watcher focus the window
+		-- underneath, breaking the popup grab and closing the menu.  Hyprland
+		-- honours the popup grab itself, so the watcher is gone.
+		follow_mouse = 1,
 		mouse_refocus = false,
 		sensitivity = 0.005,
 		accel_profile = "flat",
