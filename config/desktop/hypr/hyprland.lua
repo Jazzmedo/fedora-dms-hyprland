@@ -549,6 +549,16 @@ require("dms.binds-user")
 -- serializer currently appends an extra parenthesis to these two actions.
 hl.bind("SUPER + mouse:272", hl.dsp.window.drag(), { mouse = true, description = "Move window" })
 hl.bind("SUPER + mouse:273", hl.dsp.window.resize(), { mouse = true, description = "Resize window" })
+-- Magnifier, in the shape KDE's zoom effect has.  Hyprland magnifies around the
+-- cursor natively through cursor:zoom_factor, but exposes no dispatcher for it,
+-- so the bindings go through a script that reads the value and writes it back.
+-- SUPER + =/- already resizes windows and SUPER + SHIFT/CTRL + =/- moves the
+-- gaps, so the magnifier sits on SUPER + ALT.
+magnifier = "@@HOME@@/.config/hypr/scripts/magnifier"
+hl.bind("SUPER + ALT + equal", exec(magnifier .. " in"), { repeating = true, description = "Magnifier: zoom in" })
+hl.bind("SUPER + ALT + minus", exec(magnifier .. " out"), { repeating = true, description = "Magnifier: zoom out" })
+hl.bind("SUPER + ALT + 0", exec(magnifier .. " reset"), { description = "Magnifier: reset zoom" })
+
 require("dms.windowrules")
 
 require("dms-theme-sync")

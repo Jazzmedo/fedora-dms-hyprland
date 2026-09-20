@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# Screen magnifier for Hyprland, in the shape KDE's zoom effect has.
+#
+# Hyprland magnifies around the cursor through cursor:zoom_factor, but exposes
+# no dispatcher for it, so a bind cannot change it directly. hyprctl keyword is
+# also out: this config is parsed by the Lua parser, which rejects it with
+# "keyword can't work with non-legacy parsers". Reading the current value and
+# writing the new one through hyprctl eval is what is left.
+#
+# Steps are multiplicative so each press feels the same at 1.2x as at 6x.
+set -euo pipefail
+
+STEP=1.25
+MIN=1.0
+MAX=10.0
+
+usage() { echo "usage: ${0##*/} in|out|reset" >&2; exit 2; }
+[[ $# -eq 1 ]] || usage
+
+current=$(hyprctl getoption cursor:zoom_factor -j | python3 -c 'import sys,json; print(json.load(sys.stdin)["float"])')
+
+case $1 in
+  in)    target=$(python3 -c "print($current * $STEP)") ;;
+  out)   target=$(python3 -c "print($current / $STEP)") ;;
+  reset) target=$MIN ;;
+  *)     usage ;;
+esac
+
+# Clamp, and snap back to exactly 1 so zooming out always fully turns off.
+target=$(python3 -c "
+v = min(max(float('$target'), $MIN), $MAX)
+print('%.4f' % (1.0 if v < 1.02 else v))
+")
+
+hyprctl eval "hl.config({ cursor = { zoom_factor = $target } })" >/dev/null
