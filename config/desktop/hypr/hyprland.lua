@@ -559,6 +559,13 @@ hl.bind("SUPER + ALT + equal", exec(magnifier .. " in"), { repeating = true, des
 hl.bind("SUPER + ALT + minus", exec(magnifier .. " out"), { repeating = true, description = "Magnifier: zoom out" })
 hl.bind("SUPER + ALT + 0", exec(magnifier .. " reset"), { description = "Magnifier: reset zoom" })
 
+-- Draw on screen, in the shape KDE's Mouse Mark effect has.  wayscriber runs as
+-- a user service and paints onto a wlr-layer-shell surface, so it draws over
+-- native Wayland windows rather than only XWayland ones the way gromit-mpx
+-- would.  Hyprland cannot express "while SUPER + SHIFT is held" -- a
+-- modifier-only bind fires on release -- so this toggles the overlay instead.
+hl.bind("SUPER + ALT + D", exec("wayscriber --daemon-toggle"), { description = "Draw on screen" })
+
 require("dms.windowrules")
 
 require("dms-theme-sync")
