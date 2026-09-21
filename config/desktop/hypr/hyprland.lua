@@ -566,6 +566,35 @@ hl.bind("SUPER + ALT + 0", exec(magnifier .. " reset"), { description = "Magnifi
 -- modifier-only bind fires on release -- so this toggles the overlay instead.
 hl.bind("SUPER + ALT + D", exec("wayscriber --daemon-toggle"), { description = "Draw on screen" })
 
+-- Show the focused window on every workspace.  Hyprland refuses to pin a tiled
+-- window -- it warns "Window does not qualify to be pinned" -- so pinning has
+-- to float it first.  Unpinning only puts the window back in the tape when that
+-- float was ours, so one the user floated deliberately stays floating.
+QUATTRO_PIN_AUTOFLOATED = {}
+
+function quattro_toggle_pin()
+	local window = hl.get_active_window()
+	if not window then
+		return
+	end
+	local address = tostring(window.address)
+	if window.pinned then
+		hl.dispatch(hl.dsp.window.pin())
+		if QUATTRO_PIN_AUTOFLOATED[address] then
+			hl.dispatch(hl.dsp.window.float())
+			QUATTRO_PIN_AUTOFLOATED[address] = nil
+		end
+	else
+		if not window.floating then
+			hl.dispatch(hl.dsp.window.float())
+			QUATTRO_PIN_AUTOFLOATED[address] = true
+		end
+		hl.dispatch(hl.dsp.window.pin())
+	end
+end
+
+hl.bind("SUPER + SHIFT + G", quattro_toggle_pin, { description = "Show window on all workspaces" })
+
 require("dms.windowrules")
 
 require("dms-theme-sync")
