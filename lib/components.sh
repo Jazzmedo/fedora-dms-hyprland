@@ -137,11 +137,12 @@ pkgs "kitty dolphin kf6-kio kf6-kservice ffmpegthumbs kdegraphics-thumbnailers"
 detect 'all_of "pkg_installed kitty" "pkg_installed dolphin" "[[ -x /opt/zen/zen ]]" \
                "[[ -f $HOME/.config/mimeapps.list ]]"' 
 
-component fonts       base base "Nothing fonts"   "Ndot 55/57, NType 82, JetBrainsMono Nerd Font"
-pkgs "fontconfig google-noto-sans-fonts google-noto-emoji-fonts"
+component fonts       base base "Nothing fonts"   "Ndot 55/57, NType 82, JetBrainsMono Nerd Font, Arabic faces"
+pkgs "fontconfig google-noto-sans-fonts google-noto-emoji-fonts ibm-plex-sans-arabic-fonts"
 detect 'all_of "fc-list | grep -q \"Ndot 57\"" \
                "fc-list | grep -q \"JetBrainsMono Nerd Font\"" \
-               "[[ -f /etc/fonts/local.conf ]] && grep -q \"Ndot 57\" /etc/fonts/local.conf"' 
+               "fc-list | grep -q \"Kawkab Mono\"" \
+               "[[ -f /etc/fonts/local.conf ]] && grep -q \"Kawkab Mono\" /etc/fonts/local.conf"' 
 
 # ---------------------------------------------------------------------------
 group shell "Shell & development"

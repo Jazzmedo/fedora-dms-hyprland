@@ -1,6 +1,7 @@
 # shellcheck shell=bash
-# Nothing's typefaces, a Nerd Font for the terminal, and the fontconfig rules
-# that make Ndot 57 the system sans without wrecking monospace metrics.
+# Nothing's typefaces, a Nerd Font for the terminal, an Arabic pair, and the
+# fontconfig rules that make Ndot 57 the system sans without wrecking monospace
+# metrics or the shaping of scripts Ndot does not cover.
 
 NERD_FONT_VERSION="3.4.0"
 
@@ -36,11 +37,26 @@ stage_fonts() {
     clean_tmp "$tmp"
   fi
 
+  # Ndot covers no Arabic, so Arabic falls back. Kawkab Mono is the monospaced
+  # face the terminal needs and Fedora does not package it; IBM Plex Sans
+  # Arabic, the proportional face for everything else, comes from the package
+  # list. Both are SIL OFL.
+  local arabic=/usr/share/fonts/kawkab-mono
+  if [[ -f $arabic/KawkabMono-Regular.ttf ]]; then
+    skip "The Arabic terminal typeface is already installed"
+  else
+    as_root mkdir -p "$arabic"
+    as_root cp "$REPO_DIR"/assets/fonts/arabic/KawkabMono-*.ttf "$arabic/"
+    as_root cp "$REPO_DIR/assets/fonts/arabic/OFL.txt" "$arabic/"
+    record file "$arabic"
+    ok "Installed Kawkab Mono, the monospaced Arabic typeface"
+  fi
+
   # Ndot is a dot-matrix display face with no monospace metrics. It becomes the
   # sans-serif default; monospace stays on the Nerd Font so terminals, Neovim
   # and code remain aligned and legible.
   local conf=/etc/fonts/local.conf
-  if [[ -f $conf ]] && grep -q "Ndot 57" "$conf"; then
+  if [[ -f $conf ]] && grep -q "Kawkab Mono" "$conf"; then
     skip "The system fonts are already set"
   else
     as_root tee "$conf" >/dev/null <<'XML'
@@ -69,10 +85,50 @@ stage_fonts() {
     <family>system-ui</family>
     <prefer><family>Ndot 57</family></prefer>
   </alias>
+
+  <!-- Arabic, split by context. Ndot and JetBrains Mono have no Arabic glyphs,
+       so it always falls back. The terminal wants a monospaced Arabic face so
+       Arabic lines up with the Latin grid; everywhere else, above all the
+       shell UI, wants a proportional one. Forcing one advance width on Arabic
+       spaces the letters evenly and the script stops looking joined.
+
+       Setting this here rather than in a terminal's own per-codepoint font map
+       matters: pinning a font per codepoint splits the line into one character
+       shaping runs and disables contextual shaping, so Arabic renders in
+       isolated form and words come out disconnected. A fontconfig fallback
+       keeps the normal shaping path intact.
+
+       Note: XML comments may not contain a double hyphen. -->
+  <match target="pattern">
+    <test name="family" compare="contains"><string>JetBrainsMono Nerd Font</string></test>
+    <edit name="family" mode="append" binding="strong">
+      <string>Kawkab Mono</string>
+    </edit>
+  </match>
+  <match target="pattern">
+    <test name="lang" compare="contains"><string>ar</string></test>
+    <test name="spacing" compare="eq"><const>mono</const></test>
+    <edit name="family" mode="prepend" binding="strong">
+      <string>Kawkab Mono</string>
+    </edit>
+  </match>
+  <match target="pattern">
+    <test name="family"><string>monospace</string></test>
+    <test name="lang" compare="contains"><string>ar</string></test>
+    <edit name="family" mode="prepend" binding="strong">
+      <string>Kawkab Mono</string>
+    </edit>
+  </match>
+  <match target="pattern">
+    <test name="lang" compare="contains"><string>ar</string></test>
+    <edit name="family" mode="prepend" binding="weak">
+      <string>IBM Plex Sans Arabic</string>
+    </edit>
+  </match>
 </fontconfig>
 XML
     record file "$conf"
-    ok "Set Ndot 57 as the system font and JetBrains Mono for code"
+    ok "Set Ndot 57 as the system font, JetBrains Mono for code, and the Arabic faces"
   fi
 
   as_root fc-cache -f >/dev/null
