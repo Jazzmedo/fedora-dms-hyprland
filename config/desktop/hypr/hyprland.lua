@@ -541,6 +541,7 @@ end)
 -- config so GUI-edited bindings remain valid after every rewrite.
 exec = hl.dsp.exec_cmd
 focus = hl.dsp.focus
+move_window = hl.dsp.window.move
 layout = hl.dsp.layout
 move_workspace = "@@HOME@@/.config/hypr/scripts/move-to-workspace-preserve-width "
 screenshot = "@@HOME@@/.config/hypr/scripts/dms-screenshot"
