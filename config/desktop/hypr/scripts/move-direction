@@ -3,10 +3,28 @@
 # Along the tape, move the entire column. Across it, move only the focused
 # window within its column. Which axis is "along" depends on whether this
 # output's tape is horizontal or vertical.
+#
+# At the ends of the tape, hand the window to the next output instead. swapcol
+# does not wrap, it simply does nothing, so a position that did not change means
+# the column was already at the edge. Layouts other than scrolling need none of
+# this: Hyprland's directional move crosses outputs by itself, which is why
+# moving off a vertical tape sideways already worked while moving off a
+# horizontal one did not. The mon: selectors do not wrap either, so at the
+# outermost edge the window stays put.
 . "$HOME/.config/hypr/scripts/monitor-topology"
 
 direction="$1"
 monitor="$(hyprctl activeworkspace -j | jq -r '.monitor')"
+
+position() { hyprctl activewindow -j | jq -c '.at'; }
+
+# $1 is the swapcol argument along the tape, $2 the output to cross to.
+swap_or_cross() {
+	before="$(position)"
+	hyprctl dispatch "hl.dsp.layout(\"swapcol $1\")"
+	[ "$(position)" = "$before" ] || return 0
+	hyprctl dispatch "hl.dsp.window.move({ monitor = \"$2\" })"
+}
 
 if topo_is_vertical "$monitor"; then
 	along_back="u"; along_fwd="d"
@@ -15,7 +33,7 @@ else
 fi
 
 case "$direction" in
-	"$along_back") hyprctl dispatch 'hl.dsp.layout("swapcol l")' ;;
-	"$along_fwd")  hyprctl dispatch 'hl.dsp.layout("swapcol r")' ;;
+	"$along_back") swap_or_cross l "$along_back" ;;
+	"$along_fwd")  swap_or_cross r "$along_fwd" ;;
 	*)             hyprctl dispatch "hl.dsp.window.move({direction=\"$direction\"})" ;;
 esac
