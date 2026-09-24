@@ -5,7 +5,7 @@
 # output's tape is horizontal or vertical.
 #
 # At the ends of the tape, hand the window to the next output instead. swapcol
-# does not wrap, it simply does nothing, so a position that did not change means
+# does not wrap, it simply does nothing, so an unchanged column order means
 # the column was already at the edge. Layouts other than scrolling need none of
 # this: Hyprland's directional move crosses outputs by itself, which is why
 # moving off a vertical tape sideways already worked while moving off a
@@ -15,25 +15,47 @@
 
 direction="$1"
 monitor="$(hyprctl activeworkspace -j | jq -r '.monitor')"
+window="$(hyprctl activewindow -j)"
+workspace="$(jq -r '.workspace.id' <<<"$window")"
+fullscreen="$(jq -r '.fullscreen' <<<"$window")"
 
-position() { hyprctl activewindow -j | jq -c '.at'; }
+# The order of the workspace's windows along the tape. Compare order rather
+# than the focused window's position: a maximized window is pinned to the
+# monitor origin wherever its column sits, and scrolling the tape shifts every
+# absolute position without anything having moved.
+order() {
+	hyprctl clients -j | jq -c --argjson ws "$workspace" --argjson axis "$axis" \
+		'[.[] | select(.workspace.id == $ws)] | sort_by(.at[$axis]) | map(.address)'
+}
 
 # $1 is the swapcol argument along the tape, $2 the output to cross to.
 swap_or_cross() {
-	before="$(position)"
+	before="$(order)"
 	hyprctl dispatch "hl.dsp.layout(\"swapcol $1\")"
-	[ "$(position)" = "$before" ] || return 0
+	[ "$(order)" = "$before" ] || return 0
 	hyprctl dispatch "hl.dsp.window.move({ monitor = \"$2\" })"
 }
 
+# Across the tape. The native move shuffles the window within its column and
+# crosses outputs at the edge, but does nothing at all for a maximized or
+# fullscreen window, which has no place in a column to move to. Send those
+# straight to the neighbouring output.
+across() {
+	if [ "$fullscreen" != 0 ]; then
+		hyprctl dispatch "hl.dsp.window.move({ monitor = \"$direction\" })"
+	else
+		hyprctl dispatch "hl.dsp.window.move({direction=\"$direction\"})"
+	fi
+}
+
 if topo_is_vertical "$monitor"; then
-	along_back="u"; along_fwd="d"
+	along_back="u"; along_fwd="d"; axis=1
 else
-	along_back="l"; along_fwd="r"
+	along_back="l"; along_fwd="r"; axis=0
 fi
 
 case "$direction" in
 	"$along_back") swap_or_cross l "$along_back" ;;
 	"$along_fwd")  swap_or_cross r "$along_fwd" ;;
-	*)             hyprctl dispatch "hl.dsp.window.move({direction=\"$direction\"})" ;;
+	*)             across ;;
 esac
