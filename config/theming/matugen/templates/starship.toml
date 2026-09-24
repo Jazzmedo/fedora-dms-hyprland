@@ -4,16 +4,25 @@ scan_timeout = 80
 
 "$schema" = 'https://starship.rs/config-schema.json'
 
+# The prompt is one continuous tape in `primary`; `primary_container` is used
+# only for self-contained islands (the username cap, git, docker). Each
+# island's separators live inside its own modules, so a section that produces
+# nothing draws nothing.
+#
+# Keep separators out of the top-level format. It used to alternate the two
+# background colours here, which emitted a separator for the git, language and
+# docker sections whether or not they rendered; an empty section then left a
+# zero-width wedge behind. With a tonal palette the two colours sit close
+# enough that the wedges were invisible, but with an accent near white or black
+# they are maximally contrasting and show up as stray chevrons.
 format = """
 [](fg:{{colors.primary_container.default.hex}})\
 $os\
 $username\
 [](fg:{{colors.primary_container.default.hex}} bg:{{colors.primary.default.hex}})\
 $directory\
-[](fg:{{colors.primary.default.hex}} bg:{{colors.primary_container.default.hex}})\
 $git_branch\
 $git_status\
-[](fg:{{colors.primary_container.default.hex}} bg:{{colors.primary.default.hex}})\
 $c\
 $cpp\
 $elixir\
@@ -28,9 +37,7 @@ $nim\
 $rust\
 $python\
 $scala\
-[](fg:{{colors.primary.default.hex}} bg:{{colors.primary_container.default.hex}})\
 $docker_context\
-[](fg:{{colors.primary_container.default.hex}} bg:{{colors.primary.default.hex}})\
 $time\
 [ ](fg:{{colors.primary.default.hex}})\
 """
@@ -85,7 +92,7 @@ format = '[ $symbol ($version) ]($style)'
 [docker_context]
 symbol = " "
 style = "bg:{{colors.primary_container.default.hex}} fg:{{colors.on_primary_container.default.hex}}"
-format = '[ $symbol $context ]($style)'
+format = '[](fg:{{colors.primary.default.hex}} bg:{{colors.primary_container.default.hex}})[ $symbol $context ]($style)[](fg:{{colors.primary_container.default.hex}} bg:{{colors.primary.default.hex}})'
 
 [elixir]
 symbol = " "
@@ -100,11 +107,12 @@ format = '[ $symbol ($version) ]($style)'
 [git_branch]
 symbol = ""
 style = "fg:{{colors.on_primary_container.default.hex}} bg:{{colors.primary_container.default.hex}}"
-format = '[ $symbol $branch ]($style)'
+# Opens the git island; git_status below closes it.
+format = '[](fg:{{colors.primary.default.hex}} bg:{{colors.primary_container.default.hex}})[ $symbol $branch ]($style)'
 
 [git_status]
 style = "fg:{{colors.on_primary_container.default.hex}} bg:{{colors.primary_container.default.hex}}"
-format = '[$all_status$ahead_behind ]($style)'
+format = '[$all_status$ahead_behind ]($style)[](fg:{{colors.primary_container.default.hex}} bg:{{colors.primary.default.hex}})'
 
 [golang]
 symbol = " "

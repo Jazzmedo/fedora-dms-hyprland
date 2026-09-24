@@ -4,16 +4,25 @@ scan_timeout = 80
 
 "$schema" = 'https://starship.rs/config-schema.json'
 
+# The prompt is one continuous tape in `primary`; `primary_container` is used
+# only for self-contained islands (the username cap, git, docker). Each
+# island's separators live inside its own modules, so a section that produces
+# nothing draws nothing.
+#
+# Keep separators out of the top-level format. It used to alternate the two
+# background colours here, which emitted a separator for the git, language and
+# docker sections whether or not they rendered; an empty section then left a
+# zero-width wedge behind. With a tonal palette the two colours sit close
+# enough that the wedges were invisible, but with an accent near white or black
+# they are maximally contrasting and show up as stray chevrons.
 format = """
 [](fg:#4d1a3c)\
 $os\
 $username\
 [](fg:#4d1a3c bg:#f935b1)\
 $directory\
-[](fg:#f935b1 bg:#4d1a3c)\
 $git_branch\
 $git_status\
-[](fg:#4d1a3c bg:#f935b1)\
 $c\
 $cpp\
 $elixir\
@@ -28,9 +37,7 @@ $nim\
 $rust\
 $python\
 $scala\
-[](fg:#f935b1 bg:#4d1a3c)\
 $docker_context\
-[](fg:#4d1a3c bg:#f935b1)\
 $time\
 [ ](fg:#f935b1)\
 """
@@ -85,7 +92,7 @@ format = '[ $symbol ($version) ]($style)'
 [docker_context]
 symbol = " "
 style = "bg:#4d1a3c fg:#a9b1d6"
-format = '[ $symbol $context ]($style)'
+format = '[](fg:#f935b1 bg:#4d1a3c)[ $symbol $context ]($style)[](fg:#4d1a3c bg:#f935b1)'
 
 [elixir]
 symbol = " "
@@ -100,11 +107,12 @@ format = '[ $symbol ($version) ]($style)'
 [git_branch]
 symbol = ""
 style = "fg:#a9b1d6 bg:#4d1a3c"
-format = '[ $symbol $branch ]($style)'
+# Opens the git island; git_status below closes it.
+format = '[](fg:#f935b1 bg:#4d1a3c)[ $symbol $branch ]($style)'
 
 [git_status]
 style = "fg:#a9b1d6 bg:#4d1a3c"
-format = '[$all_status$ahead_behind ]($style)'
+format = '[$all_status$ahead_behind ]($style)[](fg:#4d1a3c bg:#f935b1)'
 
 [golang]
 symbol = " "
