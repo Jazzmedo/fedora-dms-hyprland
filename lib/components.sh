@@ -132,9 +132,9 @@ pkgs "pipewire pipewire-pulseaudio pipewire-alsa pipewire-utils \
       wireplumber pavucontrol alsa-utils"
 detect 'all_of "pkg_installed pipewire" "pkg_installed wireplumber" "pkg_installed pavucontrol"' 
 
-component apps_base   base base "kitty · Zen · Dolphin" "default terminal, browser, file manager"
-pkgs "kitty dolphin kf6-kio kf6-kservice ffmpegthumbs kdegraphics-thumbnailers"
-detect 'all_of "pkg_installed kitty" "pkg_installed dolphin" "[[ -x /opt/zen/zen ]]" \
+component apps_base   base base "kitty · foot · Zen · Dolphin" "default terminal, browser, file manager"
+pkgs "kitty foot dolphin kf6-kio kf6-kservice ffmpegthumbs kdegraphics-thumbnailers"
+detect 'all_of "pkg_installed kitty" "pkg_installed foot" "pkg_installed dolphin" "[[ -x /opt/zen/zen ]]" \
                "[[ -f $HOME/.config/mimeapps.list ]]"' 
 
 component fonts       base base "Nothing fonts"   "Ndot 55/57, NType 82, JetBrainsMono Nerd Font, Arabic faces"
