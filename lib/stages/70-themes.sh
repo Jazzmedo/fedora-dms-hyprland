@@ -57,6 +57,8 @@ install_matugen_config() {
         [[ $key == 00-base ]] && continue
         case $key in
           zen)  is_selected apps_base || continue ;;
+          # foot is not installed by this repository; theme it only if present.
+          foot) have foot || continue ;;
           *)    is_selected "$key"    || continue ;;
         esac
         printf '\n'

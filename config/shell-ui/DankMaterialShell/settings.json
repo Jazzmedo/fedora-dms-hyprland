@@ -381,7 +381,7 @@
   "matugenTemplateEquibop": true,
   "matugenTemplateGhostty": true,
   "matugenTemplateKitty": true,
-  "matugenTemplateFoot": true,
+  "matugenTemplateFoot": false,
   "matugenTemplateAlacritty": true,
   "matugenTemplateNeovim": true,
   "matugenTemplateWezterm": true,
