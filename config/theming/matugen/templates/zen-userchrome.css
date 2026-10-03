@@ -19,8 +19,19 @@
   --toolbar-field-color: {{colors.on_background.default.hex}} !important;
   --tab-selected-textcolor: {{colors.primary.default.hex}} !important;
   --toolbar-color: {{colors.on_background.default.hex}} !important;
-  --arrowpanel-color: {{colors.on_background.default.hex}} !important;
+  /* Panels, menus, and the popup Firefox draws for a page's <select>.
+   * --arrowpanel-* is the legacy pair and is kept for older widgets; the
+   * modern names are what LightweightThemeConsumer writes from a theme's
+   * popup/popup_text/popup_border, which is how a third-party theme whose
+   * manifest says "popup": "black" ends up owning the option list. Setting
+   * them here means the panel surface is the DMS palette whatever theme is
+   * active. on_surface, not on_background: the background is a container. */
+  --arrowpanel-color: {{colors.on_surface.default.hex}} !important;
   --arrowpanel-background: {{colors.surface_container.default.hex}} !important;
+  --arrowpanel-border-color: {{colors.outline_variant.default.hex}} !important;
+  --panel-background-color: {{colors.surface_container.default.hex}} !important;
+  --panel-text-color: {{colors.on_surface.default.hex}} !important;
+  --panel-border-color: {{colors.outline_variant.default.hex}} !important;
   --sidebar-text-color: {{colors.on_background.default.hex}} !important;
   --zen-main-browser-background: {{colors.background.default.hex}} !important;
   --zen-main-browser-background-toolbar: {{colors.background.default.hex}} !important;

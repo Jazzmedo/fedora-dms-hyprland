@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>MatugenFox</title>
+    <link rel="stylesheet" href="design.css">
+    <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+    <main class="popup">
+        <header class="popup-site">
+            <div class="popup-host" id="site-host">&nbsp;</div>
+            <div class="popup-style" id="site-style">&nbsp;</div>
+        </header>
+
+        <div class="popup-rows">
+            <label class="popup-row" id="row-site">
+                <span class="popup-row-text">
+                    <span class="popup-row-label">Style this site</span>
+                    <span class="popup-row-hint" id="site-hint"></span>
+                </span>
+                <span class="mg-toggle"><input type="checkbox" id="toggle-site"><span class="mg-toggle-track"></span></span>
+            </label>
+            <label class="popup-row">
+                <span class="popup-row-text">
+                    <span class="popup-row-label">Style all websites</span>
+                    <span class="popup-row-hint" id="global-hint"></span>
+                </span>
+                <span class="mg-toggle"><input type="checkbox" id="toggle-global"><span class="mg-toggle-track"></span></span>
+            </label>
+        </div>
+
+        <footer class="popup-foot">
+            <span class="popup-status" id="popup-status"></span>
+            <button class="mg-btn mg-btn-ghost mg-btn-sm" id="open-settings">Settings</button>
+        </footer>
+    </main>
+    <script src="defaults.js"></script>
+    <script src="matchers.js"></script>
+    <script src="selftheme.js"></script>
+    <script src="popup.js"></script>
+</body>
+</html>

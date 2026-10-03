@@ -38,3 +38,45 @@
     background-color: {{colors.background.default.hex}} !important;
   }
 }
+
+/* Page <select> dropdowns. Plain declarations on purpose, no !important.
+ *
+ * toolkit/actors/SelectParent.sys.mjs copies the select's *computed* colour
+ * and background into the popup it draws (--panel-text-color and
+ * --panel-background-color), and only declines when the page's colour and its
+ * background are byte-identical. A page that sets a dark colour high up and
+ * nothing on the select therefore hands the popup near-black text, and a
+ * theme whose manifest says "popup": "black" gives it a black background --
+ * which is why the list was only readable while a row was hovered, where
+ * PROPERTIES_RESET_WHEN_ACTIVE drops the colour again.
+ *
+ * These are normal declarations in a user-origin sheet, so they beat the value
+ * the select would otherwise inherit from the page -- inheritance is consulted
+ * only when no declaration matches the element -- and they lose to any rule
+ * the site itself puts on select/option/optgroup. A site that styles its own
+ * dropdown keeps it; a site that does not gets the system colours, which are
+ * a defined, self-consistent pair by construction.
+ *
+ * option has to be listed: each row is painted from its own computed style.
+ * option:checked is required or the current selection becomes invisible, and
+ * optgroup would otherwise be the one line still inheriting the page colour.
+ *
+ * No palette colours here on purpose: Field/FieldText are guaranteed to pair,
+ * where half-overriding with DMS colours would recreate this class of bug on
+ * light pages. url-prefix() is a plain string prefix, so "http" covers https
+ * too and leaves about: pages to the block above.
+ */
+@-moz-document url-prefix("http") {
+  select,
+  select option,
+  select optgroup {
+    color-scheme: light dark;
+    background-color: Field;
+    color: FieldText;
+  }
+
+  select option:checked {
+    background-color: SelectedItem;
+    color: SelectedItemText;
+  }
+}

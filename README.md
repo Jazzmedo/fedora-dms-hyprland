@@ -37,7 +37,9 @@ Add your own by dropping images into
 and reloads kitty, tmux, Dolphin and the other Qt and KDE apps, and GTK 3
 programs, without closing anything. Vesktop and Obsidian watch their own
 generated stylesheets. The browser is the exception: it reads its theme once at
-startup, so it changes at the next launch.
+startup, so it changes at the next launch. The websites inside it do not wait:
+YouTube, GitHub, X and about 130 other sites are restyled from the palette
+within seconds, using Catppuccin's userstyles rebuilt with your colours.
 
 ## ✨ What you get
 

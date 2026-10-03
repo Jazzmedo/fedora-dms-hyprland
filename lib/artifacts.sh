@@ -75,6 +75,10 @@ artifact_home_paths() {
     "$HOME/.config/obs-studio"
     "$HOME/.config/qBittorrent"
     "$HOME/.config/easyeffects"
+    "$HOME/.local/share/matugenfox"
+    "$HOME/.cache/matugenfox"
+    "$HOME/.config/matugenfox"
+    "$HOME/.mozilla/native-messaging-hosts/matugenfox.json"
     "$HOME/SelfHosted/searxng"
 
     # language toolchains, each installed by its own upstream script
@@ -118,7 +122,9 @@ artifact_system_paths() {
     /usr/local/bin/dms \
     /usr/local/bin/quickshell \
     /opt/zen \
+    /opt/zen/defaults/pref/fedora-nothing-userchrome.js \
     /opt/helium \
+    /usr/local/share/matugenfox \
     /etc/sysctl.d/99-usb-copy-fix.conf \
     /etc/systemd/system/numlock-on.service \
     /usr/share/plymouth/themes/nothing \

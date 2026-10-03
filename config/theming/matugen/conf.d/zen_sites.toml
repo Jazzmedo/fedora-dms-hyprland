@@ -1,0 +1,6 @@
+# Rebuilds the DMS-coloured website styles for Zen after each theme change.
+# The hook returns at once and the build runs in the background.
+[templates.matugenfox_userstyles]
+input_path = '~/.config/matugen/templates/matugenfox-palette.json'
+output_path = '~/.cache/matugenfox/palette.json'
+post_hook = '~/.local/share/matugenfox/tools/userstyles/matugen-hook.sh'

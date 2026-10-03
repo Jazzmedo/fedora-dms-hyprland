@@ -29,8 +29,8 @@ install_browser_policies() {
 
   for dir in "${gecko[@]}"; do
     [[ -d ${dir%/*} || $dir == /etc/* ]] || continue
-    as_root mkdir -p "$dir"
-    as_root cp "$ff" "$dir/policies.json"
+    # Merged, not copied: the apps stage adds Zen's site-theming extension here.
+    merge_policy "$dir/policies.json" "$(cat "$ff")"
     record file "$dir/policies.json"
   done
   (( ${#gecko[@]} )) && ok "Set your custom search engine in the Firefox-based browsers"

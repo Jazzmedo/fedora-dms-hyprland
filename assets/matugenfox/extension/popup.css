@@ -1,0 +1,53 @@
+/* ═══════════════════════════════════════════
+   MatugenFox Toolbar Popup
+   ═══════════════════════════════════════════ */
+
+body { width: 300px; background: var(--mg-bg-0); }
+
+.popup { display: flex; flex-direction: column; }
+
+.popup-site {
+    padding: var(--mg-s4) var(--mg-s4) var(--mg-s3);
+    border-bottom: 1px solid var(--mg-border);
+}
+.popup-host {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--mg-text-0);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.popup-style {
+    margin-top: 2px;
+    font-size: 12px;
+    color: var(--mg-text-1);
+}
+
+.popup-rows { padding: var(--mg-s1) 0; }
+.popup-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--mg-s3);
+    padding: var(--mg-s3) var(--mg-s4);
+    cursor: pointer;
+    transition: background var(--mg-duration) var(--mg-ease);
+}
+.popup-row:hover { background: var(--mg-bg-1); }
+.popup-row.is-disabled { cursor: default; opacity: 0.45; }
+.popup-row.is-disabled:hover { background: transparent; }
+.popup-row-text { display: flex; flex-direction: column; min-width: 0; }
+.popup-row-label { font-size: 13px; font-weight: 600; color: var(--mg-text-0); }
+.popup-row-hint { font-size: 11px; color: var(--mg-text-2); margin-top: 2px; }
+
+.popup-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--mg-s2);
+    padding: var(--mg-s2) var(--mg-s2) var(--mg-s2) var(--mg-s4);
+    border-top: 1px solid var(--mg-border);
+}
+.popup-status { font-size: 11px; color: var(--mg-text-2); }
+.popup-status.is-warning { color: var(--mg-warning); }

@@ -1,0 +1,14 @@
+{
+  "name": "matugenfox-userstyles",
+  "private": true,
+  "type": "module",
+  "description": "Compiles Catppuccin userstyles with the DMS palette for MatugenFox",
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node --test \"test/*.test.mjs\""
+  },
+  "dependencies": {
+    "less": "4.9.1",
+    "postcss": "8.5.28"
+  }
+}

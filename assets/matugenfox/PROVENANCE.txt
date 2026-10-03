@@ -1,0 +1,17 @@
+MatugenFox, patched to colour websites from the DMS palette.
+
+Upstream:  https://github.com/Ubaidullah-Web-Dev/MatugenFox
+Branch:    dms-userstyles (local), copied 2026-09-15
+
+Changes from upstream:
+- tools/userstyles/: builds Catppuccin's userstyles with the current DMS
+  palette (less + postcss, installed by `npm ci`), splits them per site, and
+  publishes content-addressed blocks under ~/.cache/matugenfox/userstyles.
+  update.sh checks Catppuccin for new styles on each browser launch;
+  matugen-hook.sh rebuilds after each theme change.
+- matugenfox_host.py: sends the style index and serves CSS on request in
+  pieces under Firefox's 1 MB native-message limit; starts update.sh.
+- extension/: matchers.js and userstyles.js inject the styles with
+  scripting.insertCSS per frame; website theming is on by default.
+
+Refresh this copy from the MatugenFox checkout rather than editing it here.

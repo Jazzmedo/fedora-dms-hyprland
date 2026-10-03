@@ -534,6 +534,28 @@ open(path, 'w').write('\n'.join(out).rstrip('\n') + '\n')
 PY
 }
 
+# merge_policy <policies.json> <json> — deep-merge a fragment into a browser's
+# enterprise policy file, as root. Several stages share one file per browser,
+# so copying over it would drop what another stage put there.
+merge_policy() {
+  local file=$1 fragment=$2 merged
+  (( DRY_RUN )) && { _log_raw "DRY   merge policy into $file"; return 0; }
+  merged=$(cat "$file" 2>/dev/null | python3 -c '
+import json, sys
+try:
+    data = json.load(sys.stdin)
+except ValueError:
+    data = {}
+def merge(a, b):
+    for k, v in b.items():
+        a[k] = merge(a[k], v) if isinstance(v, dict) and isinstance(a.get(k), dict) else v
+    return a
+print(json.dumps(merge(data, json.loads(sys.argv[1])), indent=2, ensure_ascii=False))
+' "$fragment") || return 1
+  as_root mkdir -p "$(dirname "$file")"
+  printf '%s\n' "$merged" | as_root tee "$file" >/dev/null
+}
+
 # Edit a JSON file with a python lambda over the parsed object.
 json_edit() {
   local file=$1 script=$2

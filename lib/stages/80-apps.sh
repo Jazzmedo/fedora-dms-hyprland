@@ -2,6 +2,8 @@
 # Default applications and the XDG associations that route files to them.
 
 ZEN_INSTALL_DIR=/opt/zen
+MATUGENFOX_DIR="$HOME/.local/share/matugenfox"
+MATUGENFOX_XPI_DIR=/usr/local/share/matugenfox
 HELIUM_INSTALL_DIR=/opt/helium
 
 stage_apps() {
@@ -34,7 +36,9 @@ stage_apps() {
   # A fixed audio buffer: stops crackling when apps pick tiny ones under load.
   deploy_tree "$REPO_DIR/config/apps/pipewire" "$HOME/.config/pipewire"
 
-  is_selected zen      && install_zen
+  is_selected zen      && { install_zen; ensure_zen_profile; }
+  is_selected zen      && enable_user_stylesheets
+  is_selected zen && is_selected zen_sites && install_zen_site_theming
   is_selected helium   && { install_helium; write_helium_desktop; }
   is_selected vesktop  && install_github_rpm Vencord/Vesktop  'vesktop.*\.x86_64\.rpm$' vesktop  Vesktop
   is_selected obsidian && install_github_rpm obsidianmd/obsidian-releases 'obsidian-[0-9.]+\.rpm$' obsidian Obsidian
@@ -69,6 +73,9 @@ install_zen() {
     ok "Installed the Zen browser"
   fi
 
+  # Owned by you so Zen's own updater can replace its files: a root-owned
+  # /opt/zen never updates. Runs on every pass, so older installs get it too.
+  as_root chown -R "$USER:$(id -gn)" "$ZEN_INSTALL_DIR"
   as_root ln -sfn "$ZEN_INSTALL_DIR/zen" /usr/local/bin/zen
   record symlink /usr/local/bin/zen
   record file /usr/share/applications/app.zen_browser.zen.desktop
@@ -89,6 +96,115 @@ Name=New Private Window
 Exec=$ZEN_INSTALL_DIR/zen --private-window %u
 EOF
   ok "Zen now appears in the app launcher"
+}
+
+# The theme stage runs before Zen is installed, so on a first install Zen has
+# no profile and the colour generator's config leaves it out. One headless
+# start creates the profile; the config is then rebuilt with Zen in it and, if
+# the desktop shell is running, the colours are generated straight away.
+ensure_zen_profile() {
+  (( DRY_RUN )) && return 0
+  [[ -d $(detect_zen_profile) ]] && return 0
+  info "Starting Zen once in the background to create its profile"
+  timeout 25 "$ZEN_INSTALL_DIR/zen" --headless about:blank >/dev/null 2>&1 || true
+  if [[ ! -d $(detect_zen_profile) ]]; then
+    warn "Zen did not create a profile; open it once, then run ./install.sh --only=themes,apps"
+    return 0
+  fi
+  install_matugen_config
+  local mode
+  mode=$(dms ipc call theme getMode 2>/dev/null) && [[ $mode == dark || $mode == light ]] \
+    && dms ipc call theme "$mode" >/dev/null 2>&1 \
+    && ok "Generated Zen's colours from your current theme"
+  return 0
+}
+
+# Websites in Zen take their colours from the DMS palette. Catppuccin's
+# userstyles are rebuilt with the current theme whenever it changes, and a
+# patched MatugenFox extension injects them. Zen installs the extension itself
+# through an enterprise policy, with website theming already switched on, and
+# the extension checks Catppuccin for new styles each time the browser opens.
+install_zen_site_theming() {
+  local src="$REPO_DIR/assets/matugenfox"
+  if (( DRY_RUN )); then
+    info "Would colour websites in Zen from your theme"
+    return 0
+  fi
+  if ! have node || ! have npm || ! have zip; then
+    soft_fail "Websites in Zen will not follow the theme" \
+              "Node.js or zip is missing, and the styles are built with them." \
+              "sudo dnf install nodejs npm zip && ./install.sh --only=apps"
+    return 0
+  fi
+
+  # Copied rather than deployed as a tree: nothing here is a template, and
+  # the build dependencies are installed into it afterwards.
+  run mkdir -p "$MATUGENFOX_DIR"
+  run cp -a "$src/." "$MATUGENFOX_DIR/"
+  run chmod +x "$MATUGENFOX_DIR/matugenfox_host.py" "$MATUGENFOX_DIR"/tools/userstyles/*.sh
+  record file "$MATUGENFOX_DIR"
+  if ! (cd "$MATUGENFOX_DIR/tools/userstyles" && run npm ci --omit=dev --no-audit --no-fund); then
+    soft_fail "Could not install the website style builder" "npm could not fetch less and postcss." \
+              "./install.sh --only=apps"
+    return 0
+  fi
+
+  # Only ~/.mozilla. Never create ~/.zen: Zen takes an existing ~/.zen as its
+  # profile folder and would open a brand-new empty profile from it. It is
+  # written to only when the browser already keeps its profiles there.
+  local host_manifest nm
+  host_manifest=$(printf '{\n  "name": "matugenfox",\n  "description": "MatugenFox Native Messaging Host",\n  "path": "%s",\n  "type": "stdio",\n  "allowed_extensions": ["matugenfox@ubaid.com"]\n}\n' \
+    "$MATUGENFOX_DIR/matugenfox_host.py")
+  for nm in "$HOME/.mozilla/native-messaging-hosts" "$HOME/.zen/native-messaging-hosts"; do
+    [[ $nm == "$HOME/.zen/"* && ! -d $HOME/.zen ]] && continue
+    run mkdir -p "$nm"
+    printf '%s' "$host_manifest" > "$nm/matugenfox.json"
+    record file "$nm/matugenfox.json"
+  done
+
+  # Settings the extension reads through its host, website theming switched on.
+  local cfg="$HOME/.config/matugenfox/config.json"
+  run mkdir -p "${cfg%/*}"
+  [[ -f $cfg ]] || { printf '{}\n' > "$cfg"; record file "$cfg"; }
+  json_edit "$cfg" 'data.update(webThemeEnabled=True, browserThemeEnabled=True, ecoMode=False, websitesDir="",
+    userstylesDir="~/.cache/matugenfox/userstyles",
+    colorsPath=data.get("colorsPath") or "~/.config/matugen/generated/firefox_websites.css")'
+
+  # The extension is built here and not signed by Mozilla, which Zen accepts
+  # once signature checks are off. The version is in the file name so a newer
+  # build replaces the installed one.
+  local version xpi tmp
+  version=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["version"])' "$MATUGENFOX_DIR/extension/manifest.json")
+  xpi="$MATUGENFOX_XPI_DIR/matugenfox-dms-$version.xpi"
+  tmp=$(mktemp -d)
+  (cd "$MATUGENFOX_DIR/extension" && zip -q -r -X "$tmp/matugenfox.xpi" .)
+  as_root mkdir -p "$MATUGENFOX_XPI_DIR"
+  as_root install -m 644 "$tmp/matugenfox.xpi" "$xpi"
+  record file "$MATUGENFOX_XPI_DIR"
+  clean_tmp "$tmp"
+
+  if [[ -d $ZEN_INSTALL_DIR/defaults/pref ]]; then
+    printf '// Added by fedora-nothing: allows the locally built MatugenFox extension.\npref("xpinstall.signatures.required", false);\n' \
+      | as_root tee "$ZEN_INSTALL_DIR/defaults/pref/matugenfox.js" >/dev/null
+    record file "$ZEN_INSTALL_DIR/defaults/pref/matugenfox.js"
+  fi
+  # A Zen run from an AppImage cannot be changed in place; its existing profile
+  # gets the same preference instead.
+  local profile; profile=$(detect_zen_profile)
+  if [[ -d $profile ]] && ! grep -qs 'xpinstall.signatures.required' "$profile/user.js"; then
+    printf '\n// Added by fedora-nothing: allows the locally built MatugenFox extension.\nuser_pref("xpinstall.signatures.required", false);\n' >> "$profile/user.js"
+    record edited "$profile/user.js"
+  fi
+
+  merge_policy /etc/zen/policies/policies.json "$(printf '{"policies":{"ExtensionSettings":{"matugenfox@ubaid.com":{"installation_mode":"normal_installed","install_url":"file://%s"}}}}' "$xpi")"
+  record file /etc/zen/policies/policies.json
+  ok "Zen installs the website theming extension by itself on its next start"
+
+  # First build now; without a theme yet it simply runs again after the first
+  # theme change or browser launch.
+  MATUGENFOX_UPDATE_INTERVAL=0 run bash "$MATUGENFOX_DIR/tools/userstyles/update.sh" \
+    && ok "Built the website styles from your current theme" \
+    || warn "The website styles will be built after your first theme change"
 }
 
 install_helium() {
@@ -269,4 +385,42 @@ EOF
   # once kbuildsycoca6 has run against this session's XDG_MENU_PREFIX.
   have kbuildsycoca6 && run kbuildsycoca6 --noincremental 2>/dev/null
   ok "$browser opens links, Dolphin opens folders, $TPL_TERMINAL opens terminals"
+}
+
+# The matugen templates write userChrome.css and userContent.css into the
+# browser profile, and every Firefox-derived browser ignores both unless this
+# preference is on. Nothing in this repository set it, so a fresh install had
+# the generated files and no theming at all.
+#
+# Written the two ways the extension preference above is: into the tarball's
+# own defaults, which survive a profile reset, and into an existing profile,
+# for an AppImage install that cannot be changed in place.
+enable_user_stylesheets() {
+  local pref='toolkit.legacyUserProfileCustomizations.stylesheets'
+
+  if (( DRY_RUN )); then
+    info "Would let the browser load the generated colours"
+    return 0
+  fi
+
+  if [[ -d $ZEN_INSTALL_DIR/defaults/pref ]]; then
+    printf '// Added by fedora-nothing: load the generated userChrome/userContent styles.\npref("%s", true);\n' "$pref" \
+      | as_root tee "$ZEN_INSTALL_DIR/defaults/pref/fedora-nothing-userchrome.js" >/dev/null
+    record file "$ZEN_INSTALL_DIR/defaults/pref/fedora-nothing-userchrome.js"
+  fi
+
+  # Only an existing profile. Never create one: detect_zen_profile falls back
+  # to ~/.zen/default, and making that directory gives Zen a brand-new empty
+  # profile to open instead of the real one.
+  local profile; profile=$(detect_zen_profile)
+  if [[ ! -d $profile ]]; then
+    info "The browser has no profile yet; re-run ./install.sh --only=themes,apps after its first start"
+    return 0
+  fi
+  if ! grep -qs "$pref" "$profile/user.js"; then
+    backup_path "$profile/user.js"
+    printf '\n// Added by fedora-nothing: load the generated userChrome/userContent styles.\nuser_pref("%s", true);\n' \
+      "$pref" >> "$profile/user.js"
+  fi
+  ok "The browser will load the generated colours"
 }

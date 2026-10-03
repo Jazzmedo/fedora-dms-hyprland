@@ -237,6 +237,13 @@ component vivaldi      browsers off "Vivaldi"      "Chromium-based, third-party 
 pkgs "vivaldi-stable"
 component helium       browsers on  "Helium"       "Chromium fork, AppImage-free install to /opt"
 detect 'all_of "[[ -x /opt/helium/helium ]]"'
+component zen_sites   browsers on  "Zen site theming" "DMS colours on YouTube, GitHub, X and 130 more sites"
+detect 'all_of "[[ -f $HOME/.mozilla/native-messaging-hosts/matugenfox.json ]]" \
+               "[[ -d $HOME/.local/share/matugenfox/tools/userstyles/node_modules ]]" \
+               "[[ -f /etc/zen/policies/policies.json ]] && grep -q matugenfox /etc/zen/policies/policies.json"' 
+# node builds the styles; zip packs the extension.
+pkgs "nodejs npm python3 zip curl"
+
 
 # ---------------------------------------------------------------------------
 group apps "Applications"

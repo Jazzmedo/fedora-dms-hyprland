@@ -56,7 +56,11 @@ install_matugen_config() {
         key=$(basename "$frag" .toml)
         [[ $key == 00-base ]] && continue
         case $key in
-          zen)  is_selected zen || continue ;;
+          # Guarded on the profile existing, not merely on Zen being selected:
+          # detect_zen_profile falls back to ~/.zen/default, and matugen would
+          # create that directory to write the output into it, leaving Zen a
+          # brand-new empty profile to open instead of the real one.
+          zen)  { is_selected zen && [[ -d $(detect_zen_profile) ]]; } || continue ;;
           foot) is_selected term_foot || continue ;;
           *)    is_selected "$key"    || continue ;;
         esac
@@ -65,6 +69,10 @@ install_matugen_config() {
       done
     } > "$dest/config.toml"
     TPL_ZEN_PROFILE=$(detect_zen_profile)
+    # matugen makes an output file's parent, but only once the profile itself
+    # exists. Guarded, because detect_zen_profile falls back to ~/.zen/default
+    # and creating that would give Zen an empty profile to open.
+    [[ -d $TPL_ZEN_PROFILE ]] && run mkdir -p "$TPL_ZEN_PROFILE/chrome"
     apply_template "$dest/config.toml"
   fi
   ok "Set up the colour generator, so apps recolour when you change theme"
