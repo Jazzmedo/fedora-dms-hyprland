@@ -47,6 +47,7 @@ picked() { is_selected "$1"; }
 # Comma list of the ticked "what" entries.
 picked_items() {
   local out=extensions
+  picked x_settings && out+=,settings
   picked x_cookies  && out+=,cookies
   picked x_certs    && out+=,certs
   picked x_syscerts && out+=,syscerts
@@ -71,6 +72,7 @@ backup_flow() {
   (( found )) || die "No browser profiles were found" "Open the browser once so it creates one."
   group what "What to include"
   component x_ext      what base "Extensions + data" "Tampermonkey scripts, ShellTint styles, uBlock lists…"
+  component x_settings what on   "Settings and Zen mods"   "Zen, Firefox, LibreWolf: about:config, shortcuts, mods, spaces"
   component x_cookies  what off  "Cookies"                 "stay logged in to sites; needs encryption"
   component x_certs    what off  "Browser certificates"    "certificates and client keys you imported; needs encryption"
   local nsys; nsys=$(bp_system_cert_count)
@@ -152,6 +154,7 @@ restore_flow() {
   have_items=$(awk -F'\t' '$1 == "browser" || $1 == "shared" {print $NF}' "$dir/manifest.txt" | tr '\n' ,)
   group what "What to restore"
   component x_ext what base "Extensions + data" "reinstalled where needed"
+  [[ $have_items == *settings* ]] && component x_settings what on "Settings and Zen mods" "only into the same browser they came from"
   [[ $have_items == *cookies* ]]  && component x_cookies  what on "Cookies" "sign back in to sites"
   [[ $have_items == *certs* ]]    && component x_certs    what on "Browser certificates" "replaces the browser's own certificate store"
   [[ $have_items == *syscerts* ]] && component x_syscerts what on "System certificates" "added for the whole machine; asks for your password"

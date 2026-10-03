@@ -262,7 +262,18 @@ bp_decrypt() {   # $1 -> stdout
 
 # ------------------------------------------------------------------ backup ---
 # Writes $dest/<key>.tar.zst (or .tar.zst.gpg) and appends to the manifest.
-# $3 is a comma-separated item list: extensions, cookies, certs.
+# Firefox-family settings: about:config (prefs.js, user.js, where Zen mods keep
+# their options too), shortcuts, containers, search engines, site permissions
+# and zoom, toolbar layout, and Zen's mods, boosts and spaces. The generated
+# userChrome/userContent stay out: DMS writes those. Chromium gets nothing here,
+# because it signs its settings per machine and resets copied ones.
+BP_GECKO_SETTINGS=(prefs.js user.js xulstore.json containers.json handlers.json
+  search.json.mozlz4 content-prefs.sqlite permissions.sqlite
+  zen-themes.json zen-keyboard-shortcuts.json zen-boosts zen-boosts.jsonlz4
+  zen-sessions.jsonlz4 zen-space-routing.jsonlz4 zen-live-folders.jsonlz4
+  chrome/zen-themes chrome/zen-themes.css)
+
+# $3 is a comma-separated item list: extensions, settings, cookies, certs.
 bp_backup_one() {
   local key=$1 dest=$2 items=$3 profile engine tmp
   profile=$(bp_profile "$key") || { warn "$(bp_name "$key") has no profile to back up"; return 0; }
@@ -292,6 +303,11 @@ for a in addons:
         name = (a.get('defaultLocale') or {}).get('name') or a['id']
         print(f"{a['id']}\t1\t{name}")
 PY
+    if [[ ,$items, == *,settings,* ]]; then
+      for f in "${BP_GECKO_SETTINGS[@]}"; do [[ -e $profile/$f ]] && files+=("$f"); done
+      # Paths in prefs.js (download folder and the like) are moved to the new home.
+      printf '%s' "$HOME" > "$meta/home"
+    fi
     if [[ ,$items, == *,cookies,* ]]; then
       for f in cookies.sqlite cookies.sqlite-wal; do [[ -e $profile/$f ]] && files+=("$f"); done
     fi
@@ -465,6 +481,13 @@ bp_restore_one() {
 
   [[ ,$items, == *,cookies,* ]] || rm -f "$tmp"/cookies.sqlite* "$tmp"/Cookies "$tmp"/Cookies-journal
   [[ ,$items, == *,certs,* ]]   || rm -f "$tmp"/cert9.db "$tmp"/key4.db "$tmp"/pkcs11.txt
+  # One browser's settings are wrong in another, even of the same family.
+  local settings=0
+  if [[ ,$items, == *,settings,* && $source == "$target" && -f $meta/home ]]; then
+    settings=1
+  else
+    (cd "$tmp" && rm -rf "${BP_GECKO_SETTINGS[@]}")
+  fi
 
   # What is about to be replaced goes to ~/.fedora-nothing-backup first, and
   # is then removed so restored folders replace it instead of mixing with it.
@@ -476,13 +499,20 @@ bp_restore_one() {
   done < <(cd "$tmp" && for f in *; do
              case $f in
                storage) printf '%s\n' storage/default/* ;;
-               'Local Extension Settings'|'Sync Extension Settings'|IndexedDB|extensions) printf '%s\n' "$f"/* ;;
+               'Local Extension Settings'|'Sync Extension Settings'|IndexedDB|extensions|chrome) printf '%s\n' "$f"/* ;;
                *) printf '%s\n' "$f" ;;
              esac
            done)
   cp -a "$tmp/." "$profile/"
 
   if [[ $(bp_engine "$target") == gecko ]]; then
+    if (( settings )); then
+      local old; old=$(<"$meta/home")
+      [[ $old != "$HOME" ]] && sed -i "s|$old/|$HOME/|g" "$profile/prefs.js" "$profile/user.js" 2>/dev/null
+      # The restored user.js may predate the DMS colours; they need this pref.
+      grep -qs 'legacyUserProfileCustomizations.stylesheets' "$profile/user.js" \
+        || printf '\n// Added by fedora-nothing: load the generated userChrome/userContent styles.\nuser_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);\n' >> "$profile/user.js"
+    fi
     if [[ -s $meta/uuids.pref ]]; then
       [[ -f $profile/user.js ]] && sed -i '/"extensions.webextensions.uuids"/d' "$profile/user.js"
       { printf '// Added by fedora-nothing: keeps restored extensions attached to their data.\n'
@@ -522,7 +552,9 @@ print(json.dumps({"ExtensionSettings": {i.strip(): {
 
   local n; n=$(wc -l < "$meta/extensions.tsv")
   rm -rf "$tmp" "$meta"
-  if [[ $source == "$target" ]]; then
+  if (( settings )); then
+    ok "$name: $n extensions and their data, settings and mods restored"
+  elif [[ $source == "$target" ]]; then
     ok "$name: $n extensions and their data restored"
   else
     ok "$name: $n extensions and their data restored from the $(bp_name "$source") backup"
