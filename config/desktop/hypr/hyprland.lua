@@ -545,6 +545,22 @@ move_window = hl.dsp.window.move
 layout = hl.dsp.layout
 move_workspace = "@@HOME@@/.config/hypr/scripts/move-to-workspace-preserve-width "
 screenshot = "@@HOME@@/.config/hypr/scripts/dms-screenshot"
+-- DMS defaults, loaded so DMS Settings sees its include. The defaults this
+-- config does not use are removed as hl.unbind overrides in binds-user.lua
+-- (Settings shows them as removed). Its 3-finger workspace swipe is
+-- suppressed: 3 fingers switch focus here, and Hyprland cannot remove a
+-- gesture once added.
+local dms_gesture = hl.gesture
+hl.gesture = function() end
+require("dms.binds")
+hl.gesture = dms_gesture
+-- hl.unbind matches the modifier order literally, and binds-user.lua spells
+-- these SUPER + CTRL + SHIFT while the DMS defaults spell them SUPER + SHIFT +
+-- CTRL, so its unbinds miss them. DMS treats both as one key, so removing them
+-- through Settings would delete the user's bind instead.
+hl.unbind("SUPER + SHIFT + CTRL + L")
+hl.unbind("SUPER + SHIFT + CTRL + up")
+hl.unbind("SUPER + SHIFT + CTRL + down")
 require("dms.binds-user")
 -- Keep no-argument mouse dispatchers outside binds-user.lua. DMS 0.55's
 -- serializer currently appends an extra parenthesis to these two actions.
