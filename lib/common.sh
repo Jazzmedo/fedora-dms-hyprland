@@ -390,6 +390,9 @@ backup_path() {
 : "${TPL_ZEN_PROFILE:=}"
 : "${TPL_TERMINAL:=foot}"
 : "${TPL_ALT_TERMINAL:=$TPL_TERMINAL}"
+: "${TPL_BROWSER:=zen}"
+: "${TPL_BROWSER_DESKTOP:=app.zen_browser.zen.desktop}"
+: "${TPL_BROWSER_PRIVATE:=--private-window}"
 : "${TPL_OBSIDIAN_VAULT:=$HOME/Documents/Obsidian}"
 
 # Rewrite @@PLACEHOLDER@@ in a text file, in place.
@@ -401,9 +404,31 @@ apply_template() {
     -e "s|@@MONITOR@@|$TPL_MONITOR|g" \
     -e "s|@@ALT_TERMINAL@@|$TPL_ALT_TERMINAL|g" \
     -e "s|@@TERMINAL@@|$TPL_TERMINAL|g" \
+    -e "s|@@BROWSER_DESKTOP@@|$TPL_BROWSER_DESKTOP|g" \
+    -e "s|@@BROWSER_PRIVATE@@|$TPL_BROWSER_PRIVATE|g" \
+    -e "s|@@BROWSER@@|$TPL_BROWSER|g" \
     -e "s|@@ZEN_PROFILE@@|$TPL_ZEN_PROFILE|g" \
     -e "s|@@OBSIDIAN_VAULT@@|$TPL_OBSIDIAN_VAULT|g" \
     "$f"
+}
+
+# The command, launcher entry and private-window flag of each browser
+# component, for the @@BROWSER*@@ placeholders, mimeapps and xdg-settings.
+set_browser_templates() {
+  case $1 in
+    zen)          TPL_BROWSER=zen                 TPL_BROWSER_DESKTOP=app.zen_browser.zen.desktop ;;
+    firefox)      TPL_BROWSER=firefox             TPL_BROWSER_DESKTOP=org.mozilla.firefox.desktop ;;
+    librewolf)    TPL_BROWSER=librewolf           TPL_BROWSER_DESKTOP=librewolf.desktop ;;
+    brave)        TPL_BROWSER=brave-browser       TPL_BROWSER_DESKTOP=brave-browser.desktop ;;
+    brave_origin) TPL_BROWSER=brave-origin-stable TPL_BROWSER_DESKTOP=brave-origin.desktop ;;
+    vivaldi)      TPL_BROWSER=vivaldi-stable      TPL_BROWSER_DESKTOP=vivaldi-stable.desktop ;;
+    helium)       TPL_BROWSER=helium              TPL_BROWSER_DESKTOP=helium.desktop ;;
+    *)            return 1 ;;
+  esac
+  case $1 in
+    zen|firefox|librewolf) TPL_BROWSER_PRIVATE=--private-window ;;
+    *)                     TPL_BROWSER_PRIVATE=--incognito ;;
+  esac
 }
 
 # Strip lines tagged `-- @component:<name>` (or `# @component:<name>`) whose

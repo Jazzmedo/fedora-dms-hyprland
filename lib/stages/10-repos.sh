@@ -29,13 +29,38 @@ stage_repos() {
 
   enable_hyprland_copr
 
-  if is_selected brave; then
+  # Brave and Brave Origin come from the same repository.
+  if is_selected brave || is_selected brave_origin; then
     if [[ -f /etc/yum.repos.d/brave-browser.repo ]]; then
       skip "Brave already has a download source"
     else
       as_root dnf config-manager addrepo --from-repofile=https://brave-browser-rpm-release.s3.brave.com/brave-browser.repo \
         && record repofile /etc/yum.repos.d/brave-browser.repo \
         || soft_fail "Could not reach Brave's download source" \
+              "Their server did not respond." \
+              "./install.sh --only=repos,packages"
+    fi
+  fi
+
+  if is_selected vivaldi; then
+    if [[ -f /etc/yum.repos.d/vivaldi-fedora.repo ]]; then
+      skip "Vivaldi already has a download source"
+    else
+      as_root dnf config-manager addrepo --from-repofile=https://repo.vivaldi.com/archive/vivaldi-fedora.repo \
+        && record repofile /etc/yum.repos.d/vivaldi-fedora.repo \
+        || soft_fail "Could not reach Vivaldi's download source" \
+              "Their server did not respond." \
+              "./install.sh --only=repos,packages"
+    fi
+  fi
+
+  if is_selected librewolf; then
+    if [[ -f /etc/yum.repos.d/librewolf.repo ]]; then
+      skip "LibreWolf already has a download source"
+    else
+      as_root dnf config-manager addrepo --from-repofile=https://repo.librewolf.net/librewolf.repo \
+        && record repofile /etc/yum.repos.d/librewolf.repo \
+        || soft_fail "Could not reach LibreWolf's download source" \
               "Their server did not respond." \
               "./install.sh --only=repos,packages"
     fi

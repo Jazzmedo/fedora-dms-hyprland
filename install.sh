@@ -29,6 +29,8 @@ HYPR_LAYOUT="scrolling"
 LAYOUT_FLAG=""
 DEFAULT_TERMINAL=""
 TERMINAL_FLAG=""
+DEFAULT_BROWSER=""
+BROWSER_FLAG=""
 RESET_SELECTION=0
 ONLY=""
 SKIP=""
@@ -46,7 +48,7 @@ usage() {
   cat <<'EOF'
 fedora-nothing — turns a barebones Fedora into the Nothing desktop: the
 Hyprland window manager, the DankMaterialShell bar and widgets, the Nothing
-login screen and typefaces, and foot or kitty, Zen and Dolphin as the defaults.
+login screen and typefaces, and your choice of terminal, browser and Dolphin.
 
   ./install.sh                    choose what to install, then install it
   ./install.sh --yes              install the usual set, ask nothing
@@ -62,6 +64,8 @@ Options:
   --gpu=VENDOR          amd | intel | nvidia | vm   (default: detected)
   --layout=NAME         scrolling | dwindle          (default: scrolling)
   --terminal=NAME       foot | kitty: the default when both are ticked
+  --browser=NAME        zen | firefox | librewolf | brave | brave_origin | vivaldi | helium:
+                        the default when several are ticked
   --only=A,B            run only these stages
   --skip=A,B            run everything except these stages
   --dry-run             print what would happen, change nothing
@@ -84,6 +88,7 @@ for arg in "$@"; do
     --gpu=*)         GPU_VENDOR=${arg#*=}; GPU_VENDOR_FLAG=1 ;;
     --layout=*)      HYPR_LAYOUT=${arg#*=}; LAYOUT_FLAG=1 ;;
     --terminal=*)    DEFAULT_TERMINAL=${arg#*=}; TERMINAL_FLAG=1 ;;
+    --browser=*)     DEFAULT_BROWSER=${arg#*=}; BROWSER_FLAG=1 ;;
     --only=*)        ONLY=${arg#*=} ;;
     --skip=*)        SKIP=${arg#*=} ;;
     --list-stages)   printf '%s\n' "${ALL_STAGES[@]}"; exit 0 ;;
@@ -179,6 +184,7 @@ load_selection() {
     [[ $k == gpu=* ]]    && { [[ -z $GPU_VENDOR_FLAG ]] && GPU_VENDOR=${k#gpu=}; continue; }
     [[ $k == layout=* ]] && { [[ -z $LAYOUT_FLAG ]] && HYPR_LAYOUT=${k#layout=}; continue; }
     [[ $k == terminal=* ]] && { [[ -z $TERMINAL_FLAG ]] && DEFAULT_TERMINAL=${k#terminal=}; continue; }
+    [[ $k == browser=* ]]  && { [[ -z $BROWSER_FLAG ]] && DEFAULT_BROWSER=${k#browser=}; continue; }
     [[ -n ${COMPONENT_NAME[$k]:-} ]] && select_component "$k"
   done < "$SELECTION_FILE"
   return 0
@@ -192,6 +198,7 @@ save_selection() {
     echo "gpu=$GPU_VENDOR"
     echo "layout=$HYPR_LAYOUT"
     echo "terminal=$DEFAULT_TERMINAL"
+    echo "browser=$DEFAULT_BROWSER"
     local k
     for k in "${COMPONENT_ORDER[@]}"; do
       component_locked "$k" && continue
@@ -238,6 +245,7 @@ choose_components() {
   fi
 
   choose_default_terminal
+  choose_default_browser
 
   # Summarise the displays for the plan; the hyprland stage re-reads them.
   detect_outputs
@@ -275,6 +283,39 @@ choose_default_terminal() {
   if is_selected term_foot && is_selected term_kitty; then
     [[ $DEFAULT_TERMINAL == foot ]] && TPL_ALT_TERMINAL=kitty || TPL_ALT_TERMINAL=foot
   fi
+}
+
+# At least one browser is installed. With several, one is the default: it
+# opens links and SUPER+B starts it. A flag or last run's answer is kept when
+# that browser is still ticked; otherwise the first ticked one is offered.
+choose_default_browser() {
+  local k ticked=()
+  for k in $(group_members browsers); do
+    [[ $k == zen_sites ]] && continue
+    is_selected "$k" && ticked+=("$k")
+  done
+  if (( ${#ticked[@]} == 0 )); then
+    select_component zen; ticked=(zen)
+    info "No browser was ticked, so Zen will be installed"
+  fi
+  if [[ -n $DEFAULT_BROWSER && $BROWSER_FLAG ]] && ! is_selected "$DEFAULT_BROWSER"; then
+    die "\"$DEFAULT_BROWSER\" is not one of the browsers being installed" "" \
+        "Tick it in the list, or use --browser=$(_join "${ticked[@]}")"
+  fi
+  is_selected "${DEFAULT_BROWSER:-none}" 2>/dev/null || DEFAULT_BROWSER=${ticked[0]}
+  if (( ${#ticked[@]} > 1 )) && [[ -t 0 ]] && ! (( ASSUME_YES )) && [[ -z $PRESET && -z $BROWSER_FLAG ]]; then
+    local i reply def=1
+    printf '  %s?%s Several browsers are ticked. Which should open links?\n' "$C_RED" "$C_OFF"
+    for i in "${!ticked[@]}"; do
+      [[ ${ticked[i]} == "$DEFAULT_BROWSER" ]] && def=$(( i + 1 ))
+      printf '      %d) %s\n' $(( i + 1 )) "${COMPONENT_NAME[${ticked[i]}]}"
+    done
+    printf '    Number [%d]: ' "$def"
+    read -r reply
+    [[ $reply =~ ^[0-9]+$ ]] && (( reply >= 1 && reply <= ${#ticked[@]} )) || reply=$def
+    DEFAULT_BROWSER=${ticked[reply - 1]}
+  fi
+  set_browser_templates "$DEFAULT_BROWSER"
 }
 
 # A component that is already installed stays selected even if it is absent

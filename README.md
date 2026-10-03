@@ -47,7 +47,7 @@ startup, so it changes at the next launch.
 | 🎛️ **Shell**    | DankMaterialShell: bar, launcher, notifications, control centre, lock screen, nine plugins                    |
 | 🖼️ **Theming**  | matugen everywhere, themed wallpapers, matching login screen, optional boot splash                            |
 | ⌨️ **Terminal** | zsh, oh-my-zsh, starship, fastfetch greeting, tmux, yazi, eza/bat/ripgrep/fd/fzf                              |
-| 📦 **Apps**     | foot and/or kitty (you pick the default), Zen, Dolphin, Helium, Brave, Vesktop, Obsidian, OBS, qBittorrent, mpv, Strawberry, CLIAMP, EasyEffects |
+| 📦 **Apps**     | foot and/or kitty, any of Zen, Firefox, LibreWolf, Brave, Brave Origin, Vivaldi and Helium (you pick the default of each), Dolphin, Vesktop, Obsidian, OBS, qBittorrent, mpv, Strawberry, CLIAMP, EasyEffects |
 | 🧑‍💻 **Dev**      | Neovim + LazyVim, podman, pyenv, nvm, rustup, Go, yt-dlp                                                      |
 | 🔒 **Services** | Tailscale, Cloudflare WARP, a niri session, system tweaks                                                     |
 
@@ -102,6 +102,8 @@ installed for you.
 --preset=NAME      minimal | standard | full
 --gpu=VENDOR       amd | intel | nvidia | vm   (default: detected)
 --layout=NAME      scrolling | dwindle
+--terminal=NAME    foot | kitty              (default when both are ticked)
+--browser=NAME     zen | firefox | librewolf | brave | brave_origin | vivaldi | helium
 --only=A,B         run only these stages      --skip=A,B   run all but these
 --dry-run          print every command without running one
 --reset-selection  forget last run's choices  --status     what is installed

@@ -123,14 +123,14 @@ binds {
     // ============================================================
     // Application launchers (from KDE [Global Shortcuts] _launch)
     // ============================================================
-    Mod+B       hotkey-overlay-title="Brave" { spawn "brave-origin-stable"; }
-    Mod+Shift+B hotkey-overlay-title="Brave (Private)" { spawn "brave-origin-stable" "--incognito"; }
+    Mod+B       hotkey-overlay-title="Default browser" { spawn "@@BROWSER@@"; }
+    Mod+Shift+B hotkey-overlay-title="Default browser (Private)" { spawn "@@BROWSER@@" "@@BROWSER_PRIVATE@@"; }
 
-    Mod+M       hotkey-overlay-title="Zen Browser" { spawn-sh "env DESKTOPINTEGRATION=1 ~/AppImages/zen_browser.appimage"; }
-    Mod+Shift+M hotkey-overlay-title="Zen Browser (Private)" { spawn-sh "env DESKTOPINTEGRATION=1 ~/AppImages/zen_browser.appimage --private-window"; }
+    Mod+M       hotkey-overlay-title="Zen Browser" { spawn "zen"; } // @component:zen
+    Mod+Shift+M hotkey-overlay-title="Zen Browser (Private)" { spawn "zen" "--private-window"; } // @component:zen
 
-    Mod+N       hotkey-overlay-title="Helium" { spawn-sh "env DESKTOPINTEGRATION=1 ~/AppImages/helium.appimage"; }
-    Mod+Shift+N hotkey-overlay-title="Helium (Private)" { spawn-sh "env DESKTOPINTEGRATION=1 ~/AppImages/helium.appimage --incognito"; }
+    Mod+N       hotkey-overlay-title="Helium" { spawn "helium"; } // @component:helium
+    Mod+Shift+N hotkey-overlay-title="Helium (Private)" { spawn "helium" "--incognito"; } // @component:helium
 
     Mod+O       hotkey-overlay-title="Obsidian" { spawn-sh "env DESKTOPINTEGRATION=1 ~/AppImages/obsidian.appimage --no-sandbox"; }
     Mod+Shift+O hotkey-overlay-title="Strawberry" { spawn "strawberry"; }

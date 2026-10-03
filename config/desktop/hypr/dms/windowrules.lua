@@ -28,7 +28,7 @@ hl.window_rule({
 hl.window_rule({
 	name = "focus-browser-on-link-activation",
 	match = {
-		class = "^(zen|firefox|librewolf|helium|brave-origin|brave-browser|Brave-browser|chromium|Chromium|google-chrome|Google-chrome)$",
+		class = "^(zen|firefox|librewolf|helium|brave-origin|brave-browser|Brave-browser|chromium|Chromium|google-chrome|Google-chrome|vivaldi-stable|Vivaldi-stable)$",
 	},
 	focus_on_activate = true,
 })

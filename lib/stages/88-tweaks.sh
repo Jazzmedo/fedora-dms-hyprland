@@ -17,22 +17,31 @@ install_browser_policies() {
   local ff="$REPO_DIR/config/system/policies/firefox-policies.json"
   local cr="$REPO_DIR/config/system/policies/chromium-searxng.json"
 
-  local dir
-  for dir in /etc/zen/policies /opt/zen/distribution /etc/firefox/policies /etc/librewolf; do
+  # Only the browsers being installed get a policy directory.
+  local dir gecko=() chromium=()
+  is_selected zen       && gecko+=(/etc/zen/policies /opt/zen/distribution)
+  is_selected firefox   && gecko+=(/etc/firefox/policies)
+  is_selected librewolf && gecko+=(/etc/librewolf)
+  # Brave Origin reads Brave's policy directory.
+  { is_selected brave || is_selected brave_origin; } && chromium+=(/etc/brave/policies/managed)
+  is_selected vivaldi   && chromium+=(/etc/opt/vivaldi/policies/managed)
+  is_selected helium    && chromium+=(/etc/helium/policies/managed)
+
+  for dir in "${gecko[@]}"; do
     [[ -d ${dir%/*} || $dir == /etc/* ]] || continue
     as_root mkdir -p "$dir"
     as_root cp "$ff" "$dir/policies.json"
     record file "$dir/policies.json"
   done
-  ok "Set your custom search engine in Zen and Firefox"
+  (( ${#gecko[@]} )) && ok "Set your custom search engine in the Firefox-based browsers"
 
-  for dir in /etc/chromium/policies/managed /etc/brave/policies/managed \
-             /etc/opt/chrome/policies/managed /etc/helium/policies/managed; do
+  for dir in "${chromium[@]}"; do
     as_root mkdir -p "$dir"
     as_root cp "$cr" "$dir/searxng_policy.json"
     record file "$dir/searxng_policy.json"
   done
-  ok "Set your custom search engine in Chromium, Brave, Chrome and Helium"
+  (( ${#chromium[@]} )) && ok "Set your custom search engine in the Chromium-based browsers"
+  return 0
 }
 
 # mdns4_minimal resolves .local names from Avahi, which is what the SearXNG

@@ -132,9 +132,9 @@ pkgs "pipewire pipewire-pulseaudio pipewire-alsa pipewire-utils \
       wireplumber pavucontrol alsa-utils"
 detect 'all_of "pkg_installed pipewire" "pkg_installed wireplumber" "pkg_installed pavucontrol"' 
 
-component apps_base   base base "Zen · Dolphin" "default browser, file manager"
+component apps_base   base base "Dolphin"         "file manager and thumbnails"
 pkgs "dolphin kf6-kio kf6-kservice ffmpegthumbs kdegraphics-thumbnailers"
-detect 'all_of "pkg_installed dolphin" "[[ -x /opt/zen/zen ]]" \
+detect 'all_of "pkg_installed dolphin" \
                "[[ -f $HOME/.config/mimeapps.list ]]"' 
 
 component fonts       base base "Nothing fonts"   "Ndot 55/57, NType 82, JetBrainsMono Nerd Font, Arabic faces"
@@ -194,12 +194,24 @@ pkgs "podman podman-compose golang yt-dlp python3-pip \
       sqlite-devel xz-devel tk-devel"
 
 # ---------------------------------------------------------------------------
-group browsers "Browsers (Zen is in the base group)"
+# Tick one or more. With several, the installer asks which is the default: it
+# opens links, and SUPER+B starts it.
+group browsers "Browsers (one or more)"
 
-component helium      browsers on  "Helium"      "Chromium fork, AppImage-free install to /opt"
-detect 'all_of "[[ -x /opt/helium/helium ]]"' 
-component brave       browsers on  "Brave Origin" "de-Googled Brave build, third-party repo"
+component zen          browsers on  "Zen"          "Firefox-based, vertical tabs; tarball in /opt/zen"
+detect 'all_of "[[ -x /opt/zen/zen ]]"'
+component firefox      browsers off "Firefox"      "from Fedora"
+pkgs "firefox"
+component librewolf    browsers off "LibreWolf"    "privacy-hardened Firefox, third-party repo"
+pkgs "librewolf"
+component brave        browsers off "Brave"        "Chromium-based, third-party repo"
 pkgs "brave-browser"
+component brave_origin browsers on  "Brave Origin" "de-Googled Brave build, third-party repo"
+pkgs "brave-origin"
+component vivaldi      browsers off "Vivaldi"      "Chromium-based, third-party repo"
+pkgs "vivaldi-stable"
+component helium       browsers on  "Helium"       "Chromium fork, AppImage-free install to /opt"
+detect 'all_of "[[ -x /opt/helium/helium ]]"'
 
 # ---------------------------------------------------------------------------
 group apps "Applications"

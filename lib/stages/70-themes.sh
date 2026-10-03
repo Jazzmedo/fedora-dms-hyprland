@@ -56,7 +56,7 @@ install_matugen_config() {
         key=$(basename "$frag" .toml)
         [[ $key == 00-base ]] && continue
         case $key in
-          zen)  is_selected apps_base || continue ;;
+          zen)  is_selected zen || continue ;;
           foot) is_selected term_foot || continue ;;
           *)    is_selected "$key"    || continue ;;
         esac

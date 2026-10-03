@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 # Chromium has no Qt palette backend. Its Linux system theme follows GTK,
 # which DMS generates from the same palette as qt6ct.
-exec env DESKTOPINTEGRATION=1 @@HOME@@/AppImages/helium.appimage "$@"
+exec /opt/helium/helium "$@"

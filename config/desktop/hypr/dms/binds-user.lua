@@ -148,7 +148,7 @@ hl.bind("SUPER + SHIFT + D", function() quattro_move_direction("r") end, { descr
 hl.unbind("SUPER + SHIFT + Grave")
 hl.bind("SUPER + SHIFT + Grave", move_window({ monitor = "+1" }), { description = "Move window to other monitor" })
 hl.unbind("SUPER + SHIFT + M")
-hl.bind("SUPER + SHIFT + M", exec("zen --private-window"), { description = "Open Zen private window" })
+hl.bind("SUPER + SHIFT + M", exec("zen --private-window"), { description = "Open Zen private window" })  -- @component:zen
 hl.unbind("SUPER + SHIFT + R")
 hl.bind("SUPER + SHIFT + R", quattro_layout_action("colresize -conf", "swapsplit"), { description = "Cycle column width backward" })
 hl.unbind("SUPER + SHIFT + S")
@@ -198,12 +198,12 @@ hl.bind("CTRL + Print", exec(screenshot .. " full"), { description = "Capture th
 hl.unbind("Print")
 hl.bind("Print", exec(screenshot), { description = "Capture a screen region" })
 hl.unbind("SUPER + B")
-hl.bind("SUPER + B", exec("brave-origin-stable"), { description = "Open Brave browser" })  -- @component:brave
+hl.bind("SUPER + B", exec("@@BROWSER@@"), { description = "Open default browser" })
 hl.unbind("SUPER + J")
 hl.unbind("SUPER + K")
 hl.bind("SUPER + K", exec("vesktop"), { description = "Open Vesktop" })  -- @component:vesktop
 hl.unbind("SUPER + M")
-hl.bind("SUPER + M", exec("zen"), { description = "Open Zen Browser" })
+hl.bind("SUPER + M", exec("zen"), { description = "Open Zen Browser" })  -- @component:zen
 hl.unbind("SUPER + N")
 hl.bind("SUPER + N", exec("helium"), { description = "Open Helium browser" })  -- @component:helium
 hl.unbind("SUPER + O")
@@ -211,7 +211,7 @@ hl.bind("SUPER + O", exec("obsidian"), { description = "Open Obsidian" })  -- @c
 hl.unbind("SUPER + Return")
 hl.bind("SUPER + Return", exec("@@TERMINAL@@"), { description = "Open terminal" })
 hl.unbind("SUPER + SHIFT + B")
-hl.bind("SUPER + SHIFT + B", exec("brave-origin-stable --incognito"), { description = "Open Brave private window" })  -- @component:brave
+hl.bind("SUPER + SHIFT + B", exec("@@BROWSER@@ @@BROWSER_PRIVATE@@"), { description = "Open default browser private window" })
 hl.unbind("SUPER + SHIFT + N")
 hl.bind("SUPER + SHIFT + N", exec("helium --incognito"), { description = "Open Helium private window" })  -- @component:helium
 hl.bind("SUPER + SHIFT + X", exec("flatpak run com.github.wwmm.easyeffects --load-preset Handfree"), { description = "EasyEffects output preset: Handfree" })  -- @component:easyeffects

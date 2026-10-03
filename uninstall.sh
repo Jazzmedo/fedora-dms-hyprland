@@ -228,6 +228,7 @@ SYSTEM_PREFIXES=(
   /etc/brave/
   /etc/opt/chrome/
   /etc/helium/
+  /etc/opt/vivaldi/
   /opt/zen
   /opt/helium
 )

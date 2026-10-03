@@ -67,11 +67,13 @@ generate() {
   echo "## Key packages"
   local p
   for p in hyprland quickshell matugen sddm kitty dolphin cliphist grim slurp \
-           hyprlock hyprpicker pipewire pavucontrol zsh neovim; do
+           hyprlock hyprpicker pipewire pavucontrol zsh neovim \
+           firefox librewolf brave-browser brave-origin vivaldi-stable; do
     printf '  %-24s %s\n' "$p" "$(rpm -q --qf '%{VERSION}-%{RELEASE}' "$p" 2>/dev/null || echo 'NOT INSTALLED')"
   done
   printf '  %-24s %s\n' "dms" "$(command -v dms >/dev/null && dms --version 2>/dev/null | head -1 || echo 'NOT INSTALLED')"
   printf '  %-24s %s\n' "zen" "$( [[ -x /opt/zen/zen ]] && echo /opt/zen/zen || echo 'NOT INSTALLED')"
+  printf '  %-24s %s\n' "helium" "$( [[ -x /opt/helium/helium ]] && echo /opt/helium/helium || echo 'NOT INSTALLED')"
 
   echo
   echo "## DMS plugins on disk"

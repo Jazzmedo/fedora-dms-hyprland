@@ -114,6 +114,7 @@ artifact_system_paths() {
     /usr/share/applications/app.zen_browser.zen.desktop \
     /usr/local/bin/zen \
     /usr/local/bin/helium \
+    /usr/share/applications/helium.desktop \
     /usr/local/bin/dms \
     /usr/local/bin/quickshell \
     /opt/zen \
@@ -129,6 +130,7 @@ artifact_system_paths() {
     /etc/chromium/policies/managed/searxng_policy.json \
     /etc/brave/policies/managed/searxng_policy.json \
     /etc/opt/chrome/policies/managed/searxng_policy.json \
+    /etc/opt/vivaldi/policies/managed/searxng_policy.json \
     /etc/helium/policies/managed/searxng_policy.json
 }
 
@@ -181,6 +183,8 @@ artifact_coprs() {
 artifact_repofiles() {
   printf '%s\n' \
     /etc/yum.repos.d/brave-browser.repo \
+    /etc/yum.repos.d/vivaldi-fedora.repo \
+    /etc/yum.repos.d/librewolf.repo \
     /etc/yum.repos.d/tailscale.repo \
     /etc/yum.repos.d/cloudflare-warp-ascii.repo
 }
