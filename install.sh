@@ -31,6 +31,7 @@ DEFAULT_TERMINAL=""
 TERMINAL_FLAG=""
 DEFAULT_BROWSER=""
 BROWSER_FLAG=""
+BROWSER_BACKUP=""
 RESET_SELECTION=0
 ONLY=""
 SKIP=""
@@ -114,6 +115,8 @@ source "$REPO_DIR/lib/detect.sh"
 source "$REPO_DIR/lib/verify.sh"
 # shellcheck source=lib/ui.sh
 source "$REPO_DIR/lib/ui.sh"
+# shellcheck source=lib/browser-profiles.sh
+source "$REPO_DIR/lib/browser-profiles.sh"
 for f in "$REPO_DIR"/lib/stages/*.sh; do
   # shellcheck source=/dev/null
   source "$f"
@@ -246,6 +249,7 @@ choose_components() {
 
   choose_default_terminal
   choose_default_browser
+  choose_browser_backup
 
   # Summarise the displays for the plan; the hyprland stage re-reads them.
   detect_outputs
@@ -316,6 +320,26 @@ choose_default_browser() {
     DEFAULT_BROWSER=${ticked[reply - 1]}
   fi
   set_browser_templates "$DEFAULT_BROWSER"
+}
+
+# Extensions and their data from ./browser-backup.sh, restored at the end of
+# the apps stage. Asked only interactively; the passphrase is asked here too,
+# so the long install steps run unattended.
+choose_browser_backup() {
+  [[ -t 0 ]] && ! (( ASSUME_YES )) && [[ -z $PRESET ]] || return 0
+  local reply
+  printf '  %s?%s Restore browser extensions from a backup? [y/N] ' "$C_RED" "$C_OFF"
+  read -r reply
+  [[ $reply == [yY]* ]] || return 0
+  BROWSER_BACKUP=$(bp_pick_backup)
+  bp_is_encrypted "$BROWSER_BACKUP" || return 0
+  local probe; probe=$(ls -S "$BROWSER_BACKUP"/*.gpg | tail -1)   # the smallest
+  while :; do
+    read -rsp "  Backup passphrase (empty skips the restore): " BP_PASS; printf '\n'
+    [[ -z $BP_PASS ]] && { BROWSER_BACKUP=""; return 0; }
+    bp_decrypt "$probe" >/dev/null 2>&1 && return 0
+    warn "That passphrase does not open the backup"
+  done
 }
 
 # A component that is already installed stays selected even if it is absent

@@ -154,6 +154,20 @@ simply does not exist.
 After plugging in or removing a monitor, `./install.sh --only=hyprland` rewrites
 the layout from the outputs the kernel reports.
 
+### Browser extensions
+
+`./browser-backup.sh` backs up or restores your browser extensions and their
+data (Tampermonkey scripts, ShellTint styles, uBlock lists), picked from the
+same checklist as the installer. Cookies and certificates can come along; they
+force encryption with a passphrase. History and site data never do, so a backup
+is tens of megabytes, not gigabytes.
+
+Backups go to `~/fedora-nothing-backups/` or a folder you choose, never inside a
+git repository. The installer offers to restore one into the browsers it
+installs. A Zen backup also restores into Firefox or LibreWolf, and a Brave one
+into Vivaldi or Helium; Chromium extensions reinstall from the Web Store on the
+first start and pick their data back up.
+
 ## 🚑 If something breaks
 
 ```sh

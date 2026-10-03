@@ -14,6 +14,11 @@ UI_ALTSCREEN=0
 UI_COMPACT=0
 UI_BODY=()
 UI_CURSOR_LINE=0
+# Wording, so another script can reuse the checklist for its own choices.
+UI_TITLE="Customisable installation"
+UI_SUBTITLE="everything is ticked; untick what you do not want"
+UI_ACCEPT="install"
+UI_LEGEND=""      # empty: the installer's "already installed" legend
 
 _tput() { tput "$@" 2>/dev/null || true; }
 
@@ -48,9 +53,9 @@ UI_COMPACT=0
 
 # Four lines instead of eight, for terminals too short to spare them.
 _ui_banner_compact() {
-  printf '  %s%s███%s %sfedora-nothing%s  %sCustomisable installation%s\n\n' \
-    "$C_RED" "$C_BOLD" "$C_OFF" "$C_BOLD" "$C_OFF" "$C_GREY" "$C_OFF"
-  printf '  %s↑↓%s move  %sspace%s tick  %senter%s install  %sq%s cancel\n' \
+  printf '  %s%s███%s %sfedora-nothing%s  %s%s%s\n\n' \
+    "$C_RED" "$C_BOLD" "$C_OFF" "$C_BOLD" "$C_OFF" "$C_GREY" "$UI_TITLE" "$C_OFF"
+  printf '  %s↑↓%s move  %sspace%s tick  %senter%s '"$UI_ACCEPT"'  %sq%s cancel\n' \
     "$C_BOLD" "$C_OFF" "$C_BOLD" "$C_OFF" "$C_BOLD" "$C_OFF" "$C_BOLD" "$C_OFF"
   printf '  %s%s%s\n' "$C_GREY" "$(rule $(( UI_WIDTH - 2 )))" "$C_OFF"
 }
@@ -66,16 +71,15 @@ ART
   # Narrow terminals get the short wording. A line that wraps costs a row, and
   # every row it costs pushes the frame off the top on the next repaint.
   if (( UI_WIDTH >= 78 )); then
-    printf '  %sCustomisable installation%s  everything is ticked; untick what you do not want\n\n' \
-      "$C_BOLD" "$C_OFF"
-    printf '  %s↑↓/jk%s move   %sspace%s tick   %sa%s whole group   %senter%s install   %sq%s cancel\n' \
+    printf '  %s%s%s  %s\n\n' "$C_BOLD" "$UI_TITLE" "$C_OFF" "$UI_SUBTITLE"
+    printf '  %s↑↓/jk%s move   %sspace%s tick   %sa%s whole group   %senter%s '"$UI_ACCEPT"'   %sq%s cancel\n' \
       "$C_BOLD" "$C_OFF" "$C_BOLD" "$C_OFF" "$C_BOLD" "$C_OFF" "$C_BOLD" "$C_OFF" "$C_BOLD" "$C_OFF"
   elif (( UI_WIDTH >= 60 )); then
-    printf '  %sCustomisable installation%s\n\n' "$C_BOLD" "$C_OFF"
-    printf '  %s↑↓%s move  %sspace%s tick  %senter%s install  %sq%s cancel\n' \
+    printf '  %s%s%s\n\n' "$C_BOLD" "$UI_TITLE" "$C_OFF"
+    printf '  %s↑↓%s move  %sspace%s tick  %senter%s '"$UI_ACCEPT"'  %sq%s cancel\n' \
       "$C_BOLD" "$C_OFF" "$C_BOLD" "$C_OFF" "$C_BOLD" "$C_OFF" "$C_BOLD" "$C_OFF"
   else
-    printf '  %sCustomisable installation%s\n\n' "$C_BOLD" "$C_OFF"
+    printf '  %s%s%s\n\n' "$C_BOLD" "$UI_TITLE" "$C_OFF"
     printf '  %s↑↓%s %sspace%s %senter%s %sq%s\n' \
       "$C_BOLD" "$C_OFF" "$C_BOLD" "$C_OFF" "$C_BOLD" "$C_OFF" "$C_BOLD" "$C_OFF"
   fi
@@ -204,6 +208,7 @@ _ui_footer() {
   # up by a line, and the banner would creep off the top on every keypress.
   local legend='✓ already installed   ~ partial   [·] always installed'
   (( UI_WIDTH < 78 )) && legend='✓ installed  ~ partial  [·] always'
+  [[ -n $UI_LEGEND ]] && legend=$UI_LEGEND
   (( UI_WIDTH < 60 )) && legend=''
   printf '  %s%d selected%s   %s%s%s%s\033[K' \
     "$C_BOLD" "$n" "$C_OFF" "$C_GREY" "$legend" "$C_OFF" "$hint"
@@ -395,6 +400,7 @@ ui_show_plan() {
   _plan_row "Windows"   "arranged the ${HYPR_LAYOUT} way"
   _plan_row "Terminal"  "${DEFAULT_TERMINAL:-foot} opens with SUPER+Return"
   _plan_row "Browser"   "${COMPONENT_NAME[${DEFAULT_BROWSER:-zen}]} opens links and SUPER+B"
+  [[ -n ${BROWSER_BACKUP:-} ]] && _plan_row "Extensions" "restored from ${BROWSER_BACKUP/#$HOME/\~}"
   _plan_row "Screens"   "${OUTPUT_SUMMARY:-worked out while installing}"
   _plan_row "Steps"     "${#STAGES_TO_RUN[@]} of them, about 15-40 minutes"
   _plan_row "Backups"   "$( (( NO_BACKUP )) && echo "off" || echo "replaced files go to ~/.fedora-nothing-backup/" )"

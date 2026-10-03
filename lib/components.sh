@@ -133,7 +133,7 @@ pkgs "pipewire pipewire-pulseaudio pipewire-alsa pipewire-utils \
 detect 'all_of "pkg_installed pipewire" "pkg_installed wireplumber" "pkg_installed pavucontrol"' 
 
 component apps_base   base base "Dolphin"         "file manager and thumbnails"
-pkgs "dolphin kf6-kio kf6-kservice ffmpegthumbs kdegraphics-thumbnailers"
+pkgs "dolphin kf6-kio kf6-kservice ffmpegthumbs kdegraphics-thumbnailers libsecret zstd"
 detect 'all_of "pkg_installed dolphin" \
                "[[ -f $HOME/.config/mimeapps.list ]]"' 
 

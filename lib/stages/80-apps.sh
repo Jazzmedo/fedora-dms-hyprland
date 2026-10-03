@@ -40,6 +40,9 @@ stage_apps() {
   is_selected obsidian && install_github_rpm obsidianmd/obsidian-releases 'obsidian-[0-9.]+\.rpm$' obsidian Obsidian
   install_app_configs
   write_mimeapps
+  # Last, so every browser is installed and can be started once if needed.
+  [[ -n $BROWSER_BACKUP ]] && bp_restore_for_install "$BROWSER_BACKUP"
+  return 0
 }
 
 # Zen ships a tarball with its own updater. A Flatpak would sandbox it away
