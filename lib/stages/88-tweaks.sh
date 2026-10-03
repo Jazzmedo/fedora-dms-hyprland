@@ -6,6 +6,7 @@ stage_tweaks() {
   is_selected tweaks || { skip "System settings were not chosen"; return 0; }
   install_browser_policies
   configure_nsswitch
+  configure_locale
   install_sysctl
 }
 
@@ -55,6 +56,28 @@ configure_nsswitch() {
          "sudo dnf install nss-mdns avahi"
     as_root systemctl enable --now avahi-daemon && record unit-system avahi-daemon || true
   fi
+}
+
+# English interface; Egyptian formats for paper size, names, addresses and
+# phone numbers.
+configure_locale() {
+  if ! locale -a 2>/dev/null | grep -qi '^ar_EG'; then
+    record_new_pkgs glibc-langpack-ar
+    as_root dnf install -y glibc-langpack-ar || { soft_fail "Could not install the Arabic locale" \
+         "Paper size, address and phone formats stay English." \
+         "sudo dnf install glibc-langpack-ar"; return 0; }
+  fi
+  local want=(LANG=en_US.UTF-8 LC_PAPER=ar_EG.UTF-8 LC_NAME=ar_EG.UTF-8
+              LC_ADDRESS=ar_EG.UTF-8 LC_TELEPHONE=ar_EG.UTF-8
+              LC_IDENTIFICATION=ar_EG.UTF-8)
+  if [[ $(grep -v '^#' /etc/locale.conf 2>/dev/null | sort) == "$(printf '%s\n' "${want[@]}" | sort)" ]]; then
+    skip "The language and regional formats are already set"
+    return 0
+  fi
+  [[ -f /etc/locale.conf ]] && as_root cp /etc/locale.conf /etc/locale.conf.fedora-nothing.bak
+  record edited /etc/locale.conf
+  as_root localectl set-locale "${want[@]}"
+  ok "Set English with Egyptian regional formats (takes effect at next login)"
 }
 
 install_sysctl() {

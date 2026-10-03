@@ -13,6 +13,17 @@ stage_apps() {
   deploy_seed "$k/seed/dank-tabs.conf"  "$HOME/.config/kitty/dank-tabs.conf"
   ok "Set up the kitty terminal"
 
+  if have foot; then
+    deploy_tree "$REPO_DIR/config/terminal/foot" "$HOME/.config/foot"
+    # foot.ini includes the DMS palette and foot will not start without it;
+    # matugen replaces this seed on the first theme change.
+    deploy_seed "$REPO_DIR/config/terminal/foot/seed/dms-colors.ini" "$HOME/.config/foot/dms-colors.ini"
+    ok "Set up the foot terminal"
+  fi
+
+  # A fixed audio buffer: stops crackling when apps pick tiny ones under load.
+  deploy_tree "$REPO_DIR/config/apps/pipewire" "$HOME/.config/pipewire"
+
   install_zen
   is_selected helium   && install_helium
   is_selected vesktop  && install_github_rpm Vencord/Vesktop  'vesktop.*\.x86_64\.rpm$' vesktop  Vesktop

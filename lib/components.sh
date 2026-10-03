@@ -262,7 +262,7 @@ pkgs "plymouth plymouth-scripts plymouth-plugin-script"
 detect 'all_of "[[ -f /usr/share/plymouth/themes/nothing/nothing.script ]]" \
                "[[ $(plymouth-set-default-theme 2>/dev/null) == nothing ]]"'
 
-component tweaks      services off "System tweaks"   "search engine policy, mDNS resolution, writeback cap"
+component tweaks      services off "System tweaks"   "search engine policy, mDNS resolution, writeback cap, Egyptian regional formats"
 detect 'all_of "[[ -f /etc/sysctl.d/99-usb-copy-fix.conf ]]" \
                "grep -q mdns4_minimal /etc/nsswitch.conf" \
                "[[ -f /etc/zen/policies/policies.json ]]"' 

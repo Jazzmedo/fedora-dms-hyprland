@@ -2,7 +2,8 @@
 #
 # Drawn from four solid-colour images scaled at runtime rather than from
 # artwork, so it is sharp at any resolution and weighs a few hundred bytes in
-# the initrd. A row of dots fills left to right while the machine boots.
+# the initrd. A row of round dots fills red as a progress bar while the
+# machine boots, with the elapsed time and current step underneath.
 #
 # The password callback is not decoration: without it a machine with an
 # encrypted disk shows a splash that never asks for the passphrase, and the
@@ -12,7 +13,7 @@ screen_width  = Window.GetWidth();
 screen_height = Window.GetHeight();
 
 DOT_COUNT  = 12;
-DOT_SIZE   = 14;
+DOT_SIZE   = 16;
 DOT_GAP    = 10;
 
 # ------------------------------------------------------------- background ---
@@ -45,16 +46,62 @@ for (i = 0; i < DOT_COUNT; i++) {
   dots[i].SetZ(5);
 }
 
-# One dot lit, sweeping. Deliberately not a progress bar: boot progress is not
-# knowable at this point, and a bar that stalls at 90% reads as a hang.
+# ---------------------------------------------------------------- progress ---
+# A real progress bar: dots fill red as plymouth's boot progress grows. That
+# estimate comes from how long the previous boot took, so on its own it can
+# keep creeping during a hang. The status line under it is what tells a hang
+# apart: the seconds keep counting, but the unit systemd is starting stops
+# changing. Stuck on one name for a minute means it is time to restart.
+progress.filled  = 0;
+progress.percent = -1;
+progress.seconds = -1;
+progress.unit    = "";
+
+fun status_text_sprite(text, y) {
+  image  = Image.Text(text, 0.55, 0.55, 0.55, 1, "Ndot 57 14");
+  sprite = Sprite(image);
+  sprite.SetX((screen_width - image.GetWidth()) / 2);
+  sprite.SetY(y);
+  sprite.SetZ(10);
+  return sprite;
+}
+
+fun boot_progress_callback(duration, fraction) {
+  filled = Math.Int(fraction * DOT_COUNT);
+  if (filled > DOT_COUNT) filled = DOT_COUNT;
+  progress.filled = filled;
+
+  percent = Math.Int(fraction * 100);
+  seconds = Math.Int(duration);
+  # Image.Text is not free; redraw only when the numbers move.
+  if (percent != progress.percent || seconds != progress.seconds) {
+    progress.percent = percent;
+    progress.seconds = seconds;
+    progress.counter = status_text_sprite(percent + "%   " + seconds + "s", dot_top + 34);
+    if (password.entered) progress.counter.SetOpacity(0);
+  }
+}
+Plymouth.SetBootProgressFunction(boot_progress_callback);
+
+# systemd reports each unit it starts; show the latest one.
+fun update_status_callback(status) {
+  if (status != progress.unit) {
+    progress.unit = status;
+    progress.unit_sprite = status_text_sprite(status, dot_top + 58);
+    if (password.entered) progress.unit_sprite.SetOpacity(0);
+  }
+}
+Plymouth.SetUpdateStatusFunction(update_status_callback);
+
+# Filled dots are red; the next one blinks white so the screen visibly lives.
 tick = 0;
 fun refresh_callback() {
   tick++;
-  head = Math.Int(tick / 4) % DOT_COUNT;
+  blink = Math.Int(tick / 25) % 2;
   for (i = 0; i < DOT_COUNT; i++) {
-    if (i == head)
+    if (i < progress.filled)
       dots[i].SetImage(accent);
-    else if (i == (head + DOT_COUNT - 1) % DOT_COUNT)
+    else if (i == progress.filled && blink)
       dots[i].SetImage(dot_on);
     else
       dots[i].SetImage(dot_off);
@@ -71,6 +118,8 @@ fun display_password_callback(prompt_text, bullets) {
   password.entered = 1;
   for (i = 0; i < DOT_COUNT; i++)
     dots[i].SetOpacity(0);
+  progress.counter.SetOpacity(0);
+  progress.unit_sprite.SetOpacity(0);
 
   # prompt_text, not prompt: assigning fields onto the parameter would turn the
   # string it holds into a hash halfway through the function.
@@ -100,6 +149,8 @@ fun display_normal_callback() {
     password.entered = 0;
     for (i = 0; i < DOT_COUNT; i++)
       dots[i].SetOpacity(1);
+    progress.counter.SetOpacity(1);
+    progress.unit_sprite.SetOpacity(1);
   }
 }
 Plymouth.SetDisplayNormalFunction(display_normal_callback);

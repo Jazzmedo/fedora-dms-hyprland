@@ -30,3 +30,4 @@ config/apps/vesktop	.config/vesktop	vesktop
 config/apps/obs-studio	.config/obs-studio	obs
 config/apps/qbittorrent	.config/qBittorrent	qbittorrent
 config/apps/easyeffects	.config/easyeffects	easyeffects
+config/apps/pipewire	.config/pipewire	audio
