@@ -5,7 +5,7 @@
 # Interactive package search and install.  Was aptt() over apt-cache + nala.
 dnfi() {
   local bat_cmd=$(command -v bat || command -v batcat || echo cat)
-  local pkgs=$(dnf repoquery --qf '%{name}' --latest-limit 1 2>/dev/null | sort -u | fzf \
+  local pkgs=$(dnf repoquery --qf '%{name}\n' --latest-limit 1 2>/dev/null | sort -u | fzf \
     --multi \
     --height 80% \
     --layout=reverse \
@@ -69,7 +69,7 @@ prg() {
   local list_parts=()
 
   # dnf: only packages installed by a user action, not pulled in as deps.
-  command -v dnf >/dev/null && list_parts+=("dnf repoquery --userinstalled --qf '%{name}' 2>/dev/null | sort -u | awk '{print \"dnf:\"\$1}'")
+  command -v dnf >/dev/null && list_parts+=("dnf repoquery --userinstalled --qf '%{name}\n' 2>/dev/null | sort -u | awk '{print \"dnf:\"\$1}'")
   command -v flatpak >/dev/null && list_parts+=("flatpak list --app --columns=application 2>/dev/null | awk '{print \"fp:\"\$1}'")
   command -v snap >/dev/null && list_parts+=("snap list 2>/dev/null | tail -n +2 | grep -vE 'core|bare|gtk-common|gnome-[0-9]' | awk '{print \"snap:\"\$1}'")
 
