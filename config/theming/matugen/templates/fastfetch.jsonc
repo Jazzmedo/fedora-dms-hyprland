@@ -17,9 +17,9 @@
         "type": "file",
         "source": "~/.config/fastfetch/ripple-logo.txt",
         "padding": {
-            // No blank rows between groups, so the info (15 rows with one GPU
-            // and one disk) and the 15-line ripple stand side by side.
-            "top": 0,
+            // One blank line on top, like the info column. Below it the info
+            // is 17 rows with one GPU and one disk, as tall as the ripple.
+            "top": 1,
             "right": 3
         },
         "color": {
@@ -33,6 +33,7 @@
         "brightColor": false
     },
     "modules": [
+        "break",
         { "type": "os", "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  Linux    \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m\u001b[0m" },
         { "type": "host", "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  Laptop   \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m\u001b[0m" },
         { "type": "kernel", "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  Kernel   \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m\u001b[0m" },
@@ -40,11 +41,14 @@
         { "type": "memory", "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  RAM      \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m\u001b[0m" },
         { "type": "gpu", "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  GPU      \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m\u001b[0m", "detectionMethod": "all" },
         { "type": "disk", "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  Disk     \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m\u001b[0m", "folders": "/" },
+        "break",
         { "type": "command", "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m  Desktop  \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m\u001b[0m", "text": "echo \"$(dms version | sed 's/^dms /DankMaterialShell /') (Quickshell $(qs --version | cut -d' ' -f2))\"" },
         { "type": "wm", "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  Session  \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m\u001b[0m" },
         { "type": "display", "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  Display  \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m\u001b[0m", "compactType": "original-with-refresh-rate" },
+        "break",
         { "type": "terminal", "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  Terminal \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m\u001b[0m" },
         { "type": "packages", "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  Packages \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m\u001b[0m" },
+        "break",
         { "type": "uptime", "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  Uptime   \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m\u001b[0m" },
         { "type": "disk", "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  OS Age   \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m\u001b[0m", "keyIcon": "󰃭", "folders": "/", "format": "{create-time:10} [{days} days]" }
     ]
