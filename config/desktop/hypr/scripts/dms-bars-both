@@ -1,20 +1,24 @@
 #!/usr/bin/env bash
+# Show/hide or auto-hide every Dank Bar together. Toggling each bar on its own
+# flips them in opposite directions once they disagree, so the main bar's
+# state picks one target and every bar is set to it.
 set -u
 
-action="${1:-}"
+settings="${XDG_CONFIG_HOME:-$HOME/.config}/DankMaterialShell/settings.json"
+count=$(jq '.barConfigs | length' "$settings") || exit 1
 
-case "$action" in
+case "${1:-}" in
   visibility)
-    command=toggle
+    [[ $(dms ipc call bar status index 0) == visible ]] && command=hide || command=reveal
     ;;
   auto-hide)
-    command=toggleAutoHide
+    [[ $(jq '.barConfigs[0].autoHide' "$settings") == true ]] && command=manualHide || command=autoHide
     ;;
   *)
     exit 2
     ;;
 esac
 
-dms ipc call bar "$command" index 0 >/dev/null
-sleep 0.15
-dms ipc call bar "$command" index 1 >/dev/null
+for ((i = 0; i < count; i++)); do
+  dms ipc call bar "$command" index "$i" >/dev/null
+done

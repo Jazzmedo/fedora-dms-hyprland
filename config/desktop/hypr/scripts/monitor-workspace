@@ -25,7 +25,11 @@ fi
 
 # Hyprland's workspace animation is global rather than monitor-scoped. Set it
 # immediately before dispatch so each monitor still switches on its own axis.
-hyprctl eval "hl.animation({ leaf = \"workspaces\", enabled = true, speed = 2.0, bezier = \"default\", style = \"$animation_style\" })" >/dev/null || exit 1
+# hyprland.lua sets workspacesIn/Out separately, and those override the
+# "workspaces" parent, so the style goes on them; keep their spring and speed.
+for leaf in workspacesIn workspacesOut; do
+	hyprctl eval "hl.animation({ leaf = \"$leaf\", enabled = true, speed = 3, spring = \"niriSpring\", style = \"$animation_style\" })" >/dev/null || exit 1
+done
 
 case "$action" in
 	move) "$HOME/.config/hypr/scripts/move-to-workspace-preserve-width" "$workspace" ;;

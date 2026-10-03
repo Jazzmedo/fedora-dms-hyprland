@@ -175,14 +175,164 @@ for _, gesture in ipairs({
 	})
 end
 
-hl.animation({ leaf = "windowsIn", enabled = true, speed = 2, bezier = "default" })
-hl.animation({ leaf = "windowsOut", enabled = true, speed = 3, bezier = "default" })
--- Default to vertical workspace transitions for the primary monitor (workspaces
--- 1-5). The monitor-aware workspace script changes this to horizontal on DP-2.
-hl.animation({ leaf = "workspaces", enabled = true, speed = 1, bezier = "default", style = "slidevert" })
-hl.animation({ leaf = "windowsMove", enabled = true, speed = 2, bezier = "default" })
-hl.animation({ leaf = "fade", enabled = true, speed = 2, bezier = "default" })
-hl.animation({ leaf = "border", enabled = true, speed = 2, bezier = "default" })
+-- ============================================================
+-- Niri-inspired animations for Hyprland (Lua config)
+-- ============================================================
+
+-- Curves matching Niri
+hl.curve("easeOutExpo", {
+	type = "bezier",
+	points = { { 0.19, 1 }, { 0.22, 1 } }, -- niri window-open
+})
+
+hl.curve("easeOutQuad", {
+	type = "bezier",
+	points = { { 0.25, 0.46 }, { 0.45, 0.94 } }, -- niri window-close
+})
+
+-- Useful extras
+hl.curve("linear", {
+	type = "bezier",
+	points = { { 0, 0 }, { 1, 1 } },
+})
+
+hl.curve("almostLinear", {
+	type = "bezier",
+	points = { { 0.5, 0.5 }, { 0.75, 1 } },
+})
+
+-- Optional spring (closer to niri’s workspace/view movement feel)
+hl.curve("niriSpring", {
+	type = "spring",
+	mass = 1,
+	stiffness = 1000,
+	dampening = 35,
+})
+
+-- ============================================================
+-- Animations
+-- ============================================================
+
+-- Global fallback
+hl.animation({
+	leaf = "global",
+	enabled = true,
+	speed = 3,
+	bezier = "easeOutExpo",
+})
+
+-- Windows
+hl.animation({
+	leaf = "windows",
+	enabled = true,
+	speed = 3,
+	bezier = "easeOutExpo",
+})
+
+-- Window open ≈ niri window-open (150 ms → speed 1.5)
+hl.animation({
+	leaf = "windowsIn",
+	enabled = true,
+	speed = 3,
+	bezier = "easeOutExpo",
+	style = "popin 80%",
+})
+
+-- Window close ≈ niri window-close (150 ms → speed 1.5)
+hl.animation({
+	leaf = "windowsOut",
+	enabled = true,
+	speed = 3,
+	bezier = "easeOutQuad",
+	style = "popin 80%",
+})
+
+-- Moving / resizing windows
+hl.animation({
+	leaf = "windowsMove",
+	enabled = true,
+	speed = 4,
+	bezier = "easeOutExpo",
+})
+
+-- Fade
+hl.animation({
+	leaf = "fade",
+	enabled = true,
+	speed = 3,
+	bezier = "almostLinear",
+})
+
+hl.animation({
+	leaf = "fadeIn",
+	enabled = true,
+	speed = 3,
+	bezier = "easeOutExpo",
+})
+
+hl.animation({
+	leaf = "fadeOut",
+	enabled = true,
+	speed = 3,
+	bezier = "easeOutQuad",
+})
+
+-- Layers
+hl.animation({
+	leaf = "layers",
+	enabled = true,
+	speed = 3,
+	bezier = "easeOutExpo",
+})
+
+hl.animation({
+	leaf = "layersIn",
+	enabled = true,
+	speed = 3,
+	bezier = "easeOutExpo",
+	style = "fade",
+})
+
+hl.animation({
+	leaf = "layersOut",
+	enabled = true,
+	speed = 3,
+	bezier = "easeOutQuad",
+	style = "fade",
+})
+
+-- Workspaces (using spring for a more niri-like feel)
+hl.animation({
+	leaf = "workspaces",
+	enabled = true,
+	speed = 3,
+	spring = "niriSpring", -- or bezier = "easeOutExpo"
+	style = "slidevert", -- scripts/monitor-workspace flips it per monitor
+})
+
+hl.animation({
+	leaf = "workspacesIn",
+	enabled = true,
+	speed = 3,
+	spring = "niriSpring",
+	style = "slidevert", -- scripts/monitor-workspace flips it per monitor
+})
+
+hl.animation({
+	leaf = "workspacesOut",
+	enabled = true,
+	speed = 3,
+	spring = "niriSpring",
+	style = "slidevert", -- scripts/monitor-workspace flips it per monitor
+})
+
+-- Border (optional)
+hl.animation({
+	leaf = "border",
+	enabled = true,
+	speed = 3,
+	bezier = "easeOutExpo",
+})
 
 hl.window_rule({ match = { class = "^(org\\.wezfurlong\\.wezterm)$" }, tile = true })
 hl.window_rule({ match = { class = "^(org\\.gnome\\.)" }, rounding = 12 })
@@ -378,6 +528,22 @@ function quattro_toggle_all_workspace_layouts()
 		quattro_apply_workspace_layout(workspace, next_layout)
 	end
 	quattro_save_state()
+end
+
+-- Column widths only exist in the scrolling layout; dwindle rejects colresize
+-- with an error. Send each workspace the message its own layout understands,
+-- or nothing when it has no equivalent.
+function quattro_layout_action(scrolling_msg, dwindle_msg)
+	return function()
+		local workspace = hl.get_active_workspace()
+		local msg = dwindle_msg
+		if workspace and workspace.tiled_layout == "scrolling" then
+			msg = scrolling_msg
+		end
+		if msg then
+			hl.dispatch(hl.dsp.layout(msg))
+		end
+	end
 end
 
 function quattro_adjust_gap(which, amount)
