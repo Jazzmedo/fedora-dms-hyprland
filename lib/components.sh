@@ -219,6 +219,21 @@ component ytdlp       dev on  "yt-dlp"         "video and audio downloader, thro
 detect 'all_of "[[ -d $HOME/.local/share/mise/installs/yt-dlp ]]"'
 
 # ---------------------------------------------------------------------------
+group ai "AI coding assistants"
+
+component claude_code ai off "Claude Code"    "Anthropic's coding agent; updates itself"
+detect 'all_of "[[ -x $HOME/.local/bin/claude ]]"'
+
+component codex       ai off "Codex"          "OpenAI's coding agent, through mise"
+detect 'all_of "[[ -d $HOME/.local/share/mise/installs/codex ]]"'
+
+component opencode    ai off "OpenCode"       "open-source coding agent for any model, through mise"
+detect 'all_of "[[ -d $HOME/.local/share/mise/installs/opencode ]]"'
+
+component glm         ai off "GLM (Z.ai)"     "glm command: Claude Code on your Z.ai GLM Coding Plan"
+detect 'all_of "[[ -x $HOME/.local/bin/glm ]]"'
+
+# ---------------------------------------------------------------------------
 # Tick one or more. With several, the installer asks which is the default: it
 # opens links, and SUPER+B starts it.
 group browsers "Browsers (one or more)"

@@ -186,18 +186,60 @@ install_runtime_managers() {
   fi
 
   # mise fetches yt-dlp's own standalone build, which updates itself in place
-  # with `yt-dlp -U`; sites break old releases quickly. mise was installed
-  # just above, so it may not be on PATH yet.
-  if is_selected ytdlp; then
-    local mise; mise=$(command -v mise || echo "$HOME/.local/bin/mise")
-    if [[ -d $HOME/.local/share/mise/installs/yt-dlp ]]; then skip "yt-dlp is already installed"
+  # with `yt-dlp -U`; sites break old releases quickly. Codex and OpenCode
+  # update with `mise up`. mise was installed just above, so it may not be on
+  # PATH yet.
+  local mise spec key tool
+  mise=$(command -v mise || echo "$HOME/.local/bin/mise")
+  for spec in ytdlp:yt-dlp codex:codex opencode:opencode; do
+    key=${spec%%:*} tool=${spec#*:}
+    is_selected "$key" || continue
+    if [[ -d $HOME/.local/share/mise/installs/$tool ]]; then skip "$tool is already installed"
     elif [[ -x $mise ]]; then
-      run "$mise" use -g yt-dlp \
-        && ok "Installed yt-dlp through mise" \
-        || soft_fail "Could not install yt-dlp" "mise could not download it; GitHub may be rate-limiting this address." \
-                     "mise use -g yt-dlp"
+      run "$mise" use -g "$tool" \
+        && ok "Installed $tool through mise" \
+        || soft_fail "Could not install $tool" "mise could not download it; GitHub may be rate-limiting this address." \
+                     "mise use -g $tool"
     else
-      soft_fail "Could not install yt-dlp" "mise is not installed." "./install.sh --only=shell"
+      soft_fail "Could not install $tool" "mise is not installed." "./install.sh --only=shell"
+    fi
+  done
+
+  # Anthropic's own installer, not mise: only that copy updates itself.
+  if is_selected claude_code; then
+    if [[ -x $HOME/.local/bin/claude ]]; then skip "Claude Code is already installed"
+    else
+      run bash -c 'curl -fsSL https://claude.ai/install.sh | bash' \
+        && ok "Installed Claude Code; run claude to sign in" \
+        || soft_fail "Could not install Claude Code" "" "curl -fsSL https://claude.ai/install.sh | bash"
+    fi
+  fi
+
+  # The GLM Coding Plan is Claude Code pointed at Z.ai. It keeps its own
+  # config folder, so it never mixes with a Claude sign-in.
+  if is_selected glm; then
+    if (( DRY_RUN )); then info "Would write ~/.local/bin/glm"
+    else
+      mkdir -p "$HOME/.local/bin" "$HOME/.config/glm"
+      cat > "$HOME/.local/bin/glm" <<'GLM'
+#!/bin/sh
+# Claude Code on the Z.ai GLM Coding Plan. Key: https://z.ai/manage-apikey/apikey-list
+key_file="$HOME/.config/glm/api-key"
+if [ ! -s "$key_file" ]; then
+  printf 'Paste your Z.ai API key: ' >&2
+  stty -echo 2>/dev/null; read -r key; stty echo 2>/dev/null; printf '\n' >&2
+  [ -n "$key" ] || exit 1
+  (umask 077; printf '%s\n' "$key" > "$key_file")
+fi
+ANTHROPIC_BASE_URL=https://api.z.ai/api/anthropic \
+ANTHROPIC_AUTH_TOKEN=$(cat "$key_file") \
+API_TIMEOUT_MS=3000000 \
+CLAUDE_CONFIG_DIR="$HOME/.config/glm/claude" \
+  exec claude "$@"
+GLM
+      chmod 755 "$HOME/.local/bin/glm"
+      record file "$HOME/.local/bin/glm"
+      ok "Added the glm command; it asks for your Z.ai API key the first time"
     fi
   fi
 

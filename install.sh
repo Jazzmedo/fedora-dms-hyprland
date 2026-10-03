@@ -249,9 +249,17 @@ choose_components() {
     info "Gear Lever only comes as a Flatpak, so Flatpak was switched on too"
   fi
 
-  if is_selected ytdlp && ! is_selected mise; then
-    select_component mise
-    info "yt-dlp is installed through mise, so mise was switched on too"
+  local k
+  for k in ytdlp codex opencode; do
+    if is_selected "$k" && ! is_selected mise; then
+      select_component mise
+      info "${COMPONENT_NAME[$k]} is installed through mise, so mise was switched on too"
+    fi
+  done
+
+  if is_selected glm && ! is_selected claude_code; then
+    select_component claude_code
+    info "GLM runs inside Claude Code, so Claude Code was switched on too"
   fi
 
   choose_default_terminal

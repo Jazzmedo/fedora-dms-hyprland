@@ -51,6 +51,7 @@ within seconds, using Catppuccin's userstyles rebuilt with your colours.
 | ⌨️ **Terminal** | zsh, oh-my-zsh, starship, fastfetch greeting, tmux, yazi, eza/bat/ripgrep/fd/fzf                              |
 | 📦 **Apps**     | foot and/or kitty, any of Zen, Firefox, LibreWolf, Brave, Brave Origin, Vivaldi and Helium (you pick the default of each), Dolphin, Vesktop, Obsidian, OBS, qBittorrent, mpv, Strawberry, CLIAMP, EasyEffects |
 | 🧑‍💻 **Dev**      | Neovim + LazyVim; pick any of mise, uv, pipx, pnpm, Rust, Go, Podman, Docker, yt-dlp                          |
+| 🤖 **AI**       | pick any of Claude Code, Codex, OpenCode, GLM (Claude Code on a Z.ai GLM Coding Plan, as the `glm` command)  |
 | 🔒 **Services** | Tailscale, Cloudflare WARP, a niri session, system tweaks                                                     |
 
 Everything outside the base desktop is optional and shown in the checklist.
