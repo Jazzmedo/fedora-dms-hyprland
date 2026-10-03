@@ -163,9 +163,23 @@ sweep_artifacts() {
 
   # One rpm -qa, not ninety rpm -q.
   detect_snapshot
+  # Only what was asked for by name. A component also lists packages Fedora
+  # ships anyway (python3, curl, glib2, the mesa drivers), and those carry
+  # dnf's "dependency" or "group" reason; taking them out would break dnf
+  # itself. The graphics drivers stay too: they are the machine's, not ours.
+  local -A asked=() gpu=()
+  # --userinstalled is not enough: it counts "group" too, which is how a
+  # fresh Fedora marks curl and zip.
+  local reason
+  while read -r x reason; do [[ $reason == User ]] && asked[$x]=1; done \
+    < <(dnf repoquery --installed --qf '%{name} %{reason}\n' 2>/dev/null)
+  local k
+  for k in $(group_members gpu); do
+    for x in ${COMPONENT_PKGS[$k]:-}; do gpu[$x]=1; done
+  done
   while read -r x; do
     [[ -n $x ]] || continue
-    pkg_installed "$x" || continue
+    pkg_installed "$x" && [[ -n ${asked[$x]:-} && -z ${gpu[$x]:-} ]] || continue
     ENTRY_KIND+=(pkg); ENTRY_A+=("$x"); ENTRY_B+=("")
   done < <(artifact_packages)
 
@@ -515,10 +529,20 @@ undo_packages() {
   # One transaction, so dnf can work out the dependency order itself.
   if as_root dnf remove -y "${P_PKGS[@]}"; then
     ok "Removed ${#P_PKGS[@]} program(s)"
+    return 0
+  fi
+  # dnf refuses the whole transaction over one package something else still
+  # needs. Go one by one so the rest still goes, and name what stayed.
+  local p kept=()
+  for p in "${P_PKGS[@]}"; do
+    rpm -q "$p" >/dev/null 2>&1 || continue
+    as_root dnf remove -y "$p" >/dev/null 2>&1 || kept+=("$p")
+  done
+  if (( ${#kept[@]} )); then
+    soft_fail "${#kept[@]} program(s) were kept because the system still needs them" \
+              "${kept[*]}" "sudo dnf remove ${kept[*]}"
   else
-    soft_fail "Some programs could not be removed" \
-              "dnf refused part of the transaction." \
-              "sudo dnf remove ${P_PKGS[*]:0:6} ..."
+    ok "Removed ${#P_PKGS[@]} program(s)"
   fi
   return 0
 }

@@ -86,7 +86,8 @@ bp_policy_dir() {
 # from its tarball, ~/.zen. Either is only read here, never created: Zen opens
 # an empty profile when ~/.zen appears next to a real one.
 # Flatpak keeps it under ~/.var/app/<id>, Snap under ~/snap/<name>. Prints
-# nothing when the browser has never run.
+# nothing when the browser has never run, unless $2 is "new": then the place a
+# package install would use.
 bp_root() {
   local d f=$HOME/.var/app s=$HOME/snap candidates=()
   case $1 in
@@ -105,6 +106,7 @@ bp_root() {
     vivaldi)      candidates=("$HOME/.config/vivaldi" "$f/com.vivaldi.Vivaldi/config/vivaldi") ;;
     helium)       candidates=("$HOME/.config/net.imput.helium") ;;
   esac
+  [[ ${2:-} == new ]] && { echo "${candidates[0]}"; return; }
   for d in "${candidates[@]}"; do
     if [[ $(bp_engine "$1") == gecko ]]; then
       [[ -f $d/profiles.ini ]] && { echo "$d"; return; }
@@ -167,18 +169,20 @@ bp_running() {
   esac >/dev/null 2>&1
 }
 
-# A browser that has never run has no profile to restore into. One headless
-# start creates it, and the timeout ends it.
+# A browser that has never run has no profile to restore into. Chromium
+# adopts an empty Default folder and fills in the rest on its first start, so
+# that is all it needs; a Firefox-family browser has to write profiles.ini
+# itself, which one headless start does, and the timeout ends it.
 bp_first_run() {
   local key=$1 cmd
+  if [[ $(bp_engine "$key") == chromium ]]; then
+    mkdir -p "$(bp_root "$key" new)/Default"
+    return 0
+  fi
   cmd=$(bp_cmd "$key")
   have "$cmd" || return 0
   info "Starting $(bp_name "$key") once in the background to create its profile"
-  if [[ $(bp_engine "$key") == gecko ]]; then
-    timeout 25 "$cmd" --headless about:blank >/dev/null 2>&1 || true
-  else
-    timeout 20 "$cmd" --headless=new --no-first-run --disable-gpu about:blank >/dev/null 2>&1 || true
-  fi
+  timeout 25 "$cmd" --headless about:blank >/dev/null 2>&1 || true
   sleep 1
 }
 

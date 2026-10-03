@@ -540,7 +540,9 @@ PY
 merge_policy() {
   local file=$1 fragment=$2 merged
   (( DRY_RUN )) && { _log_raw "DRY   merge policy into $file"; return 0; }
-  merged=$(cat "$file" 2>/dev/null | python3 -c '
+  # A missing file is the normal first run; under pipefail a bare `cat` of it
+  # would fail the pipeline and, through set -e, end the whole install.
+  merged=$({ cat "$file" 2>/dev/null || true; } | python3 -c '
 import json, sys
 try:
     data = json.load(sys.stdin)

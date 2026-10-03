@@ -1,19 +1,19 @@
 diff --git a/src/backend/drm/impl/Atomic.cpp b/src/backend/drm/impl/Atomic.cpp
-index b136880..1c90ee0 100644
+index e47781b..eefed6b 100644
 --- a/src/backend/drm/impl/Atomic.cpp
 +++ b/src/backend/drm/impl/Atomic.cpp
-@@ -1,5 +1,6 @@
+@@ -1,6 +1,7 @@
  #include <aquamarine/backend/drm/Atomic.hpp>
+ #include <cerrno>
  #include <cstdint>
 +#include <cstdlib>
  #include <cstring>
  #include <drm_mode.h>
  #include <xf86drm.h>
-@@ -51,6 +52,33 @@ static uint8_t getMaxBPC(uint64_t min, uint64_t max, uint32_t drmFormat) {
+@@ -52,6 +53,32 @@ static uint8_t getMaxBPC(uint64_t min, uint64_t max, uint32_t drmFormat) {
      return std::clamp<uint64_t>(formatBPC, min, max);
  }
  
-+// Opt-in workaround for displays whose connector defaults to limited RGB.
 +// The value is an exact connector name (for example "DP-2") or "*".
 +// Keep this lookup local to the atomic implementation so the public ABI and
 +// SDRMConnector layout remain unchanged.
@@ -43,11 +43,10 @@ index b136880..1c90ee0 100644
  Aquamarine::CDRMAtomicRequest::CDRMAtomicRequest(Hyprutils::Memory::CWeakPointer<CDRMBackend> backend_) : backend(backend_), req(drmModeAtomicAlloc()) {
      if (!req)
          failed = true;
-@@ -190,6 +218,19 @@ void Aquamarine::CDRMAtomicRequest::addConnector(Hyprutils::Memory::CSharedPoint
+@@ -280,6 +307,18 @@ void Aquamarine::CDRMAtomicRequest::addConnector(Hyprutils::Memory::CSharedPoint
                  add(connector->id, connector->props.values.Colorspace, newColorspace);
          }
  
-+        // i915 exposes Broadcast RGB as Automatic=0, Full=1, Limited=2.
 +        // Submit Full in Aquamarine's atomic modeset, because external tools
 +        // cannot safely change a connector property owned by the compositor.
 +        const char* forceFullRGB = std::getenv("AQ_DRM_FORCE_FULL_RGB");
