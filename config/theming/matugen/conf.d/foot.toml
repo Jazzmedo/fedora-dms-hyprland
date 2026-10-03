@@ -1,3 +1,4 @@
 [templates.foot_dms]
 input_path = '~/.config/matugen/templates/foot-dms.ini'
 output_path = '~/.config/foot/dms-colors.ini'
+post_hook = '~/.config/hypr/scripts/foot-live-colors'

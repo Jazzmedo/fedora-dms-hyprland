@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# Push the DMS foot palette into foot windows that are already open.
+#
+# foot only reads foot.ini at startup, so a regenerated dms-colors.ini reaches
+# new windows only. Running ones are recoloured with OSC escape sequences
+# written to each window's terminal; that goes straight to foot, even when
+# tmux is attached in it.
+set -u
+
+ini="${XDG_CONFIG_HOME:-$HOME/.config}/foot/dms-colors.ini"
+[[ -f $ini ]] || exit 0
+
+seq=$(awk -F= '
+  { gsub(/[ \t]/, "", $1); gsub(/^[ \t]+|[ \t]+$/, "", $2) }
+  $1 ~ /^regular[0-7]$/ { printf "\033]4;%d;#%s\033\\", substr($1, 8), $2 }
+  $1 ~ /^bright[0-7]$/  { printf "\033]4;%d;#%s\033\\", substr($1, 7) + 8, $2 }
+  $1 == "foreground"           { printf "\033]10;#%s\033\\", $2 }
+  $1 == "background"           { printf "\033]11;#%s\033\\", $2 }
+  $1 == "selection-background" { printf "\033]17;#%s\033\\", $2 }
+  $1 == "selection-foreground" { printf "\033]19;#%s\033\\", $2 }
+  $1 == "cursor" { split($2, c, / +/); if (c[2] != "") printf "\033]12;#%s\033\\", c[2] }
+' "$ini")
+[[ -n $seq ]] || exit 0
+
+# Each foot window's terminal is the tty of the shell (or tmux client) it runs.
+for pid in $(pgrep -x foot); do
+  for tty in $(ps -o tty= --ppid "$pid" 2>/dev/null | sort -u); do
+    [[ $tty == pts/* && -w /dev/$tty ]] && printf '%s' "$seq" >"/dev/$tty" 2>/dev/null
+  done
+done
+exit 0
