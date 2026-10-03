@@ -193,14 +193,6 @@ group dev "Development tools"
 component mise        dev on  "mise"           "one version manager for Node, Python, Go, Rust, Java…"
 detect 'all_of "have mise || [[ -x $HOME/.local/bin/mise ]]"'
 
-component nvm         dev on  "nvm"            "Node version manager"
-detect 'all_of "[[ -d $HOME/.nvm ]]"'
-
-component pyenv       dev on  "pyenv"          "Python version manager, with pyenv-virtualenv"
-pkgs "python3-pip openssl-devel readline-devel zlib-devel bzip2-devel libffi-devel \
-      sqlite-devel xz-devel tk-devel"
-detect 'all_of "[[ -d $HOME/.pyenv ]]"'
-
 component uv          dev off "uv"             "fast Python package and project manager"
 pkgs "uv"
 

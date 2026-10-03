@@ -169,29 +169,6 @@ install_runtime_managers() {
     fi
   fi
 
-  if is_selected nvm; then
-    if [[ -d $HOME/.nvm ]]; then skip "nvm, the Node version manager, is already installed"
-    else
-      retry 2 git clone --depth 1 https://github.com/nvm-sh/nvm.git "$HOME/.nvm" \
-        && record file "$HOME/.nvm" \
-        && ok "Installed nvm, for managing Node versions" \
-        || soft_fail "Could not download nvm" "" "./install.sh --only=shell"
-    fi
-  fi
-
-  if is_selected pyenv; then
-    if [[ -d $HOME/.pyenv ]]; then skip "pyenv, the Python version manager, is already installed"
-    else
-      retry 2 git clone --depth 1 https://github.com/pyenv/pyenv.git "$HOME/.pyenv" \
-        && record file "$HOME/.pyenv" \
-        && ok "Installed pyenv, for managing Python versions" \
-        || soft_fail "Could not download pyenv" "" "./install.sh --only=shell"
-      [[ -d $HOME/.pyenv ]] && retry 2 git clone --depth 1 \
-        https://github.com/pyenv/pyenv-virtualenv.git "$HOME/.pyenv/plugins/pyenv-virtualenv" \
-        || true
-    fi
-  fi
-
   # pnpm's own installer edits .zshrc, which is a loader here; the standalone
   # binary from its releases needs nothing else.
   if is_selected pnpm; then
