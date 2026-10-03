@@ -41,7 +41,13 @@ stage_optional() {
   if is_selected niri; then
     if rpm_has niri; then
       deploy_tree "$REPO_DIR/config/desktop/niri" "$HOME/.config/niri"
-      ok "The niri session is set up. Pick it at the login screen if you want it."
+      if gpu_has_3d; then
+        ok "The niri session is set up. Pick it at the login screen if you want it."
+      else
+        soft_fail "The niri session will open to a black screen on this machine" \
+                  "niri needs 3D graphics and refuses software rendering; this GPU has no 3D. Hyprland works without it." \
+                  "In a VM, turn on 3D: virt-manager → Video Virtio → 3D acceleration, and Display Spice → Listen type None, OpenGL on"
+      fi
     else
       soft_fail "niri did not install, so that session is not available" "" "./install.sh --only=packages,optional"
     fi

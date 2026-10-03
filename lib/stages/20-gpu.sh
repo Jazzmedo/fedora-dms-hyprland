@@ -16,6 +16,20 @@ detect_gpu() {
   printf 'vm'
 }
 
+# Whether the GPU renders in hardware. niri, unlike Hyprland, refuses Mesa's
+# software renderer, so on a VM without 3D acceleration it starts with no
+# screen at all. A virtio GPU reports 3D as feature bit 0 (VIRGL); other
+# virtual GPUs are assumed to have none.
+gpu_has_3d() {
+  local d
+  for d in /sys/bus/virtio/devices/*; do
+    [[ $(cat "$d/device" 2>/dev/null) == 0x0010 ]] || continue
+    [[ $(head -c1 "$d/features" 2>/dev/null) == 1 ]]
+    return
+  done
+  [[ $(detect_gpu) != vm ]]
+}
+
 stage_gpu() {
   local card
   # `|| card=""` is load-bearing. grep exits 1 when it matches nothing, and a
