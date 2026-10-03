@@ -780,4 +780,43 @@ hl.bind("SUPER + SHIFT + G", quattro_toggle_pin, { description = "Show window on
 
 require("dms.windowrules")
 
+-- Your own rules live here, not in dms/windowrules.lua: DMS rewrites that file
+-- from its Settings and drops whatever it cannot show there.
+-- Codex animates Kitty's title with a braille spinner while it is working.
+-- Hyprland re-evaluates follow-mouse on every title update, which can steal
+-- focus back from DMS Settings (and scroll the vertical layout) even when the
+-- pointer has not moved. Ignore hover-focus only during those animated titles;
+-- clicking or keyboard focus still works normally.
+hl.window_rule({
+	name = "ignore-codex-kitty-spinner-hover-refocus",
+	match = {
+		class = "^kitty$",
+		title = "^[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏] @@USER@@$",
+	},
+	no_follow_mouse = true,
+})
+
+-- Follow links into the browser that handles them. Existing browser windows
+-- can request activation when a new tab is opened through xdg-open/portals.
+hl.window_rule({
+	name = "focus-browser-on-link-activation",
+	match = {
+		class = "^(zen|firefox|librewolf|helium|brave-origin|brave-browser|Brave-browser|chromium|Chromium|google-chrome|Google-chrome|vivaldi-stable|Vivaldi-stable)$",
+	},
+	focus_on_activate = true,
+})
+
+-- DMS reuses its Settings window. Let its activation request focus that
+-- existing window when opened from the bar, without enabling global focus
+-- stealing for other applications.
+hl.window_rule({
+	name = "focus-dms-settings-on-activate",
+	match = { class = "^com\\.danklinux\\.dms$", title = "^Settings$" },
+	focus_on_activate = true,
+})
+
+-- DMS/Quickshell surfaces should appear immediately and receive blur normally.
+hl.layer_rule({ match = { namespace = "^(quickshell)$" }, no_anim = true })
+hl.layer_rule({ match = { namespace = "^dms:.*" }, no_anim = true })
+
 require("dms-theme-sync")

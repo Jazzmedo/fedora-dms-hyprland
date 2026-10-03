@@ -4,6 +4,6 @@ return {
 	workspace_layouts = {
 		["2"] = "dwindle",
 	},
-	gaps_in = 15,
-	gaps_out = 34,
+	gaps_in = 7,
+	gaps_out = 26,
 }
