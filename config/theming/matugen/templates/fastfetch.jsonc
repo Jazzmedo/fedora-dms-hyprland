@@ -9,11 +9,15 @@
 {
     "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
     "logo": {
-        "type": "builtin",
-        "source": "Fedora_small",
+        // A water drop seen from above, Nothing dot-matrix style: the drop
+        // and the first ripple in the theme accent ($1), the outer ripples
+        // in the text colour ($2), the dots shrinking as the rings spread.
+        // "$1"/"$2" are fastfetch's logo-file colour placeholders.
+        "type": "file",
+        "source": "~/.config/fastfetch/ripple-logo.txt",
         "padding": {
-            // Sinks the nine-line logo to the middle of the specs beside it.
-            "top": 7,
+            // Sinks the 15-line ripple to the middle of the specs beside it.
+            "top": 3,
             "right": 3
         },
         "color": {

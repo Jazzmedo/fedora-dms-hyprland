@@ -20,6 +20,14 @@ stage_apps() {
     # foot.ini includes the DMS palette and foot will not start without it;
     # matugen replaces this seed on the first theme change.
     deploy_seed "$REPO_DIR/config/terminal/foot/seed/dms-colors.ini" "$HOME/.config/foot/dms-colors.ini"
+    # foot 1.26 renamed [colors] to [colors-dark] and warns on every start
+    # about the old name; 1.25 and older reject the new one. Fedora 43 ships
+    # 1.24 and Fedora 44 1.26, so follow whichever is installed.
+    local fv; fv=$(foot --version 2>/dev/null | awk '{print $3}')
+    if [[ -n $fv && $(printf '%s\n' 1.26 "$fv" | sort -V | head -1) == 1.26 ]]; then
+      run sed -i 's/^\[colors\]$/[colors-dark]/' \
+        "$HOME/.config/matugen/templates/foot-dms.ini" "$HOME/.config/foot/dms-colors.ini"
+    fi
     ok "Set up the foot terminal"
   fi
 
