@@ -132,9 +132,9 @@ pkgs "pipewire pipewire-pulseaudio pipewire-alsa pipewire-utils \
       wireplumber pavucontrol alsa-utils"
 detect 'all_of "pkg_installed pipewire" "pkg_installed wireplumber" "pkg_installed pavucontrol"' 
 
-component apps_base   base base "kitty · foot · Zen · Dolphin" "default terminal, browser, file manager"
-pkgs "kitty foot dolphin kf6-kio kf6-kservice ffmpegthumbs kdegraphics-thumbnailers"
-detect 'all_of "pkg_installed kitty" "pkg_installed foot" "pkg_installed dolphin" "[[ -x /opt/zen/zen ]]" \
+component apps_base   base base "Zen · Dolphin" "default browser, file manager"
+pkgs "dolphin kf6-kio kf6-kservice ffmpegthumbs kdegraphics-thumbnailers"
+detect 'all_of "pkg_installed dolphin" "[[ -x /opt/zen/zen ]]" \
                "[[ -f $HOME/.config/mimeapps.list ]]"' 
 
 component fonts       base base "Nothing fonts"   "Ndot 55/57, NType 82, JetBrainsMono Nerd Font, Arabic faces"
@@ -145,6 +145,17 @@ detect 'all_of "fc-list | grep -q \"Ndot 57\"" \
                "[[ -f /etc/fonts/local.conf ]] && grep -q \"Kawkab Mono\" /etc/fonts/local.conf"' 
 
 # ---------------------------------------------------------------------------
+# Tick one or both. With both, the installer asks which is the default:
+# SUPER+Return opens it, SUPER+SHIFT+Return the other one.
+group terminal "Terminal (one or both)"
+
+component term_foot   terminal on "foot"  "fast, minimal Wayland terminal; recoloured live on theme change"
+pkgs "foot"
+detect 'all_of "pkg_installed foot" "[[ -f $HOME/.config/foot/foot.ini ]]"'
+component term_kitty  terminal on "kitty" "GPU terminal with tabs and a cursor trail"
+pkgs "kitty"
+detect 'all_of "pkg_installed kitty" "[[ -f $HOME/.config/kitty/kitty.conf ]]"'
+
 group shell "Shell & development"
 
 component zsh         shell on  "zsh + oh-my-zsh"  "zsh, oh-my-zsh, autosuggestions, syntax highlighting"

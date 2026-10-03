@@ -54,6 +54,7 @@ artifact_home_paths() {
     "$HOME/.oh-my-zsh"
     "$HOME/.config/starship.toml"
     "$HOME/.config/kitty"
+    "$HOME/.config/foot"
     "$HOME/.config/tmux"
     "$HOME/.config/yazi"
     "$HOME/.config/btop"

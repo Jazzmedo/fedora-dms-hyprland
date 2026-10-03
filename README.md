@@ -24,7 +24,7 @@ touched before Enter, and the password is asked once.
 
 Three ship, and switching between them recolours **everything at once** through
 [matugen](https://github.com/InioX/matugen): the shell, GTK 3/4, Qt 5/6, KDE
-apps, kitty, Neovim, btop, cava, fastfetch, starship, tmux, Zen, OBS, Obsidian
+apps, foot, kitty, Neovim, btop, cava, fastfetch, starship, tmux, Zen, OBS, Obsidian
 and Vesktop.
 
 🔴 **Nothing Matrix** · 🟣 **Catppuccin** · 🟠 **Gruvbox Material**
@@ -47,7 +47,7 @@ startup, so it changes at the next launch.
 | 🎛️ **Shell**    | DankMaterialShell: bar, launcher, notifications, control centre, lock screen, nine plugins                    |
 | 🖼️ **Theming**  | matugen everywhere, themed wallpapers, matching login screen, optional boot splash                            |
 | ⌨️ **Terminal** | zsh, oh-my-zsh, starship, fastfetch greeting, tmux, yazi, eza/bat/ripgrep/fd/fzf                              |
-| 📦 **Apps**     | kitty, Zen, Dolphin, Helium, Brave, Vesktop, Obsidian, OBS, qBittorrent, mpv, Strawberry, CLIAMP, EasyEffects |
+| 📦 **Apps**     | foot and/or kitty (you pick the default), Zen, Dolphin, Helium, Brave, Vesktop, Obsidian, OBS, qBittorrent, mpv, Strawberry, CLIAMP, EasyEffects |
 | 🧑‍💻 **Dev**      | Neovim + LazyVim, podman, pyenv, nvm, rustup, Go, yt-dlp                                                      |
 | 🔒 **Services** | Tailscale, Cloudflare WARP, a niri session, system tweaks                                                     |
 

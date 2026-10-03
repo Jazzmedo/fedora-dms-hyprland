@@ -209,7 +209,7 @@ hl.bind("SUPER + N", exec("helium"), { description = "Open Helium browser" })  -
 hl.unbind("SUPER + O")
 hl.bind("SUPER + O", exec("obsidian"), { description = "Open Obsidian" })  -- @component:obsidian
 hl.unbind("SUPER + Return")
-hl.bind("SUPER + Return", exec("foot"), { description = "Open Foot terminal" })
+hl.bind("SUPER + Return", exec("@@TERMINAL@@"), { description = "Open terminal" })
 hl.unbind("SUPER + SHIFT + B")
 hl.bind("SUPER + SHIFT + B", exec("brave-origin-stable --incognito"), { description = "Open Brave private window" })  -- @component:brave
 hl.unbind("SUPER + SHIFT + N")
@@ -219,9 +219,9 @@ hl.bind("SUPER + SHIFT + Z", exec("flatpak run com.github.wwmm.easyeffects --loa
 hl.bind("SUPER + SHIFT + C", exec("@@HOME@@/.local/bin/easyeffects-toggle-preset"), { description = "EasyEffects: cycle output preset" })  -- @component:easyeffects
 hl.unbind("SUPER + SHIFT + O")
 hl.unbind("SUPER + SHIFT + Return")
-hl.bind("SUPER + SHIFT + Return", exec("kitty"), { description = "Open Kitty terminal" })
-hl.unbind("SUPER + CTRL + SHIFT + Return")
-hl.bind("SUPER + CTRL + SHIFT + Return", exec("foot tmux"), { description = "Open tmux in Foot" })
+hl.bind("SUPER + SHIFT + Return", exec("@@ALT_TERMINAL@@"), { description = "Open the other terminal" })
+hl.unbind("SUPER + CTRL + SHIFT + Return")  -- @component:mux
+hl.bind("SUPER + CTRL + SHIFT + Return", exec("@@TERMINAL@@ tmux"), { description = "Open tmux in the terminal" })  -- @component:mux
 hl.unbind("SUPER + SHIFT + T")
 hl.unbind("SUPER + SHIFT + X")
 hl.unbind("SUPER + SHIFT + Z")

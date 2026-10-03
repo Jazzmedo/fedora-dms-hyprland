@@ -393,6 +393,7 @@ ui_show_plan() {
   printf '\n  %sHere is what will happen%s\n\n' "$C_BOLD" "$C_OFF"
   _plan_row "Graphics"  "${GPU_VENDOR}"
   _plan_row "Windows"   "arranged the ${HYPR_LAYOUT} way"
+  _plan_row "Terminal"  "${DEFAULT_TERMINAL:-foot} opens with SUPER+Return"
   _plan_row "Screens"   "${OUTPUT_SUMMARY:-worked out while installing}"
   _plan_row "Steps"     "${#STAGES_TO_RUN[@]} of them, about 15-40 minutes"
   _plan_row "Backups"   "$( (( NO_BACKUP )) && echo "off" || echo "replaced files go to ~/.fedora-nothing-backup/" )"

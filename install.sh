@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # fedora-nothing — turn a barebones Fedora into the Nothing-styled Hyprland
 # desktop: Hyprland, DankMaterialShell and its plugins, the Nothing login
-# theme, Ndot 57 as the system font, and kitty/Zen/Dolphin as the defaults.
+# theme, Ndot 57 as the system font, and foot or kitty/Zen/Dolphin as the defaults.
 #
 #   ./install.sh                    pick components interactively, then install
 #   ./install.sh --yes              install the defaults, no prompts
@@ -27,6 +27,8 @@ GPU_VENDOR=""
 GPU_VENDOR_FLAG=""
 HYPR_LAYOUT="scrolling"
 LAYOUT_FLAG=""
+DEFAULT_TERMINAL=""
+TERMINAL_FLAG=""
 RESET_SELECTION=0
 ONLY=""
 SKIP=""
@@ -44,7 +46,7 @@ usage() {
   cat <<'EOF'
 fedora-nothing — turns a barebones Fedora into the Nothing desktop: the
 Hyprland window manager, the DankMaterialShell bar and widgets, the Nothing
-login screen and typefaces, and kitty, Zen and Dolphin as the defaults.
+login screen and typefaces, and foot or kitty, Zen and Dolphin as the defaults.
 
   ./install.sh                    choose what to install, then install it
   ./install.sh --yes              install the usual set, ask nothing
@@ -59,6 +61,7 @@ Options:
   --preset=NAME         minimal | standard | full
   --gpu=VENDOR          amd | intel | nvidia | vm   (default: detected)
   --layout=NAME         scrolling | dwindle          (default: scrolling)
+  --terminal=NAME       foot | kitty: the default when both are ticked
   --only=A,B            run only these stages
   --skip=A,B            run everything except these stages
   --dry-run             print what would happen, change nothing
@@ -80,6 +83,7 @@ for arg in "$@"; do
     --preset=*)      PRESET=${arg#*=} ;;
     --gpu=*)         GPU_VENDOR=${arg#*=}; GPU_VENDOR_FLAG=1 ;;
     --layout=*)      HYPR_LAYOUT=${arg#*=}; LAYOUT_FLAG=1 ;;
+    --terminal=*)    DEFAULT_TERMINAL=${arg#*=}; TERMINAL_FLAG=1 ;;
     --only=*)        ONLY=${arg#*=} ;;
     --skip=*)        SKIP=${arg#*=} ;;
     --list-stages)   printf '%s\n' "${ALL_STAGES[@]}"; exit 0 ;;
@@ -174,6 +178,7 @@ load_selection() {
     # A flag given on the command line has to win over a remembered value.
     [[ $k == gpu=* ]]    && { [[ -z $GPU_VENDOR_FLAG ]] && GPU_VENDOR=${k#gpu=}; continue; }
     [[ $k == layout=* ]] && { [[ -z $LAYOUT_FLAG ]] && HYPR_LAYOUT=${k#layout=}; continue; }
+    [[ $k == terminal=* ]] && { [[ -z $TERMINAL_FLAG ]] && DEFAULT_TERMINAL=${k#terminal=}; continue; }
     [[ -n ${COMPONENT_NAME[$k]:-} ]] && select_component "$k"
   done < "$SELECTION_FILE"
   return 0
@@ -186,6 +191,7 @@ save_selection() {
     echo "# Written by fedora-nothing. Re-running the installer reuses this."
     echo "gpu=$GPU_VENDOR"
     echo "layout=$HYPR_LAYOUT"
+    echo "terminal=$DEFAULT_TERMINAL"
     local k
     for k in "${COMPONENT_ORDER[@]}"; do
       component_locked "$k" && continue
@@ -231,6 +237,8 @@ choose_components() {
     info "Gear Lever only comes as a Flatpak, so Flatpak was switched on too"
   fi
 
+  choose_default_terminal
+
   # Summarise the displays for the plan; the hyprland stage re-reads them.
   detect_outputs
   local i parts=()
@@ -238,6 +246,35 @@ choose_components() {
     parts+=("${OUTPUT_NAMES[i]} ${OUTPUT_MODES[i]} ${OUTPUT_ORIENT[i]}")
   done
   OUTPUT_SUMMARY=$(printf '%s, ' "${parts[@]}"); OUTPUT_SUMMARY=${OUTPUT_SUMMARY%, }
+}
+
+# At least one terminal is installed. With both, one is the default: it is
+# what SUPER+Return, the niri bind and "open a terminal" requests launch.
+choose_default_terminal() {
+  if ! is_selected term_foot && ! is_selected term_kitty; then
+    select_component term_foot
+    info "No terminal was ticked, so foot will be installed"
+  fi
+  if is_selected term_foot && is_selected term_kitty; then
+    if [[ $DEFAULT_TERMINAL != foot && $DEFAULT_TERMINAL != kitty ]]; then
+      DEFAULT_TERMINAL=foot
+      if [[ -t 0 ]] && ! (( ASSUME_YES )) && [[ -z $PRESET ]]; then
+        local reply
+        printf '  %s?%s Both terminals are ticked. Which should be the default? [F]oot / [k]itty ' "$C_RED" "$C_OFF"
+        read -r reply
+        [[ $reply == [kK]* ]] && DEFAULT_TERMINAL=kitty
+      fi
+    fi
+  elif is_selected term_kitty; then
+    DEFAULT_TERMINAL=kitty
+  else
+    DEFAULT_TERMINAL=foot
+  fi
+  TPL_TERMINAL=$DEFAULT_TERMINAL
+  TPL_ALT_TERMINAL=$DEFAULT_TERMINAL
+  if is_selected term_foot && is_selected term_kitty; then
+    [[ $DEFAULT_TERMINAL == foot ]] && TPL_ALT_TERMINAL=kitty || TPL_ALT_TERMINAL=foot
+  fi
 }
 
 # A component that is already installed stays selected even if it is absent

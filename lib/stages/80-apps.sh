@@ -5,15 +5,17 @@ ZEN_INSTALL_DIR=/opt/zen
 HELIUM_INSTALL_DIR=/opt/helium
 
 stage_apps() {
-  local k="$REPO_DIR/config/terminal/kitty"
-  deploy_tree "$k" "$HOME/.config/kitty"
-  # kitty.conf includes both of these unconditionally, so they have to exist,
-  # but the desktop shell rewrites them on every theme change. Seeded once.
-  deploy_seed "$k/seed/dank-theme.conf" "$HOME/.config/kitty/dank-theme.conf"
-  deploy_seed "$k/seed/dank-tabs.conf"  "$HOME/.config/kitty/dank-tabs.conf"
-  ok "Set up the kitty terminal"
+  if is_selected term_kitty; then
+    local k="$REPO_DIR/config/terminal/kitty"
+    deploy_tree "$k" "$HOME/.config/kitty"
+    # kitty.conf includes both of these unconditionally, so they have to exist,
+    # but the desktop shell rewrites them on every theme change. Seeded once.
+    deploy_seed "$k/seed/dank-theme.conf" "$HOME/.config/kitty/dank-theme.conf"
+    deploy_seed "$k/seed/dank-tabs.conf"  "$HOME/.config/kitty/dank-tabs.conf"
+    ok "Set up the kitty terminal"
+  fi
 
-  if have foot; then
+  if is_selected term_foot; then
     deploy_tree "$REPO_DIR/config/terminal/foot" "$HOME/.config/foot"
     # foot.ini includes the DMS palette and foot will not start without it;
     # matugen replaces this seed on the first theme change.
@@ -182,7 +184,7 @@ application/x-extension-xhtml=app.zen_browser.zen.desktop
 inode/directory=org.kde.dolphin.desktop
 x-scheme-handler/file=org.kde.dolphin.desktop
 
-x-scheme-handler/terminal=kitty.desktop
+x-scheme-handler/terminal=$TPL_TERMINAL.desktop
 application/x-shellscript=$text
 text/plain=$text
 text/markdown=$text
@@ -224,5 +226,5 @@ EOF
   # Dolphin, Ark and friends read the plasma-prefixed menu, which only exists
   # once kbuildsycoca6 has run against this session's XDG_MENU_PREFIX.
   have kbuildsycoca6 && run kbuildsycoca6 --noincremental 2>/dev/null
-  ok "Zen opens links, Dolphin opens folders, kitty opens terminals"
+  ok "Zen opens links, Dolphin opens folders, $TPL_TERMINAL opens terminals"
 }

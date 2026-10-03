@@ -7,8 +7,8 @@ config/desktop/systemd-user	.config/systemd/user	core
 config/shell-ui/DankMaterialShell/settings.json	.config/DankMaterialShell/settings.json	core
 config/shell-ui/DankMaterialShell/plugin_settings.json	.config/DankMaterialShell/plugin_settings.json	core
 config/shell-ui/DankMaterialShell/themes	.config/DankMaterialShell/themes	core
-config/terminal/kitty	.config/kitty	apps_base
-config/terminal/foot	.config/foot	apps_base
+config/terminal/kitty	.config/kitty	term_kitty
+config/terminal/foot	.config/foot	term_foot
 config/editor/nvim	.config/nvim	editor
 config/shell/zshrc.d	.config/zsh/zshrc.d	zsh
 config/shell/starship.toml	.config/starship.toml	prompt

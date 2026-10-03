@@ -388,6 +388,8 @@ backup_path() {
 : "${TPL_USER:=$USER}"
 : "${TPL_MONITOR:=}"
 : "${TPL_ZEN_PROFILE:=}"
+: "${TPL_TERMINAL:=foot}"
+: "${TPL_ALT_TERMINAL:=$TPL_TERMINAL}"
 : "${TPL_OBSIDIAN_VAULT:=$HOME/Documents/Obsidian}"
 
 # Rewrite @@PLACEHOLDER@@ in a text file, in place.
@@ -397,6 +399,8 @@ apply_template() {
     -e "s|@@HOME@@|$TPL_HOME|g" \
     -e "s|@@USER@@|$TPL_USER|g" \
     -e "s|@@MONITOR@@|$TPL_MONITOR|g" \
+    -e "s|@@ALT_TERMINAL@@|$TPL_ALT_TERMINAL|g" \
+    -e "s|@@TERMINAL@@|$TPL_TERMINAL|g" \
     -e "s|@@ZEN_PROFILE@@|$TPL_ZEN_PROFILE|g" \
     -e "s|@@OBSIDIAN_VAULT@@|$TPL_OBSIDIAN_VAULT|g" \
     "$f"
