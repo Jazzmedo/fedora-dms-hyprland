@@ -208,6 +208,20 @@ install_runtime_managers() {
     fi
   fi
 
+  # pipx keeps yt-dlp in its own environment and updates it with
+  # `pipx upgrade yt-dlp`, which matters: sites break old releases quickly.
+  if is_selected ytdlp; then
+    if [[ -x $HOME/.local/bin/yt-dlp ]]; then skip "yt-dlp is already installed"
+    elif have pipx; then
+      run pipx install yt-dlp \
+        && record file "$HOME/.local/bin/yt-dlp" \
+        && ok "Installed yt-dlp through pipx" \
+        || soft_fail "Could not install yt-dlp" "pipx could not download it." "pipx install yt-dlp"
+    else
+      soft_fail "Could not install yt-dlp" "pipx is not installed." "sudo dnf install pipx && pipx install yt-dlp"
+    fi
+  fi
+
   if is_selected rust; then
     if have rustup || [[ -d $HOME/.cargo ]]; then skip "The Rust toolchain is already installed"
     elif rpm_has cargo; then skip "Rust is already installed through Fedora"
