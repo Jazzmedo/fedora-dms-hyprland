@@ -139,9 +139,9 @@ detect 'all_of "pkg_installed dolphin" \
 
 component fonts       base base "Nothing fonts"   "Ndot 55/57, NType 82, JetBrainsMono Nerd Font, Arabic faces"
 pkgs "fontconfig google-noto-sans-fonts google-noto-emoji-fonts ibm-plex-sans-arabic-fonts"
-detect 'all_of "fc-list | grep -q \"Ndot 57\"" \
-               "fc-list | grep -q \"JetBrainsMono Nerd Font\"" \
-               "fc-list | grep -q \"Kawkab Mono\"" \
+detect 'all_of "fc-list | grep \"Ndot 57\" >/dev/null" \
+               "fc-list | grep \"JetBrainsMono Nerd Font\" >/dev/null" \
+               "fc-list | grep \"Kawkab Mono\" >/dev/null" \
                "[[ -f /etc/fonts/local.conf ]] && grep -q \"Kawkab Mono\" /etc/fonts/local.conf"' 
 
 # ---------------------------------------------------------------------------

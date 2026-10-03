@@ -437,7 +437,9 @@ install_aquamarine_rgb_full() {
   # A matching SONAME is not proof the pair works, but a mismatched one is proof
   # it does not: the session would quietly load the packaged library instead.
   local needs
-  needs=$(objdump -p /usr/bin/Hyprland 2>/dev/null | awk '/NEEDED.*libaquamarine/{print $2; exit}')
+  # awk reads to the end on purpose: an early exit sends objdump SIGPIPE, which
+  # pipefail turns into a failed assignment and set -e into a dead installer.
+  needs=$(objdump -p /usr/bin/Hyprland 2>/dev/null | awk '/NEEDED.*libaquamarine/ && !n++ {print $2}')
   if [[ -n $needs && ! -e $libdir/$needs ]]; then
     warn "Hyprland wants $needs, which this build did not produce; the colour fix may not load"
   fi
@@ -484,7 +486,9 @@ EOF
 # and re-running has to give the packages back.
 remove_aquamarine_pin() {
   have dnf || return 0
-  dnf versionlock list 2>/dev/null | grep -q '^hyprland' || return 0
+  # grep without -q: -q stops at the first match, dnf gets SIGPIPE, and under
+  # pipefail a held Hyprland would read as not held.
+  dnf versionlock list 2>/dev/null | grep '^hyprland' >/dev/null || return 0
   if (( DRY_RUN )); then
     info "Would let Hyprland be updated again"
     return 0
