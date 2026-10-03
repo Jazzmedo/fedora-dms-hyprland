@@ -42,6 +42,18 @@ stage_repos() {
     fi
   fi
 
+  if is_selected docker; then
+    if [[ -f /etc/yum.repos.d/docker-ce.repo ]]; then
+      skip "Docker already has a download source"
+    else
+      as_root dnf config-manager addrepo --from-repofile=https://download.docker.com/linux/fedora/docker-ce.repo \
+        && record repofile /etc/yum.repos.d/docker-ce.repo \
+        || soft_fail "Could not reach Docker's download source" \
+              "Their server did not respond." \
+              "./install.sh --only=repos,packages"
+    fi
+  fi
+
   if is_selected vivaldi; then
     if [[ -f /etc/yum.repos.d/vivaldi-fedora.repo ]]; then
       skip "Vivaldi already has a download source"

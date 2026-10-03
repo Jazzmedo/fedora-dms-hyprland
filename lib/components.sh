@@ -186,12 +186,45 @@ component mux         shell on  "tmux"             "terminal multiplexer, matuge
 pkgs "tmux"
 detect 'all_of "pkg_installed tmux" "[[ -d $HOME/.config/tmux ]]"' 
 
-component devtools    shell on  "language runtimes" "podman, pyenv, nvm, rustup, go, yt-dlp"
-detect 'all_of "pkg_installed podman" "[[ -d $HOME/.nvm ]]" "[[ -d $HOME/.pyenv ]]" \
-               "have cargo" "pkg_installed golang"' 
-pkgs "podman podman-compose golang yt-dlp python3-pip \
-      openssl-devel readline-devel zlib-devel bzip2-devel libffi-devel \
+# ---------------------------------------------------------------------------
+# Version managers, package managers and containers, one row each.
+group dev "Development tools"
+
+component mise        dev on  "mise"           "one version manager for Node, Python, Go, Rust, Java…"
+detect 'all_of "have mise || [[ -x $HOME/.local/bin/mise ]]"'
+
+component nvm         dev on  "nvm"            "Node version manager"
+detect 'all_of "[[ -d $HOME/.nvm ]]"'
+
+component pyenv       dev on  "pyenv"          "Python version manager, with pyenv-virtualenv"
+pkgs "python3-pip openssl-devel readline-devel zlib-devel bzip2-devel libffi-devel \
       sqlite-devel xz-devel tk-devel"
+detect 'all_of "[[ -d $HOME/.pyenv ]]"'
+
+component uv          dev off "uv"             "fast Python package and project manager"
+pkgs "uv"
+
+component pipx        dev off "pipx"           "Python command-line apps, each in its own environment"
+pkgs "pipx"
+
+component pnpm        dev off "pnpm"           "fast, disk-efficient Node package manager"
+detect 'all_of "have pnpm || [[ -x $HOME/.local/bin/pnpm ]]"'
+
+component rust        dev on  "Rust + cargo"   "rustup toolchain manager"
+detect 'all_of "have cargo || [[ -x $HOME/.cargo/bin/cargo ]]"'
+
+component golang      dev on  "Go"             "Go toolchain"
+pkgs "golang"
+
+component podman      dev on  "Podman"         "rootless containers, podman-compose"
+pkgs "podman podman-compose"
+
+component docker      dev off "Docker + Compose" "Docker Engine, docker compose and buildx, from Docker's repo"
+pkgs "docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin"
+detect 'all_of "pkg_installed docker-ce" "pkg_installed docker-compose-plugin"'
+
+component ytdlp       dev on  "yt-dlp"         "video and audio downloader"
+pkgs "yt-dlp"
 
 # ---------------------------------------------------------------------------
 # Tick one or more. With several, the installer asks which is the default: it

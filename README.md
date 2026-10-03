@@ -48,7 +48,7 @@ startup, so it changes at the next launch.
 | 🖼️ **Theming**  | matugen everywhere, themed wallpapers, matching login screen, optional boot splash                            |
 | ⌨️ **Terminal** | zsh, oh-my-zsh, starship, fastfetch greeting, tmux, yazi, eza/bat/ripgrep/fd/fzf                              |
 | 📦 **Apps**     | foot and/or kitty, any of Zen, Firefox, LibreWolf, Brave, Brave Origin, Vivaldi and Helium (you pick the default of each), Dolphin, Vesktop, Obsidian, OBS, qBittorrent, mpv, Strawberry, CLIAMP, EasyEffects |
-| 🧑‍💻 **Dev**      | Neovim + LazyVim, podman, pyenv, nvm, rustup, Go, yt-dlp                                                      |
+| 🧑‍💻 **Dev**      | Neovim + LazyVim; pick any of mise, nvm, pyenv, uv, pipx, pnpm, Rust, Go, Podman, Docker, yt-dlp              |
 | 🔒 **Services** | Tailscale, Cloudflare WARP, a niri session, system tweaks                                                     |
 
 Everything outside the base desktop is optional and shown in the checklist.

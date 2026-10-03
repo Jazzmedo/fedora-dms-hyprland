@@ -159,38 +159,82 @@ ensure_starship() {
 }
 
 install_runtime_managers() {
-  is_selected devtools || return 0
-
-  if [[ -d $HOME/.nvm ]]; then skip "nvm, the Node version manager, is already installed"
-  else
-    retry 2 git clone --depth 1 https://github.com/nvm-sh/nvm.git "$HOME/.nvm" \
-      && record file "$HOME/.nvm" \
-      && ok "Installed nvm, for managing Node versions" \
-      || soft_fail "Could not download nvm" "" "./install.sh --only=shell"
+  if is_selected mise; then
+    if have mise || [[ -x $HOME/.local/bin/mise ]]; then skip "mise is already installed"
+    else
+      run_visible bash -c 'curl -fsSL https://mise.run | MISE_INSTALL_PATH="$HOME/.local/bin/mise" sh' \
+        && record file "$HOME/.local/bin/mise" \
+        && ok "Installed mise, for managing tool versions" \
+        || soft_fail "Could not install mise" "Its installer could not be downloaded." "./install.sh --only=shell"
+    fi
   fi
 
-  if [[ -d $HOME/.pyenv ]]; then skip "pyenv, the Python version manager, is already installed"
-  else
-    retry 2 git clone --depth 1 https://github.com/pyenv/pyenv.git "$HOME/.pyenv" \
-      && record file "$HOME/.pyenv" \
-      && ok "Installed pyenv, for managing Python versions" \
-      || soft_fail "Could not download pyenv" "" "./install.sh --only=shell"
-    [[ -d $HOME/.pyenv ]] && retry 2 git clone --depth 1 \
-      https://github.com/pyenv/pyenv-virtualenv.git "$HOME/.pyenv/plugins/pyenv-virtualenv" \
-      || true
+  if is_selected nvm; then
+    if [[ -d $HOME/.nvm ]]; then skip "nvm, the Node version manager, is already installed"
+    else
+      retry 2 git clone --depth 1 https://github.com/nvm-sh/nvm.git "$HOME/.nvm" \
+        && record file "$HOME/.nvm" \
+        && ok "Installed nvm, for managing Node versions" \
+        || soft_fail "Could not download nvm" "" "./install.sh --only=shell"
+    fi
   fi
 
-  if have rustup || [[ -d $HOME/.cargo ]]; then skip "The Rust toolchain is already installed"
-  elif rpm_has cargo; then skip "Rust is already installed through Fedora"
-  else
-    run_visible bash -c 'curl --proto =https --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path' \
-      || soft_fail "Could not install Rust" "The installer script failed to download." "./install.sh --only=shell"
+  if is_selected pyenv; then
+    if [[ -d $HOME/.pyenv ]]; then skip "pyenv, the Python version manager, is already installed"
+    else
+      retry 2 git clone --depth 1 https://github.com/pyenv/pyenv.git "$HOME/.pyenv" \
+        && record file "$HOME/.pyenv" \
+        && ok "Installed pyenv, for managing Python versions" \
+        || soft_fail "Could not download pyenv" "" "./install.sh --only=shell"
+      [[ -d $HOME/.pyenv ]] && retry 2 git clone --depth 1 \
+        https://github.com/pyenv/pyenv-virtualenv.git "$HOME/.pyenv/plugins/pyenv-virtualenv" \
+        || true
+    fi
   fi
 
-  if user_bus_ok; then
-    run systemctl --user enable --now podman.socket 2>/dev/null && record unit-user podman.socket || true
-  else
-    enable_user_unit podman.socket && record unit-user podman.socket || true
+  # pnpm's own installer edits .zshrc, which is a loader here; the standalone
+  # binary from its releases needs nothing else.
+  if is_selected pnpm; then
+    if have pnpm || [[ -x $HOME/.local/bin/pnpm ]]; then skip "pnpm is already installed"
+    else
+      local arch=x64; [[ $(uname -m) == aarch64 ]] && arch=arm64
+      run mkdir -p "$HOME/.local/bin"
+      retry 2 curl -fsSL -o "$HOME/.local/bin/pnpm" \
+          "https://github.com/pnpm/pnpm/releases/latest/download/pnpm-linux-$arch" \
+        && run chmod +x "$HOME/.local/bin/pnpm" \
+        && record file "$HOME/.local/bin/pnpm" \
+        && ok "Installed pnpm" \
+        || soft_fail "Could not download pnpm" "" "./install.sh --only=shell"
+    fi
   fi
-  ok "The version managers for Node, Python and Rust are ready"
+
+  if is_selected rust; then
+    if have rustup || [[ -d $HOME/.cargo ]]; then skip "The Rust toolchain is already installed"
+    elif rpm_has cargo; then skip "Rust is already installed through Fedora"
+    else
+      run_visible bash -c 'curl --proto =https --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path' \
+        && ok "Installed Rust and cargo" \
+        || soft_fail "Could not install Rust" "The installer script failed to download." "./install.sh --only=shell"
+    fi
+  fi
+
+  if is_selected podman; then
+    if user_bus_ok; then
+      run systemctl --user enable --now podman.socket 2>/dev/null && record unit-user podman.socket || true
+    else
+      enable_user_unit podman.socket && record unit-user podman.socket || true
+    fi
+  fi
+
+  # Membership of the docker group takes effect at the next login.
+  if is_selected docker && have docker; then
+    as_root systemctl enable --now docker && record unit-system docker || true
+    if id -nG "$USER" | grep -qw docker; then skip "You are already in the docker group"
+    else
+      as_root usermod -aG docker "$USER" \
+        && ok "Docker is running; log out and back in to use it without sudo" \
+        || soft_fail "Could not add you to the docker group" "" "sudo usermod -aG docker $USER"
+    fi
+  fi
+  return 0
 }

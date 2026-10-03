@@ -188,6 +188,8 @@ load_selection() {
     [[ $k == layout=* ]] && { [[ -z $LAYOUT_FLAG ]] && HYPR_LAYOUT=${k#layout=}; continue; }
     [[ $k == terminal=* ]] && { [[ -z $TERMINAL_FLAG ]] && DEFAULT_TERMINAL=${k#terminal=}; continue; }
     [[ $k == browser=* ]]  && { [[ -z $BROWSER_FLAG ]] && DEFAULT_BROWSER=${k#browser=}; continue; }
+    # "devtools" was one row before each tool got its own.
+    [[ $k == devtools ]] && { for k in mise nvm pyenv rust golang podman ytdlp; do select_component "$k"; done; continue; }
     [[ -n ${COMPONENT_NAME[$k]:-} ]] && select_component "$k"
   done < "$SELECTION_FILE"
   return 0
