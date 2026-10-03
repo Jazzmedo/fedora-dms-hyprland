@@ -1,11 +1,12 @@
 // Rewritten by matugen on every DMS theme change; edit this file, not the copy
 // at ~/.config/fastfetch/config.jsonc.
 //
-// No frames. One vertical rule in the theme's accent colour runs from the top
-// row to the bottom, with the names on its left and the values on its right.
-// Every key is padded by hand to the same character count, which is what keeps
-// the rule straight; fastfetch's own keyWidth aligns the value column instead
-// and leaves the separator wherever the name happens to end.
+// No frames and no section titles. Each row is a name, a nerd-font dot in
+// the accent colour, then the value.  The dot echoes Nothing OS's
+// dot-matrix motif, the same idea as the Ndot 57 shell font. Every key is padded by hand to the same
+// character count, which is what keeps the chevrons in a straight column;
+// fastfetch's own keyWidth aligns the value column instead and leaves the
+// separator wherever the name happens to end.
 {
     "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
     "logo": {
@@ -16,8 +17,9 @@
         "type": "file",
         "source": "~/.config/fastfetch/ripple-logo.txt",
         "padding": {
-            // Sinks the 15-line ripple to the middle of the specs beside it.
-            "top": 3,
+            // No blank rows between groups, so the info (15 rows with one GPU
+            // and one disk) and the 15-line ripple stand side by side.
+            "top": 0,
             "right": 3
         },
         "color": {
@@ -27,96 +29,23 @@
     },
     "display": {
         "separator": "  ",
-        "color": {
-            "keys": "white"
-        },
+        "color": { "keys": "white" },
         "brightColor": false
     },
     "modules": [
-        "break",
-        {
-            "type": "custom",
-            "format": "",
-            "key": "\u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m\u001b[1mHARDWARE     \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m│\u001b[0m"
-        },
-        {
-            "type": "os",
-            "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  OS        \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m│\u001b[0m"
-        },
-        {
-            "type": "host",
-            "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  Host      \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m│\u001b[0m"
-        },
-        {
-            "type": "kernel",
-            "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  Kernel    \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m│\u001b[0m"
-        },
-        {
-            "type": "cpu",
-            "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  CPU       \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m│\u001b[0m"
-        },
-        {
-            "type": "gpu",
-            "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  GPU       \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m│\u001b[0m",
-            "detectionMethod": "all"
-        },
-        {
-            "type": "memory",
-            "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  Memory    \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m│\u001b[0m"
-        },
-        {
-            "type": "disk",
-            "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  Disk      \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m│\u001b[0m",
-            "folders": "/"
-        },
-        {
-            "type": "custom",
-            "format": "",
-            "key": "             \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m│\u001b[0m"
-        },
-        {
-            "type": "custom",
-            "format": "",
-            "key": "\u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m\u001b[1mDESKTOP      \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m│\u001b[0m"
-        },
-        {
-            "type": "de",
-            "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  Desktop   \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m│\u001b[0m"
-        },
-        {
-            "type": "wm",
-            "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  Session   \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m│\u001b[0m"
-        },
-        {
-            "type": "display",
-            "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  Display   \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m│\u001b[0m",
-            "compactType": "original-with-refresh-rate"
-        },
-        {
-            "type": "custom",
-            "format": "",
-            "key": "             \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m│\u001b[0m"
-        },
-        {
-            "type": "custom",
-            "format": "",
-            "key": "\u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m\u001b[1mSYSTEM       \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m│\u001b[0m"
-        },
-        {
-            "type": "packages",
-            "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  Packages  \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m│\u001b[0m"
-        },
-        {
-            "type": "uptime",
-            "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  Uptime    \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m│\u001b[0m"
-        },
-        {
-            "type": "disk",
-            "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  Age       \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m│\u001b[0m",
-            "keyIcon": "󰃭",
-            "folders": "/",
-            "format": "{create-time:10} [{days} days]"
-        },
-        "break"
+        { "type": "os", "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  Linux    \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m\u001b[0m" },
+        { "type": "host", "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  Laptop   \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m\u001b[0m" },
+        { "type": "kernel", "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  Kernel   \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m\u001b[0m" },
+        { "type": "cpu", "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  CPU      \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m\u001b[0m" },
+        { "type": "memory", "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  RAM      \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m\u001b[0m" },
+        { "type": "gpu", "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  GPU      \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m\u001b[0m", "detectionMethod": "all" },
+        { "type": "disk", "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  Disk     \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m\u001b[0m", "folders": "/" },
+        { "type": "command", "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m  Desktop  \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m\u001b[0m", "text": "echo \"$(dms version | sed 's/^dms /DankMaterialShell /') (Quickshell $(qs --version | cut -d' ' -f2))\"" },
+        { "type": "wm", "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  Session  \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m\u001b[0m" },
+        { "type": "display", "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  Display  \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m\u001b[0m", "compactType": "original-with-refresh-rate" },
+        { "type": "terminal", "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  Terminal \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m\u001b[0m" },
+        { "type": "packages", "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  Packages \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m\u001b[0m" },
+        { "type": "uptime", "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  Uptime   \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m\u001b[0m" },
+        { "type": "disk", "key": "\u001b[38;2;{{colors.on_surface.default.red}};{{colors.on_surface.default.green}};{{colors.on_surface.default.blue}}m{icon}  OS Age   \u001b[38;2;{{colors.primary.default.red}};{{colors.primary.default.green}};{{colors.primary.default.blue}}m\u001b[0m", "keyIcon": "󰃭", "folders": "/", "format": "{create-time:10} [{days} days]" }
     ]
 }
