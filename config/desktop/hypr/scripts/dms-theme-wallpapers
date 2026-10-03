@@ -183,3 +183,13 @@ if (( applied == 0 )); then
   log "no wallpaper applied; will retry"
   exit 1
 fi
+
+# DMS draws the global wallpaper until it has matched each screen to its saved
+# monitor name, and that is empty in per-monitor mode, so every login began with
+# DMS's own default wallpaper. The IPC refuses to set it in that mode; DMS
+# reloads the file when it changes, so it is written there.
+session="${XDG_STATE_HOME:-$HOME/.local/state}/DankMaterialShell/session.json"
+if [[ -f "$session" ]] && [[ "$(jq -r '.wallpaperPath // ""' "$session")" != "$horizontal" ]]; then
+  jq --arg p "$horizontal" '.wallpaperPath = $p' "$session" > "$session.tmp" \
+    && mv "$session.tmp" "$session" || rm -f "$session.tmp"
+fi
