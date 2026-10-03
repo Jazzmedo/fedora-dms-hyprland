@@ -108,7 +108,8 @@ EOF
 # one headless start creates it, and the colour config is rebuilt with it.
 #
 # Chromium-based browsers cannot load a stylesheet. They are switched to the
-# GTK theme instead, which DMS recolours on every theme change.
+# system theme instead, which DMS recolours on every theme change: Qt for Brave
+# and Brave Origin, GTK for the others.
 theme_browsers() {
   (( DRY_RUN )) && { info "Would theme the browsers from your DMS colours"; return 0; }
   local k new=0 names=()
@@ -130,7 +131,7 @@ theme_browsers() {
       fi
       enable_user_stylesheets "$k"
     else
-      chromium_follow_gtk "$k" || continue
+      chromium_follow_system "$k" || continue
     fi
     names+=("$(bp_name "$k")")
   done
@@ -157,24 +158,26 @@ gecko_profile() {
 }
 
 # Chromium keeps the choice in its Preferences file, which it rewrites on exit,
-# so this only touches a browser that is closed. system_theme 1 is GTK, and
-# clearing the theme id drops a Web Store theme that would cover it.
-chromium_follow_gtk() {
+# so this only touches a browser that is closed. system_theme 1 is GTK and 2 is
+# Qt; clearing the theme id drops a Web Store theme that would cover it.
+chromium_follow_system() {
   local k=$1 p name; name=$(bp_name "$k")
   p=$(bp_profile "$k") || { bp_first_run "$k"; p=$(bp_profile "$k"); } || return 1
   if bp_running "$k"; then
     warn "$name is open, so it was not switched to your DMS colours; close it and run ./install.sh --only=apps"
     return 1
   fi
+  local mode=1
+  [[ $k == brave || $k == brave_origin ]] && mode=2
   [[ -f $p/Preferences ]] && backup_path "$p/Preferences"
-  python3 - "$p/Preferences" <<'PY'
+  python3 - "$p/Preferences" "$mode" <<'PY'
 import json, sys
-f = sys.argv[1]
+f, mode = sys.argv[1], int(sys.argv[2])
 try:
     d = json.load(open(f))
 except (OSError, ValueError):
     d = {}
-d.setdefault('extensions', {}).setdefault('theme', {}).update(id='', system_theme=1)
+d.setdefault('extensions', {}).setdefault('theme', {}).update(id='', system_theme=mode)
 d.setdefault('browser', {}).setdefault('theme', {})['follows_system_colors'] = True
 json.dump(d, open(f, 'w'))
 PY
