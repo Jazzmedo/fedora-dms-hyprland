@@ -65,6 +65,8 @@ install_matugen_config() {
           # create that directory to write the output into it, leaving Zen a
           # brand-new empty profile to open instead of the real one.
           zen)  { is_selected zen && [[ -d $(detect_zen_profile) ]]; } || continue ;;
+          # The same guard, for the same reason: no profile, no fragment.
+          firefox|librewolf) { is_selected "$key" && bp_profile "$key" >/dev/null; } || continue ;;
           # Theming only: never emitted on a machine that has no spicetify.
           spicetify) { is_selected spicetify && spicetify_present; } || continue ;;
           foot) is_selected term_foot || continue ;;
@@ -80,6 +82,12 @@ install_matugen_config() {
     # and creating that would give Zen an empty profile to open.
     [[ -d $TPL_ZEN_PROFILE ]] && run mkdir -p "$TPL_ZEN_PROFILE/chrome"
     apply_template "$dest/config.toml"
+    local k profile
+    for k in firefox librewolf; do
+      profile=$(bp_profile "$k") || continue
+      run mkdir -p "$profile/chrome"
+      sed -i "s|@@${k^^}_PROFILE@@|$profile|g" "$dest/config.toml"
+    done
   fi
   ok "Set up the colour generator, so apps recolour when you change theme"
 }

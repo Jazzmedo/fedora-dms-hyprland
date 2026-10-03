@@ -1,0 +1,9 @@
+# The browser's own interface, from the same templates as Zen's; the Zen-only
+# variables in them are ignored. @@FIREFOX_PROFILE@@ is resolved at deploy time.
+[templates.firefox_userchrome]
+input_path = '~/.config/matugen/templates/zen-userchrome.css'
+output_path = '@@FIREFOX_PROFILE@@/chrome/userChrome.css'
+
+[templates.firefox_usercontent]
+input_path = '~/.config/matugen/templates/zen-usercontent.css'
+output_path = '@@FIREFOX_PROFILE@@/chrome/userContent.css'

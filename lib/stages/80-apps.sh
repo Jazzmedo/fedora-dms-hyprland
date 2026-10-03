@@ -36,10 +36,10 @@ stage_apps() {
   # A fixed audio buffer: stops crackling when apps pick tiny ones under load.
   deploy_tree "$REPO_DIR/config/apps/pipewire" "$HOME/.config/pipewire"
 
-  is_selected zen      && { install_zen; ensure_zen_profile; }
-  is_selected zen      && enable_user_stylesheets
-  is_selected zen && is_selected zen_sites && install_zen_site_theming
+  is_selected zen      && install_zen
   is_selected helium   && { install_helium; write_helium_desktop; }
+  theme_browsers
+  is_selected zen && is_selected zen_sites && install_zen_site_theming
   is_selected vesktop  && install_github_rpm Vencord/Vesktop  'vesktop.*\.x86_64\.rpm$' vesktop  Vesktop
   is_selected obsidian && install_github_rpm obsidianmd/obsidian-releases 'obsidian-[0-9.]+\.rpm$' obsidian Obsidian
   install_app_configs
@@ -99,25 +99,85 @@ EOF
   ok "Zen now appears in the app launcher"
 }
 
-# The theme stage runs before Zen is installed, so on a first install Zen has
-# no profile and the colour generator's config leaves it out. One headless
-# start creates the profile; the config is then rebuilt with Zen in it and, if
-# the desktop shell is running, the colours are generated straight away.
-ensure_zen_profile() {
-  (( DRY_RUN )) && return 0
-  [[ -d $(detect_zen_profile) ]] && return 0
-  info "Starting Zen once in the background to create its profile"
-  timeout 25 "$ZEN_INSTALL_DIR/zen" --headless about:blank >/dev/null 2>&1 || true
-  if [[ ! -d $(detect_zen_profile) ]]; then
-    warn "Zen did not create a profile; open it once, then run ./install.sh --only=themes,apps"
-    return 0
+# Every installed browser's own interface follows the DMS palette, and a theme
+# change shows the next time it starts.
+#
+# Zen, Firefox and LibreWolf load the userChrome.css and userContent.css that
+# matugen writes into their profile. The theme stage runs before the browsers
+# are installed, so a browser that has never run has no profile for them yet:
+# one headless start creates it, and the colour config is rebuilt with it.
+#
+# Chromium-based browsers cannot load a stylesheet. They are switched to the
+# GTK theme instead, which DMS recolours on every theme change.
+theme_browsers() {
+  (( DRY_RUN )) && { info "Would theme the browsers from your DMS colours"; return 0; }
+  local k new=0 names=()
+  for k in "${BP_BROWSERS[@]}"; do
+    is_selected "$k" || continue
+    if [[ $(bp_engine "$k") == gecko ]]; then
+      if ! gecko_profile "$k" >/dev/null; then
+        if [[ $k == zen ]]; then
+          info "Starting Zen once in the background to create its profile"
+          timeout 25 "$ZEN_INSTALL_DIR/zen" --headless about:blank >/dev/null 2>&1 || true
+        else
+          bp_first_run "$k"
+        fi
+        if ! gecko_profile "$k" >/dev/null; then
+          warn "$(bp_name "$k") did not create a profile; open it once, then run ./install.sh --only=themes,apps"
+          continue
+        fi
+        new=1
+      fi
+      enable_user_stylesheets "$k"
+    else
+      chromium_follow_gtk "$k" || continue
+    fi
+    names+=("$(bp_name "$k")")
+  done
+  if (( new )); then
+    install_matugen_config
+    local mode
+    mode=$(dms ipc call theme getMode 2>/dev/null) && [[ $mode == dark || $mode == light ]] \
+      && dms ipc call theme "$mode" >/dev/null 2>&1
   fi
-  install_matugen_config
-  local mode
-  mode=$(dms ipc call theme getMode 2>/dev/null) && [[ $mode == dark || $mode == light ]] \
-    && dms ipc call theme "$mode" >/dev/null 2>&1 \
-    && ok "Generated Zen's colours from your current theme"
+  (( ${#names[@]} )) && ok "Following your DMS colours from their next start: $(printf '%s, ' "${names[@]}" | sed 's/, $//')"
   return 0
+}
+
+# Zen's profile is found the way the colour config finds it; the others
+# through profiles.ini.
+gecko_profile() {
+  local p
+  if [[ $1 == zen ]]; then
+    p=$(detect_zen_profile)
+    [[ -d $p ]] && printf '%s' "$p"
+  else
+    bp_profile "$1"
+  fi
+}
+
+# Chromium keeps the choice in its Preferences file, which it rewrites on exit,
+# so this only touches a browser that is closed. system_theme 1 is GTK, and
+# clearing the theme id drops a Web Store theme that would cover it.
+chromium_follow_gtk() {
+  local k=$1 p name; name=$(bp_name "$k")
+  p=$(bp_profile "$k") || { bp_first_run "$k"; p=$(bp_profile "$k"); } || return 1
+  if bp_running "$k"; then
+    warn "$name is open, so it was not switched to your DMS colours; close it and run ./install.sh --only=apps"
+    return 1
+  fi
+  [[ -f $p/Preferences ]] && backup_path "$p/Preferences"
+  python3 - "$p/Preferences" <<'PY'
+import json, sys
+f = sys.argv[1]
+try:
+    d = json.load(open(f))
+except (OSError, ValueError):
+    d = {}
+d.setdefault('extensions', {}).setdefault('theme', {}).update(id='', system_theme=1)
+d.setdefault('browser', {}).setdefault('theme', {})['follows_system_colors'] = True
+json.dump(d, open(f, 'w'))
+PY
 }
 
 # Websites in Zen take their colours from the DMS palette. Catppuccin's
@@ -397,33 +457,20 @@ EOF
 # own defaults, which survive a profile reset, and into an existing profile,
 # for an AppImage install that cannot be changed in place.
 enable_user_stylesheets() {
-  local pref='toolkit.legacyUserProfileCustomizations.stylesheets'
+  local k=$1 pref='toolkit.legacyUserProfileCustomizations.stylesheets'
 
-  if (( DRY_RUN )); then
-    info "Would let the browser load the generated colours"
-    return 0
-  fi
-
-  if [[ -d $ZEN_INSTALL_DIR/defaults/pref ]]; then
+  if [[ $k == zen && -d $ZEN_INSTALL_DIR/defaults/pref ]]; then
     printf '// Added by fedora-nothing: load the generated userChrome/userContent styles.\npref("%s", true);\n' "$pref" \
       | as_root tee "$ZEN_INSTALL_DIR/defaults/pref/fedora-nothing-userchrome.js" >/dev/null
     record file "$ZEN_INSTALL_DIR/defaults/pref/fedora-nothing-userchrome.js"
   fi
 
-  # Only an existing profile. Never create one: detect_zen_profile falls back
-  # to ~/.zen/default, and making that directory gives Zen a brand-new empty
-  # profile to open instead of the real one.
-  local profile; profile=$(detect_zen_profile)
-  if [[ ! -d $profile ]]; then
-    info "The browser has no profile yet; re-run ./install.sh --only=themes,apps after its first start"
-    return 0
-  fi
+  local profile; profile=$(gecko_profile "$k") || return 0
   if ! grep -qs "$pref" "$profile/user.js"; then
     backup_path "$profile/user.js"
     printf '\n// Added by fedora-nothing: load the generated userChrome/userContent styles.\nuser_pref("%s", true);\n' \
       "$pref" >> "$profile/user.js"
   fi
-  ok "The browser will load the generated colours"
 }
 
 # Spotify's colours come from the matugen template; spicetify is what puts

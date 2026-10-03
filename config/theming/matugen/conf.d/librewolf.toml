@@ -1,0 +1,9 @@
+# The browser's own interface, from the same templates as Zen's; the Zen-only
+# variables in them are ignored. @@LIBREWOLF_PROFILE@@ is resolved at deploy time.
+[templates.librewolf_userchrome]
+input_path = '~/.config/matugen/templates/zen-userchrome.css'
+output_path = '@@LIBREWOLF_PROFILE@@/chrome/userChrome.css'
+
+[templates.librewolf_usercontent]
+input_path = '~/.config/matugen/templates/zen-usercontent.css'
+output_path = '@@LIBREWOLF_PROFILE@@/chrome/userContent.css'
