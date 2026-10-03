@@ -231,6 +231,7 @@ SYSTEM_PREFIXES=(
   /etc/opt/vivaldi/
   /opt/zen
   /opt/helium
+  /opt/aquamarine-rgb-full
 )
 
 # Directories in $HOME that hold the user's own documents. A ledger entry

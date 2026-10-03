@@ -1,0 +1,65 @@
+diff --git a/src/backend/drm/impl/Atomic.cpp b/src/backend/drm/impl/Atomic.cpp
+index b136880..1c90ee0 100644
+--- a/src/backend/drm/impl/Atomic.cpp
++++ b/src/backend/drm/impl/Atomic.cpp
+@@ -1,5 +1,6 @@
+ #include <aquamarine/backend/drm/Atomic.hpp>
+ #include <cstdint>
++#include <cstdlib>
+ #include <cstring>
+ #include <drm_mode.h>
+ #include <xf86drm.h>
+@@ -51,6 +52,33 @@ static uint8_t getMaxBPC(uint64_t min, uint64_t max, uint32_t drmFormat) {
+     return std::clamp<uint64_t>(formatBPC, min, max);
+ }
+ 
++// Opt-in workaround for displays whose connector defaults to limited RGB.
++// The value is an exact connector name (for example "DP-2") or "*".
++// Keep this lookup local to the atomic implementation so the public ABI and
++// SDRMConnector layout remain unchanged.
++static uint32_t getConnectorPropertyID(int fd, uint32_t connectorID, const char* name) {
++    drmModeObjectProperties* properties = drmModeObjectGetProperties(fd, connectorID, DRM_MODE_OBJECT_CONNECTOR);
++    if (!properties)
++        return 0;
++
++    uint32_t propertyID = 0;
++    for (uint32_t i = 0; i < properties->count_props; ++i) {
++        drmModePropertyRes* property = drmModeGetProperty(fd, properties->props[i]);
++        if (!property)
++            continue;
++
++        if (std::strcmp(property->name, name) == 0)
++            propertyID = property->prop_id;
++
++        drmModeFreeProperty(property);
++        if (propertyID)
++            break;
++    }
++
++    drmModeFreeObjectProperties(properties);
++    return propertyID;
++}
++
+ Aquamarine::CDRMAtomicRequest::CDRMAtomicRequest(Hyprutils::Memory::CWeakPointer<CDRMBackend> backend_) : backend(backend_), req(drmModeAtomicAlloc()) {
+     if (!req)
+         failed = true;
+@@ -190,6 +218,19 @@ void Aquamarine::CDRMAtomicRequest::addConnector(Hyprutils::Memory::CSharedPoint
+                 add(connector->id, connector->props.values.Colorspace, newColorspace);
+         }
+ 
++        // i915 exposes Broadcast RGB as Automatic=0, Full=1, Limited=2.
++        // Submit Full in Aquamarine's atomic modeset, because external tools
++        // cannot safely change a connector property owned by the compositor.
++        const char* forceFullRGB = std::getenv("AQ_DRM_FORCE_FULL_RGB");
++        if (forceConnProps && forceFullRGB && (std::strcmp(forceFullRGB, "*") == 0 || connector->szName == forceFullRGB)) {
++            const uint32_t broadcastRGB = getConnectorPropertyID(backend->gpu->fd, connector->id, "Broadcast RGB");
++            if (broadcastRGB) {
++                add(connector->id, broadcastRGB, 1);
++                backend->log(AQ_LOG_DEBUG, std::format("drm: forcing Broadcast RGB Full on {}", connector->szName));
++            } else
++                backend->log(AQ_LOG_WARNING, std::format("drm: {} has no Broadcast RGB connector property", connector->szName));
++        }
++
+         if (connector->props.values.hdr_output_metadata && data.atomic.hdrd)
+             add(connector->id, connector->props.values.hdr_output_metadata, data.atomic.hdrBlob);
+     } else

@@ -244,7 +244,6 @@ detect 'all_of "[[ -f $HOME/.mozilla/native-messaging-hosts/matugenfox.json ]]" 
 # node builds the styles; zip packs the extension.
 pkgs "nodejs npm python3 zip curl"
 
-
 # ---------------------------------------------------------------------------
 group apps "Applications"
 
@@ -329,6 +328,31 @@ component tweaks      services off "System tweaks"   "search engine policy, mDNS
 detect 'all_of "[[ -f /etc/sysctl.d/99-usb-copy-fix.conf ]]" \
                "grep -q mdns4_minimal /etc/nsswitch.conf" \
                "[[ -f /etc/zen/policies/policies.json ]]"' 
+
+# A screen driven at limited RGB range looks washed out, and Hyprland offers no
+# way to change it: the range is a DRM connector property its backend leaves at
+# the driver's automatic choice, and setting it from outside does not stick,
+# because the compositor rewrites connector state on its next commit. So this
+# builds a patched aquamarine from source and runs it through a second login
+# entry. Off by default: it compiles a library, and most screens are fine.
+#
+# Only the link dependencies are listed. The compiler, cmake, ninja and git all
+# arrive with `core`, which is always installed. The versionlock plugin is here
+# rather than in `core` so that a machine which never picks this component is
+# never in a position to hold packages back.
+#
+# See docs/aquamarine-rgb-full.md.
+component aquamarine  services off "Full RGB colour fix" "rebuilds Hyprland's display backend so an external screen is not washed out"
+pkgs "libdrm-devel mesa-libgbm-devel mesa-libEGL-devel libseat-devel libinput-devel \
+      libdisplay-info-devel hwdata-devel wayland-devel pixman-devel \
+      hyprutils-devel hyprwayland-scanner python3-dnf-plugin-versionlock"
+# The third test names the staged library after the *installed* aquamarine, so
+# an update that moves the package reports partial -- "built, but needs
+# rebuilding" -- instead of a misleading installed.
+detect 'all_of "[[ -x /usr/local/bin/hyprland-rgb-full ]]" \
+               "[[ -f /usr/share/wayland-sessions/hyprland-rgb-full.desktop ]]" \
+               "[[ -e /opt/aquamarine-rgb-full/lib64/libaquamarine.so.$(rpm -q --qf %{VERSION} aquamarine 2>/dev/null) \
+                || -e /opt/aquamarine-rgb-full/lib/libaquamarine.so.$(rpm -q --qf %{VERSION} aquamarine 2>/dev/null) ]]"'
 
 # ---------------------------------------------------------------------------
 group layout "Tiling layout (pick one)"

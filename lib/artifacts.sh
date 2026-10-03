@@ -141,7 +141,10 @@ artifact_system_paths() {
     /etc/brave/policies/managed/searxng_policy.json \
     /etc/opt/chrome/policies/managed/searxng_policy.json \
     /etc/opt/vivaldi/policies/managed/searxng_policy.json \
-    /etc/helium/policies/managed/searxng_policy.json
+    /etc/helium/policies/managed/searxng_policy.json \
+    /opt/aquamarine-rgb-full \
+    /usr/local/bin/hyprland-rgb-full \
+    /usr/share/wayland-sessions/hyprland-rgb-full.desktop
 }
 
 # Services started when you log in. Read from the repository, plus the ones

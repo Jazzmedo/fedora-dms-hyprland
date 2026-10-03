@@ -38,6 +38,13 @@ stage_hyprland() {
   # stage that installs the shell, which now runs before this one.
   fix_dms_service_path
   install_session_entry
+  # The pin this installs holds Hyprland back, so it is tied to the component:
+  # deselecting it on a later run releases the packages again.
+  if is_selected aquamarine; then
+    install_aquamarine_rgb_full
+  else
+    remove_aquamarine_pin
+  fi
   install_hyprgrass
 }
 
@@ -320,4 +327,169 @@ install_hyprgrass() {
                 "Everything else works. To retry: ./install.sh --only=hyprland"
     fi
   fi
+}
+
+# ------------------------------------------------- full RGB colour fix ---
+# A screen driven at limited RGB range looks washed out. The range lives in the
+# DRM connector property "Broadcast RGB", which Hyprland does not expose and
+# which cannot usefully be set from outside: aquamarine owns the connector and
+# rewrites its state on the next atomic commit. So the choice has to be made
+# inside that commit, which means a patched aquamarine.
+#
+# The packaged library is never touched. The build is installed into its own
+# prefix and reached through LD_LIBRARY_PATH from a second login entry, so the
+# ordinary Hyprland session stays exactly as it was and is the way back.
+#
+# See docs/aquamarine-rgb-full.md.
+AQ_RGB_PREFIX=/opt/aquamarine-rgb-full
+AQ_RGB_WRAPPER=/usr/local/bin/hyprland-rgb-full
+AQ_RGB_SESSION=/usr/share/wayland-sessions/hyprland-rgb-full.desktop
+
+# Which screen to force to full range. The patch takes one connector name, or
+# "*" for every connector that has the property.
+aquamarine_connector() {
+  [[ -n ${AQ_FULL_RGB_CONNECTOR:-} ]] && { printf '%s' "$AQ_FULL_RGB_CONNECTOR"; return 0; }
+
+  (( ${#OUTPUT_NAMES[@]} )) || detect_outputs
+
+  # Only an external screen can be washed out this way, and detect_outputs has
+  # already discarded connectors that merely report a 640x480 fallback.
+  local -a external=() name
+  for name in "${OUTPUT_NAMES[@]}"; do
+    case $name in eDP-*|LVDS-*|DSI-*|Virtual-*) continue ;; esac
+    external+=("$name")
+  done
+
+  # With nothing obvious to pick, "*" is the safe answer rather than the broad
+  # one: the patch does nothing on a connector without the property, and this
+  # way a monitor plugged in later is still covered.
+  (( ${#external[@]} == 1 )) && { printf '%s' "${external[0]}"; return 0; }
+  printf '*'
+}
+
+install_aquamarine_rgb_full() {
+  # The patched library has to match the packaged one it stands in for.
+  local ver; ver=$(rpm -q --qf '%{VERSION}' aquamarine 2>/dev/null) || ver=""
+  if [[ -z $ver ]]; then
+    skip "The full RGB colour fix needs the aquamarine package, which is not installed"
+    return 0
+  fi
+
+  local libdir="$AQ_RGB_PREFIX/lib64"
+  [[ -d $libdir ]] || libdir="$AQ_RGB_PREFIX/lib"
+  if [[ -e $libdir/libaquamarine.so.$ver ]]; then
+    skip "The full RGB colour fix is already built for aquamarine $ver"
+    return 0
+  fi
+
+  local conn; conn=$(aquamarine_connector)
+
+  # Guarded by hand: run() would cover the commands, but not the ten minutes.
+  if (( DRY_RUN )); then
+    info "Would build the full RGB colour fix for aquamarine $ver, for screen $conn"
+    return 0
+  fi
+
+  have git && have cmake || {
+    soft_fail "Could not build the full RGB colour fix" \
+              "It is compiled from source, and git or cmake is missing." \
+              "sudo dnf install git cmake && ./install.sh --only=hyprland"
+    return 0
+  }
+
+  local src="$HOME/.cache/fedora-nothing/aquamarine"
+  run rm -rf "$src"
+  info "Building the full RGB colour fix. This takes a minute or two."
+  if ! retry 3 git clone --depth 1 --branch "v$ver" \
+       https://github.com/hyprwm/aquamarine "$src"; then
+    soft_fail "Could not download the display backend's source" \
+              "Its version v$ver could not be fetched, so the colour fix was not built." \
+              "./install.sh --only=hyprland"
+    return 0
+  fi
+
+  # Checked before applying: when upstream moves this file, the patch has to be
+  # ported by hand, and saying so is far better than a confusing build error.
+  local patch="$REPO_DIR/assets/aquamarine-rgb-full/broadcast-rgb-full.patch"
+  if ! git -C "$src" apply --check "$patch" 2>/dev/null; then
+    soft_fail "The full RGB colour fix does not apply to aquamarine $ver" \
+              "Its source has changed upstream, so the patch has to be updated by hand." \
+              "See docs/aquamarine-rgb-full.md; everything else was installed"
+    return 0
+  fi
+  run git -C "$src" apply "$patch"
+
+  if ! run_visible cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release \
+         -DCMAKE_INSTALL_PREFIX:PATH="$AQ_RGB_PREFIX" -S "$src" -B "$src/build" \
+     || ! run_visible cmake --build "$src/build" --config Release \
+            --target aquamarine -j"$(nproc 2>/dev/null || echo 4)"; then
+    soft_fail "The full RGB colour fix did not build" \
+              "Some of its development libraries are probably missing." \
+              "Re-run ./install.sh --only=hyprland; the ordinary Hyprland session is unaffected"
+    return 0
+  fi
+
+  as_root cmake --install "$src/build"
+  record file "$AQ_RGB_PREFIX"
+  libdir="$AQ_RGB_PREFIX/lib64"
+  [[ -d $libdir ]] || libdir="$AQ_RGB_PREFIX/lib"
+
+  # A matching SONAME is not proof the pair works, but a mismatched one is proof
+  # it does not: the session would quietly load the packaged library instead.
+  local needs
+  needs=$(objdump -p /usr/bin/Hyprland 2>/dev/null | awk '/NEEDED.*libaquamarine/{print $2; exit}')
+  if [[ -n $needs && ! -e $libdir/$needs ]]; then
+    warn "Hyprland wants $needs, which this build did not produce; the colour fix may not load"
+  fi
+
+  as_root tee "$AQ_RGB_WRAPPER" >/dev/null <<EOF
+#!/bin/sh
+# Generated by fedora-nothing: Hyprland with full RGB range on $conn.
+#
+# Change the screen by editing the line below and logging in again; no rebuild
+# is needed. "*" covers every screen that supports the setting.
+export AQ_DRM_FORCE_FULL_RGB=$conn
+export LD_LIBRARY_PATH=$libdir\${LD_LIBRARY_PATH:+:\$LD_LIBRARY_PATH}
+exec Hyprland "\$@"
+EOF
+  as_root chmod 755 "$AQ_RGB_WRAPPER"
+  record file "$AQ_RGB_WRAPPER"
+
+  # A second entry, not a replacement: the plain Hyprland session stays on the
+  # login screen and is what to pick if this one ever fails to start.
+  as_root tee "$AQ_RGB_SESSION" >/dev/null <<'EOF'
+[Desktop Entry]
+Name=Hyprland (Full RGB)
+Comment=Hyprland with the full-range colour fix for an external screen
+Exec=hyprland-rgb-full
+TryExec=hyprland-rgb-full
+Type=Application
+DesktopNames=Hyprland
+EOF
+  record file "$AQ_RGB_SESSION"
+
+  # Held only now, with a working build in place. Hyprland and aquamarine are a
+  # matched pair: an updated Hyprland against this library can fail to start.
+  if have dnf; then
+    backup_path /etc/dnf/plugins/versionlock.list
+    as_root dnf versionlock add hyprland aquamarine >/dev/null 2>&1 \
+      && info "Hyprland and its display backend are held together; see docs/aquamarine-rgb-full.md to update them" \
+      || warn "Could not hold Hyprland and aquamarine at their current versions"
+  fi
+
+  ok "Full RGB colour fix ready: pick \"Hyprland (Full RGB)\" at the login screen ($conn)"
+}
+
+# The hold belongs to the component, not to the machine: deselecting the option
+# and re-running has to give the packages back.
+remove_aquamarine_pin() {
+  have dnf || return 0
+  dnf versionlock list 2>/dev/null | grep -q '^hyprland' || return 0
+  if (( DRY_RUN )); then
+    info "Would let Hyprland be updated again"
+    return 0
+  fi
+  as_root dnf versionlock delete hyprland aquamarine >/dev/null 2>&1 \
+    && ok "Hyprland and its display backend can be updated again"
+  return 0
 }
