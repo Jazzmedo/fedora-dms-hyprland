@@ -33,6 +33,10 @@ install_wallpapers() {
   # outputs when a vertical set is absent, so empty vertical/ dirs are fine.
 }
 
+# spicetify is never installed by this repository; it is detected. Both places
+# it can live: on PATH, and the fixed path its own installer uses.
+spicetify_present() { have spicetify || [[ -x $HOME/.spicetify/spicetify ]]; }
+
 # matugen's config is assembled from fragments so a deselected app does not
 # leave a template writing into a directory that will never exist.
 install_matugen_config() {
@@ -61,6 +65,8 @@ install_matugen_config() {
           # create that directory to write the output into it, leaving Zen a
           # brand-new empty profile to open instead of the real one.
           zen)  { is_selected zen && [[ -d $(detect_zen_profile) ]]; } || continue ;;
+          # Theming only: never emitted on a machine that has no spicetify.
+          spicetify) { is_selected spicetify && spicetify_present; } || continue ;;
           foot) is_selected term_foot || continue ;;
           *)    is_selected "$key"    || continue ;;
         esac

@@ -43,6 +43,7 @@ stage_apps() {
   is_selected vesktop  && install_github_rpm Vencord/Vesktop  'vesktop.*\.x86_64\.rpm$' vesktop  Vesktop
   is_selected obsidian && install_github_rpm obsidianmd/obsidian-releases 'obsidian-[0-9.]+\.rpm$' obsidian Obsidian
   install_app_configs
+  is_selected spicetify && install_spicetify_theme
   write_mimeapps
   # Last, so every browser is installed and can be started once if needed.
   [[ -n $BROWSER_BACKUP ]] && bp_restore_for_install "$BROWSER_BACKUP"
@@ -423,4 +424,51 @@ enable_user_stylesheets() {
       "$pref" >> "$profile/user.js"
   fi
   ok "The browser will load the generated colours"
+}
+
+# Spotify's colours come from the matugen template; spicetify is what puts
+# them into Spotify. Nothing here installs Spotify or spicetify: without them
+# this is a no-op, and the matugen fragment is left out of config.toml too.
+install_spicetify_theme() {
+  spicetify_present || { skip "Spotify colour theming needs spicetify, which is not installed"; return 0; }
+
+  local cfg="$HOME/.config/spicetify/config-xpui.ini"
+  [[ -f $cfg ]] || { skip "spicetify has not been set up yet, so Spotify keeps its own colours"; return 0; }
+
+  # The theme directory has to exist before spicetify will accept the name,
+  # and matugen has not written a palette yet on a first install. Seeded once
+  # with Spotify's own colours; every theme change afterwards rewrites it.
+  deploy_seed "$REPO_DIR/config/apps/spicetify/seed/color.ini" \
+              "$HOME/.config/spicetify/Themes/dms/color.ini"
+  record file "$HOME/.config/spicetify/Themes/dms"
+
+  if grep -qE '^[[:space:]]*current_theme[[:space:]]*=[[:space:]]*dms[[:space:]]*$' "$cfg" \
+  && grep -qE '^[[:space:]]*color_scheme[[:space:]]*=[[:space:]]*dms[[:space:]]*$'  "$cfg"; then
+    skip "Spotify already follows your desktop colours"
+    return 0
+  fi
+
+  if (( DRY_RUN )); then
+    info "Would point Spotify at your desktop colours"
+    return 0
+  fi
+
+  backup_path "$cfg"
+  if ! run spicetify config current_theme dms color_scheme dms; then
+    soft_fail "Could not point Spotify at your colours" \
+              "spicetify would not accept the theme name." \
+              "spicetify config current_theme dms color_scheme dms && spicetify apply"
+    return 0
+  fi
+
+  # apply, not refresh, and only this once: the first switch rewrites the files
+  # inside Spotify's own installation, which needs the app restarted. Every
+  # later theme change is a refresh, which reloads a running Spotify in place.
+  if run spicetify apply; then
+    ok "Spotify now follows your desktop colours"
+  else
+    soft_fail "Spotify's own files could not be patched" \
+              "Its installation directory stays root-owned until spicetify is allowed to write there." \
+              "sudo chmod a+wr /usr/share/spotify && sudo chmod a+wr -R /usr/share/spotify/Apps && spicetify backup apply"
+  fi
 }

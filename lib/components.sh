@@ -285,6 +285,14 @@ component easyeffects apps on  "EasyEffects"  "audio effects, Handfree/Normal pr
 pkgs "easyeffects"
 detect 'all_of "pkg_installed easyeffects" "[[ -f $HOME/.config/easyeffects/output/Normal.json ]]"' 
 
+# Theming only. This repository never installs Spotify or spicetify; it
+# detects one. On a machine without spicetify the matugen fragment is left out
+# of config.toml, the stage that switches Spotify over skips itself, and the
+# refresh hook returns at its first guard -- so the component owes nothing,
+# and its detector says so rather than reporting "missing" for ever.
+component spicetify   apps on  "Spotify colours" "recolours Spotify from your theme, if you already use spicetify"
+detect 'if spicetify_present; then all_of "[[ -f $HOME/.config/spicetify/Themes/dms/color.ini ]]" "grep -qE \"^[[:space:]]*current_theme[[:space:]]*=[[:space:]]*dms\" \"$HOME/.config/spicetify/config-xpui.ini\""; else printf installed; fi'
+
 # Packaging preference is rpm first, then an upstream tarball or AppImage.
 # Flatpak is only used where nothing else exists, so it is opt-in and the two
 # apps that used to be flatpaks now come from their projects' own rpms.

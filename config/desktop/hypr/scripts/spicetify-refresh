@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+# matugen post_hook: make Spotify show the palette matugen has just written.
+#
+# Matugen writes ~/.config/spicetify/Themes/dms/color.ini. Editing that file
+# changes nothing by itself: spicetify has to regenerate Spotify's colors.css
+# from it. `spicetify -s refresh` does only the style half and hot reloads a
+# running Spotify in place, where `spicetify apply` would restart it.
+#
+# Returns at once, so matugen is never held up and a theme change never waits
+# on Spotify's install directory. Bursts of theme changes collapse into one
+# extra refresh through the .dirty flag.
+#
+# This is a post_hook on the spicetify template rather than a case in
+# reload-themed-apps: matugen only guarantees ordering for a template's own
+# hook, and reload-themed-apps runs under the shared dms-theme-reload.lock,
+# where a spicetify stall would delay every window's repaint.
+#
+# Nothing here writes a file dms-theme-reload.path watches: the outputs are
+# Spotify's own colors.css and user.css under its install prefix, plus this
+# script's log under ~/.cache. Output goes to that log and never to stdout,
+# which matugen would fold into the desktop shell's own log.
+set -u
+
+config="${XDG_CONFIG_HOME:-$HOME/.config}"
+cache="${XDG_CACHE_HOME:-$HOME/.cache}/spicetify-dms"
+ini="$config/spicetify/config-xpui.ini"
+
+bin=$(command -v spicetify 2>/dev/null) || bin="$HOME/.spicetify/spicetify"
+[ -x "$bin" ] || exit 0
+[ -f "$ini" ] || exit 0
+
+# Only once Spotify has actually been pointed at the generated theme. Before
+# the one-time switch this is a no-op, so the hook is harmless on a machine
+# that themes Spotify some other way.
+grep -qE '^[[:space:]]*current_theme[[:space:]]*=[[:space:]]*dms[[:space:]]*$' "$ini" || exit 0
+
+# And only while spicetify's patch is still in place. A spotify-client upgrade
+# replaces Apps/xpui and hands the files back to root; refreshing then fails,
+# so wait for `spicetify backup apply` rather than logging an error on every
+# theme change for ever. The prefix is read from spicetify's own config, not
+# hardcoded, because a Flatpak or /opt install puts it elsewhere.
+prefix=$(sed -n 's/^[[:space:]]*spotify_path[[:space:]]*=[[:space:]]*//p' "$ini" | head -1)
+prefix=${prefix%/}
+[ -n "$prefix" ] || exit 0
+[ -w "$prefix/Apps/xpui/colors.css" ] || exit 0
+
+mkdir -p "$cache"
+touch "$cache/refresh.dirty"
+
+setsid -f bash -c '
+  cache=$1 bin=$2
+  log="$cache/refresh.log"
+  while :; do
+    {
+      flock -n 9 || exit 0
+      while [ -e "$cache/refresh.dirty" ]; do
+        rm -f "$cache/refresh.dirty"
+        if [ -f "$log" ] && [ "$(stat -c %s "$log")" -gt 262144 ]; then
+          mv -f "$log" "$log.1"
+        fi
+        printf "\n==== %s ====\n" "$(date -Is)" >>"$log"
+        timeout 30 "$bin" -s refresh >>"$log" 2>&1 \
+          || printf "spicetify -s refresh failed (exit %s)\n" "$?" >>"$log"
+      done
+    } 9>"$cache/refresh.lock"
+    # A change may have landed after the last check but before the unlock.
+    [ -e "$cache/refresh.dirty" ] || exit 0
+  done
+' _ "$cache" "$bin" </dev/null >/dev/null 2>&1
+
+exit 0
