@@ -265,8 +265,7 @@ bp_decrypt() {   # $1 -> stdout
 # Firefox-family settings: about:config (prefs.js, user.js, where Zen mods keep
 # their options too), shortcuts, containers, search engines, site permissions
 # and zoom, toolbar layout, and Zen's mods, boosts and spaces. The generated
-# userChrome/userContent stay out: DMS writes those. Chromium gets nothing here,
-# because it signs its settings per machine and resets copied ones.
+# userChrome/userContent stay out: DMS writes those.
 BP_GECKO_SETTINGS=(prefs.js user.js xulstore.json containers.json handlers.json
   search.json.mozlz4 content-prefs.sqlite permissions.sqlite
   zen-themes.json zen-keyboard-shortcuts.json zen-boosts zen-boosts.jsonlz4
@@ -363,6 +362,39 @@ PY
         [[ -e $profile/$f ]] && files+=("$f")
       done
     done < "$meta/extensions.tsv"
+    if [[ ,$items, == *,settings,* ]]; then
+      [[ -e "$profile/Custom Dictionary.txt" ]] && files+=("Custom Dictionary.txt")
+      printf '%s' "$HOME" > "$meta/home"
+      # Not the Preferences file itself: it also holds the extension registry,
+      # account and sync state and usage counters, and parts of it are signed
+      # per machine. Only the settings sections travel, and are merged in.
+      python3 - "$profile" > "$meta/settings.json" <<'PY'
+import json, os, sys
+prof = sys.argv[1]
+KEEP = ('NewTabPage accessibility bookmark_bar brave brave_shields browser custom_handlers '
+        'default_search_provider default_search_provider_data download ephemeral_storage '
+        'helium intl ntp omnibox partition profile safebrowsing settings side_panel spellcheck '
+        'tab_search toolbar translate translate_site_blocklist_with_time vertical_tabs vivaldi webkit').split()
+d = json.load(open(os.path.join(prof, 'Preferences')))
+out = {k: d[k] for k in KEEP if k in d}
+# The theme is DMS's; window placement belongs to the old screen.
+for k in ('theme', 'window_placement', 'window_placement_popup', 'app_window_placement'):
+    out.get('browser', {}).pop(k, None)
+# Site permissions, without the records of where you browsed kept beside them.
+p = out.pop('profile', {})
+cs = p.get('content_settings', {}).get('exceptions', {})
+noisy = ('engagement', 'metadata', 'banner', 'hints', 'autoblock', 'autorevocation',
+         'events', 'interactions', 'usage', 'info', 'data', 'history')
+cs = {k: v for k, v in cs.items() if not any(w in k for w in noisy)}
+out['profile'] = {k: p[k] for k in ('default_content_setting_values', 'name', 'avatar_index') if k in p}
+out['profile']['content_settings'] = {'exceptions': cs}
+try:
+    flags = json.load(open(os.path.join(prof, '..', 'Local State')))['browser']['enabled_labs_experiments']
+except Exception:
+    flags = []
+json.dump({'prefs': out, 'flags': flags}, sys.stdout)
+PY
+    fi
     if [[ ,$items, == *,cookies,* ]]; then
       for f in Cookies Cookies-journal; do [[ -e $profile/$f ]] && files+=("$f"); done
       # The cookies are unreadable on another machine without the key the
@@ -486,7 +518,7 @@ bp_restore_one() {
   if [[ ,$items, == *,settings,* && $source == "$target" && -f $meta/home ]]; then
     settings=1
   else
-    (cd "$tmp" && rm -rf "${BP_GECKO_SETTINGS[@]}")
+    (cd "$tmp" && rm -rf "${BP_GECKO_SETTINGS[@]}" "Custom Dictionary.txt")
   fi
 
   # What is about to be replaced goes to ~/.fedora-nothing-backup first, and
@@ -521,6 +553,33 @@ bp_restore_one() {
     # Makes the browser rescan extensions/ and drop the old home's paths.
     rm -f "$profile/addonStartup.json.lz4" "$profile/compatibility.ini"
   else
+    if (( settings )) && [[ -s $meta/settings.json ]]; then
+      [[ -f $profile/Preferences ]] && backup_path "$profile/Preferences"
+      [[ -f $profile/../Local\ State ]] && backup_path "$profile/../Local State"
+      python3 - "$profile" "$meta/settings.json" "$(<"$meta/home")" "$HOME" <<'PY' \
+        || warn "Could not merge the settings into $name"
+import json, os, sys
+prof, src, old, new = sys.argv[1:5]
+b = json.loads(open(src).read().replace(old + '/', new + '/'))
+def load(f):
+    try:
+        return json.load(open(f))
+    except (OSError, ValueError):
+        return {}
+def merge(dst, add):
+    for k, v in add.items():
+        if isinstance(v, dict) and isinstance(dst.get(k), dict):
+            merge(dst[k], v)
+        else:
+            dst[k] = v
+f = os.path.join(prof, 'Preferences')
+d = load(f); merge(d, b['prefs']); json.dump(d, open(f, 'w'))
+if b['flags']:
+    f = os.path.join(prof, '..', 'Local State')
+    d = load(f); d.setdefault('browser', {})['enabled_labs_experiments'] = b['flags']
+    json.dump(d, open(f, 'w'))
+PY
+    fi
     local app
     for app in "$meta"/safe-storage.*; do
       [[ -f $app ]] || continue
@@ -553,7 +612,7 @@ print(json.dumps({"ExtensionSettings": {i.strip(): {
   local n; n=$(wc -l < "$meta/extensions.tsv")
   rm -rf "$tmp" "$meta"
   if (( settings )); then
-    ok "$name: $n extensions and their data, settings and mods restored"
+    ok "$name: $n extensions with their data, and its settings, restored"
   elif [[ $source == "$target" ]]; then
     ok "$name: $n extensions and their data restored"
   else
