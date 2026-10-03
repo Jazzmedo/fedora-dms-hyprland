@@ -30,7 +30,7 @@ local_need() {
   local c missing=()
   for c in "$@"; do have "$c" || missing+=("$c"); done
   (( ${#missing[@]} == 0 )) && return 0
-  die "Missing: ${missing[*]}" "" "sudo dnf install ${missing[*]/secret-tool/libsecret}"
+  die "Missing: ${missing[*]}" "" "$(bp_install_hint "${missing[@]}")"
 }
 
 # The checklist works off the installer's component lists. Swap them for this
@@ -91,8 +91,8 @@ backup_flow() {
     info "Encryption was turned back on: cookies and certificates sign you in, so they are never stored readable"
   fi
   picked x_encrypt && local_need gpg zstd tar || local_need zstd tar
-  [[ $items == *cookies* ]] && ! have secret-tool && \
-    warn "secret-tool is missing, so the cookie keys of Chromium browsers are not saved (sudo dnf install libsecret)"
+  [[ $items == *cookies* ]] && ! bp_keyring_ok && \
+    warn "No keyring tool found, so Chromium browsers' cookies are saved without their key and will not load after a restore ($(bp_install_hint secret-tool))"
 
   local dest def="$BP_BACKUP_ROOT/browsers-$(date +%Y-%m-%d)"
   while :; do

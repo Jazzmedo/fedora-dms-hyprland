@@ -160,7 +160,8 @@ the layout from the outputs the kernel reports.
 data (Tampermonkey scripts, ShellTint styles, uBlock lists), picked from the
 same checklist as the installer. Cookies and certificates can come along; they
 force encryption with a passphrase. History and site data never do, so a backup
-is tens of megabytes, not gigabytes.
+is tens of megabytes, not gigabytes. It runs on any distro, not only Fedora,
+and finds Flatpak and Snap browsers too.
 
 Backups go to `~/fedora-nothing-backups/` or a folder you choose, never inside a
 git repository. The installer offers to restore one into the browsers it

@@ -17,6 +17,10 @@ BP_BROWSERS=(zen firefox librewolf brave brave_origin vivaldi helium)
 BP_BACKUP_ROOT="$HOME/fedora-nothing-backups"
 BP_SAFE_SCHEMA=chrome_libsecret_os_crypt_password_v2
 BP_PASS=""          # the backup passphrase, held in memory only
+# Where each distro family keeps certificates added by hand: Fedora, Debian
+# and Ubuntu, Arch, openSUSE. The first one that exists is restored into.
+BP_ANCHOR_DIRS=(/etc/pki/ca-trust/source/anchors /usr/local/share/ca-certificates
+                /etc/ca-certificates/trust-source/anchors /etc/pki/trust/anchors)
 
 bp_engine() { case $1 in zen|firefox|librewolf) echo gecko ;; *) echo chromium ;; esac; }
 
@@ -36,7 +40,29 @@ bp_cmd() {
   esac
 }
 
-bp_installed() { have "$(bp_cmd "$1")"; }
+# Installed as a package, or as a Flatpak or Snap that has already made its
+# profile folder.
+bp_installed() { have "$(bp_cmd "$1")" || [[ -n $(bp_root "$1") ]]; }
+
+# Copy-pasteable install command for this distro's package manager.
+bp_install_hint() {
+  local c pkgs=() pm
+  for pm in dnf apt-get pacman zypper; do have "$pm" && break; done
+  for c in "$@"; do
+    case $pm:$c in
+      dnf:secret-tool|pacman:secret-tool) pkgs+=(libsecret) ;;
+      *:secret-tool) pkgs+=(libsecret-tools) ;;
+      dnf:gpg)       pkgs+=(gnupg2) ;;
+      zypper:gpg)    pkgs+=(gpg2) ;;
+      *:gpg)         pkgs+=(gnupg) ;;
+      *)             pkgs+=("$c") ;;
+    esac
+  done
+  case $pm in
+    pacman) echo "sudo pacman -S ${pkgs[*]}" ;;
+    *)      echo "sudo $pm install ${pkgs[*]}" ;;
+  esac
+}
 
 # Chromium keeps its cookie key in the keyring under the browser's own name;
 # Brave Origin shares Brave's, and Helium uses Chromium's.
@@ -59,36 +85,44 @@ bp_policy_dir() {
 # Where the browser keeps its profiles. Zen uses ~/.config/zen or, when run
 # from its tarball, ~/.zen. Either is only read here, never created: Zen opens
 # an empty profile when ~/.zen appears next to a real one.
+# Flatpak keeps it under ~/.var/app/<id>, Snap under ~/snap/<name>. Prints
+# nothing when the browser has never run.
 bp_root() {
-  local d
+  local d f=$HOME/.var/app s=$HOME/snap candidates=()
   case $1 in
-    zen)
-      for d in "$HOME/.config/zen" "$HOME/.zen"; do
-        [[ -f $d/profiles.ini ]] && { echo "$d"; return; }
-      done
-      echo "$HOME/.config/zen" ;;
-    firefox)
-      for d in "$HOME/.config/mozilla/firefox" "$HOME/.mozilla/firefox"; do
-        [[ -f $d/profiles.ini ]] && { echo "$d"; return; }
-      done
-      echo "$HOME/.mozilla/firefox" ;;
-    librewolf)
-      for d in "$HOME/.config/librewolf/librewolf" "$HOME/.librewolf"; do
-        [[ -f $d/profiles.ini ]] && { echo "$d"; return; }
-      done
-      echo "$HOME/.librewolf" ;;
-    brave)        echo "$HOME/.config/BraveSoftware/Brave-Browser" ;;
-    brave_origin) echo "$HOME/.config/BraveSoftware/Brave-Origin" ;;
-    vivaldi)      echo "$HOME/.config/vivaldi" ;;
-    helium)       echo "$HOME/.config/net.imput.helium" ;;
+    zen)          candidates=("$HOME/.config/zen" "$HOME/.zen" "$f/app.zen_browser.zen/.zen"
+                              "$f/app.zen_browser.zen/config/zen") ;;
+    firefox)      candidates=("$HOME/.config/mozilla/firefox" "$HOME/.mozilla/firefox"
+                              "$s/firefox/common/.mozilla/firefox" "$f/org.mozilla.firefox/.mozilla/firefox"
+                              "$f/org.mozilla.firefox/config/mozilla/firefox") ;;
+    librewolf)    candidates=("$HOME/.config/librewolf/librewolf" "$HOME/.librewolf"
+                              "$f/io.gitlab.librewolf-community/.librewolf"
+                              "$f/io.gitlab.librewolf-community/config/librewolf/librewolf") ;;
+    brave)        candidates=("$HOME/.config/BraveSoftware/Brave-Browser"
+                              "$f/com.brave.Browser/config/BraveSoftware/Brave-Browser"
+                              "$s/brave/current/.config/BraveSoftware/Brave-Browser") ;;
+    brave_origin) candidates=("$HOME/.config/BraveSoftware/Brave-Origin") ;;
+    vivaldi)      candidates=("$HOME/.config/vivaldi" "$f/com.vivaldi.Vivaldi/config/vivaldi") ;;
+    helium)       candidates=("$HOME/.config/net.imput.helium") ;;
   esac
+  for d in "${candidates[@]}"; do
+    if [[ $(bp_engine "$1") == gecko ]]; then
+      [[ -f $d/profiles.ini ]] && { echo "$d"; return; }
+    else
+      [[ -d $d/Default ]] && { echo "$d"; return; }
+    fi
+  done
 }
+
+# Flatpak and Snap browsers cannot see the policies in /etc.
+bp_sandboxed() { [[ $1 == "$HOME/.var/app/"* || $1 == "$HOME/snap/"* ]]; }
 
 # The profile the browser opens by default, or a non-zero exit if there is
 # none yet.
 bp_profile() {
   local root p
   root=$(bp_root "$1")
+  [[ -n $root ]] || return 1
   if [[ $(bp_engine "$1") == chromium ]]; then
     p="$root/Default"
   else
@@ -123,13 +157,13 @@ PY
 
 bp_running() {
   case $1 in
-    zen)          pgrep -x zen || pgrep -f '/opt/zen/zen' ;;
+    zen)          pgrep -x zen || pgrep -f '/opt/zen/zen|/app/zen/zen' ;;
     firefox)      pgrep -x firefox ;;
     librewolf)    pgrep -x librewolf ;;
-    brave)        pgrep -f '/opt/brave.com/brave/' ;;
+    brave)        pgrep -f '/opt/brave.com/brave/|/app/brave/|/snap/brave/' ;;
     brave_origin) pgrep -f '/opt/brave.com/brave-origin/' ;;
-    vivaldi)      pgrep -f '/opt/vivaldi/' ;;
-    helium)       pgrep -f '/opt/helium/' ;;
+    vivaldi)      pgrep -f '/opt/vivaldi/|/app/vivaldi/' ;;
+    helium)       pgrep -f '/opt/helium/|helium.*AppImage|/tmp/\.mount_[Hh]elium' ;;
   esac >/dev/null 2>&1
 }
 
@@ -138,6 +172,7 @@ bp_running() {
 bp_first_run() {
   local key=$1 cmd
   cmd=$(bp_cmd "$key")
+  have "$cmd" || return 0
   info "Starting $(bp_name "$key") once in the background to create its profile"
   if [[ $(bp_engine "$key") == gecko ]]; then
     timeout 25 "$cmd" --headless about:blank >/dev/null 2>&1 || true
@@ -145,6 +180,58 @@ bp_first_run() {
     timeout 20 "$cmd" --headless=new --no-first-run --disable-gpu about:blank >/dev/null 2>&1 || true
   fi
   sleep 1
+}
+
+# ---------------------------------------------------------------- keyring ---
+# Chromium's cookie key, read and written through whatever the desktop has:
+# secret-tool, Python's secretstorage (both talk to GNOME Keyring, KeePassXC or
+# KDE's Secret Service), or KWallet.
+_bp_py_secret() {   # get|set app; set takes the key in BP_SECRET
+  local py
+  for py in /usr/bin/python3 python3; do
+    "$py" -c 'import secretstorage' 2>/dev/null || continue
+    "$py" - "$BP_SAFE_SCHEMA" "$@" <<'PY' && return 0
+import os, secretstorage, sys
+schema, op, app = sys.argv[1:4]
+attrs = {'xdg:schema': schema, 'application': app}
+conn = secretstorage.dbus_init()
+col = secretstorage.get_default_collection(conn)
+if col.is_locked():
+    col.unlock()
+if op == 'get':
+    item = next(col.search_items(attrs), None)
+    if item is None:
+        sys.exit(1)
+    sys.stdout.write(item.get_secret().decode())
+else:
+    col.create_item(f'{app.capitalize()} Safe Storage', attrs, os.environ['BP_SECRET'].encode(), replace=True)
+PY
+  done
+  return 1
+}
+
+bp_secret_get() {
+  local app=$1
+  have secret-tool && secret-tool lookup xdg:schema "$BP_SAFE_SCHEMA" application "$app" 2>/dev/null && return 0
+  _bp_py_secret get "$app" 2>/dev/null && return 0
+  have kwallet-query && kwallet-query -f "Chromium Keys" -r "${app^} Safe Storage" kdewallet 2>/dev/null && return 0
+  return 1
+}
+
+bp_secret_set() {   # stdin: the key
+  local app=$1 key; key=$(cat)
+  have secret-tool && secret-tool store --label="${app^} Safe Storage" xdg:schema "$BP_SAFE_SCHEMA"     application "$app" <<<"$key" 2>/dev/null && return 0
+  BP_SECRET=$key _bp_py_secret set "$app" 2>/dev/null && return 0
+  have kwallet-query && kwallet-query -f "Chromium Keys" -w "${app^} Safe Storage" kdewallet <<<"$key" 2>/dev/null && return 0
+  return 1
+}
+
+# A keyring can be reached at all, so cookies are worth backing up.
+bp_keyring_ok() {
+  have secret-tool || have kwallet-query && return 0
+  local py
+  for py in /usr/bin/python3 python3; do "$py" -c 'import secretstorage' 2>/dev/null && return 0; done
+  return 1
 }
 
 # ------------------------------------------------------------- encryption ---
@@ -262,8 +349,7 @@ PY
       # browser encrypted them with, which lives in the keyring.
       local app pw
       for app in $(bp_safe_apps "$key"); do
-        have secret-tool || break
-        pw=$(secret-tool lookup xdg:schema "$BP_SAFE_SCHEMA" application "$app" 2>/dev/null) || continue
+        pw=$(bp_secret_get "$app") || continue
         [[ -n $pw ]] && printf '%s' "$pw" > "$meta/safe-storage.$app"
       done
     fi
@@ -298,7 +384,7 @@ bp_backup_shared() {
   if [[ ,$items, == *,syscerts,* ]]; then
     local f
     mkdir -p "$tmp/shared/system-certs"
-    for f in /etc/pki/ca-trust/source/anchors/* /usr/local/share/ca-certificates/*; do
+    for f in "${BP_ANCHOR_DIRS[@]/%//*}"; do
       [[ -f $f ]] && cp "$f" "$tmp/shared/system-certs/"
     done
   fi
@@ -317,7 +403,7 @@ bp_backup_shared() {
 
 bp_system_cert_count() {
   local f n=0
-  for f in /etc/pki/ca-trust/source/anchors/* /usr/local/share/ca-certificates/*; do
+  for f in "${BP_ANCHOR_DIRS[@]/%//*}"; do
     [[ -f $f ]] && (( ++n ))
   done
   printf '%d' "$n"
@@ -405,18 +491,15 @@ bp_restore_one() {
     for app in "$meta"/safe-storage.*; do
       [[ -f $app ]] || continue
       [[ ,$items, == *,cookies,* ]] || break
-      if have secret-tool; then
-        secret-tool store --label="${app##*.} Safe Storage" xdg:schema "$BP_SAFE_SCHEMA" \
-          application "${app##*.}" < "$app" \
-          || warn "Could not put back the cookie key for $name; its cookies will not load"
-      else
-        warn "secret-tool is missing, so $name's restored cookies cannot be read"
-      fi
+      bp_secret_set "${app##*.}" < "$app" \
+        || warn "Could not put back the cookie key for $name, so its cookies will not load ($(bp_install_hint secret-tool))"
     done
     # Reinstall the Web Store extensions through policy; the data above waits
     # for them under the same IDs.
     local store_ids=() manual=() id store ename
     while IFS=$'\t' read -r id store ename; do
+      # A Flatpak or Snap browser cannot read the policy below.
+      [[ $store == 1 ]] && bp_sandboxed "$profile" && store=0
       case $store in 1) store_ids+=("$id") ;; 0) manual+=("$ename") ;; esac
     done < "$meta/extensions.tsv"
     if (( ${#store_ids[@]} )); then
@@ -430,7 +513,7 @@ print(json.dumps({"ExtensionSettings": {i.strip(): {
         && record file "$(bp_policy_dir "$target")/fedora-nothing-extensions.json" \
         || soft_fail "Could not tell $name to reinstall your extensions" "" "./browser-backup.sh"
     fi
-    (( ${#manual[@]} )) && warn "$name: install these by hand, they were not from the Web Store: $(IFS=,; echo "${manual[*]}")"
+    (( ${#manual[@]} )) && warn "$name: install these by hand, the browser cannot install them itself: $(IFS=,; echo "${manual[*]}")"
   fi
 
   local n; n=$(wc -l < "$meta/extensions.tsv")
@@ -457,14 +540,15 @@ bp_restore_shared() {   # dir items
     ok "Restored the certificates the Chromium browsers share"
   fi
   if [[ ,$items, == *,syscerts,* && -n $(ls -A "$tmp/system-certs" 2>/dev/null) ]]; then
-    if have update-ca-trust; then
-      as_root cp "$tmp"/system-certs/* /etc/pki/ca-trust/source/anchors/
-      as_root update-ca-trust
+    local d
+    for d in "${BP_ANCHOR_DIRS[@]}"; do [[ -d $d ]] && break; done
+    if [[ -d $d ]]; then
+      as_root cp "$tmp"/system-certs/* "$d/"
+      if have update-ca-trust; then as_root update-ca-trust; else as_root update-ca-certificates; fi
+      ok "Restored the certificates you had added to the system"
     else
-      as_root cp "$tmp"/system-certs/* /usr/local/share/ca-certificates/
-      as_root update-ca-certificates
+      warn "This system has no folder for added certificates; they were not restored"
     fi
-    ok "Restored the certificates you had added to the system"
   fi
   rm -rf "$tmp"
 }
