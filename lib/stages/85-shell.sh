@@ -208,17 +208,19 @@ install_runtime_managers() {
     fi
   fi
 
-  # pipx keeps yt-dlp in its own environment and updates it with
-  # `pipx upgrade yt-dlp`, which matters: sites break old releases quickly.
+  # mise fetches yt-dlp's own standalone build, which updates itself in place
+  # with `yt-dlp -U`; sites break old releases quickly. mise was installed
+  # just above, so it may not be on PATH yet.
   if is_selected ytdlp; then
-    if [[ -x $HOME/.local/bin/yt-dlp ]]; then skip "yt-dlp is already installed"
-    elif have pipx; then
-      run pipx install yt-dlp \
-        && record file "$HOME/.local/bin/yt-dlp" \
-        && ok "Installed yt-dlp through pipx" \
-        || soft_fail "Could not install yt-dlp" "pipx could not download it." "pipx install yt-dlp"
+    local mise; mise=$(command -v mise || echo "$HOME/.local/bin/mise")
+    if [[ -d $HOME/.local/share/mise/installs/yt-dlp ]]; then skip "yt-dlp is already installed"
+    elif [[ -x $mise ]]; then
+      run "$mise" use -g yt-dlp \
+        && ok "Installed yt-dlp through mise" \
+        || soft_fail "Could not install yt-dlp" "mise could not download it; GitHub may be rate-limiting this address." \
+                     "mise use -g yt-dlp"
     else
-      soft_fail "Could not install yt-dlp" "pipx is not installed." "sudo dnf install pipx && pipx install yt-dlp"
+      soft_fail "Could not install yt-dlp" "mise is not installed." "./install.sh --only=shell"
     fi
   fi
 

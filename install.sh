@@ -249,9 +249,9 @@ choose_components() {
     info "Gear Lever only comes as a Flatpak, so Flatpak was switched on too"
   fi
 
-  if is_selected ytdlp && ! is_selected pipx; then
-    select_component pipx
-    info "yt-dlp is installed through pipx, so pipx was switched on too"
+  if is_selected ytdlp && ! is_selected mise; then
+    select_component mise
+    info "yt-dlp is installed through mise, so mise was switched on too"
   fi
 
   choose_default_terminal

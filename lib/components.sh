@@ -223,8 +223,8 @@ component docker      dev off "Docker + Compose" "Docker Engine, docker compose 
 pkgs "docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin"
 detect 'all_of "pkg_installed docker-ce" "pkg_installed docker-compose-plugin"'
 
-component ytdlp       dev on  "yt-dlp"         "video and audio downloader, through pipx so it stays current"
-detect 'all_of "[[ -x $HOME/.local/bin/yt-dlp ]]"'
+component ytdlp       dev on  "yt-dlp"         "video and audio downloader, through mise; yt-dlp -U updates it"
+detect 'all_of "[[ -d $HOME/.local/share/mise/installs/yt-dlp ]]"'
 
 # ---------------------------------------------------------------------------
 # Tick one or more. With several, the installer asks which is the default: it
