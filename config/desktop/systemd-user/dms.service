@@ -1,6 +1,12 @@
 [Unit]
 Description=Dank Material Shell (DMS) for Niri and Hyprland
 After=dbus.socket
+# niri starts this through graphical-session.target. Without the ordering it
+# launched alongside niri, before there was a display to connect to, failed
+# five times in a few seconds, hit systemd's start limit and left niri on a
+# black screen. Hyprland starts it itself once running, so this is a no-op there.
+After=graphical-session.target
+PartOf=graphical-session.target
 
 [Service]
 Type=dbus

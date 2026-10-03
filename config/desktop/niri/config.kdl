@@ -277,14 +277,12 @@ layout {
 // which may be more convenient to use.
 // See the binds section below for more spawn examples.
 
-// This line starts waybar, a commonly used bar for Wayland compositors.
 // Push the `environment {}` vars below into the D-Bus activation and systemd
 // user environments. Without this, only niri's direct children see them --
 // anything started by an app launcher, D-Bus activation, or a systemd user
 // unit gets an untouched environment (no QT_QPA_PLATFORMTHEME, etc.).
 spawn-at-startup "dbus-update-activation-environment" "--systemd" "--all"
 
-spawn-at-startup "waybar"
 spawn-at-startup "kbuildsycoca6" "--noincremental"
 
 // To run a shell command (with variables, pipes, etc.), use spawn-sh-at-startup:
