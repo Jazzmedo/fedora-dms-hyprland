@@ -140,6 +140,17 @@ apply_kde_palette() {
     kwriteconfig6 --notify --file kdeglobals --group General --key LastUsedCustomAccentColor "$sel" 2>/dev/null || true
     kwriteconfig6 --file kdeglobals --group General --key ColorSchemeHash --delete 2>/dev/null || true
   fi
+
+  # Outside Plasma, a KDE application with no colour scheme of its own (KCalc,
+  # Okular) loads the light Breeze default instead of the palette above. Its
+  # config falls back to kdeglobals, so naming the live scheme there covers
+  # every application that has not picked one itself.
+  local live; live=$(awk -F= '
+    /^\[/ { general = ($0 == "[General]") }
+    general && $1 == "ColorScheme" { print $2; exit }
+  ' "$kdeglobals")
+  [[ -n $live ]] && have_cmd kwriteconfig6 \
+    && kwriteconfig6 --file kdeglobals --group UiSettings --key ColorScheme "$live" 2>/dev/null
   rm -f "$fixed"
 }
 
