@@ -19,6 +19,7 @@ UI_TITLE="Customisable installation"
 UI_SUBTITLE="everything is ticked; untick what you do not want"
 UI_ACCEPT="install"
 UI_LEGEND=""      # empty: the installer's "already installed" legend
+UI_RADIO_GROUPS=""  # groups where Space picks one row and clears the others
 
 _tput() { tput "$@" 2>/dev/null || true; }
 
@@ -310,6 +311,10 @@ ui_select_components() {
                  select_gpu "${_k#gpu_}"
                elif [[ ${COMPONENT_GROUP[$_k]} == layout ]]; then
                  select_layout "${_k#layout_}"
+               elif [[ " $UI_RADIO_GROUPS " == *" ${COMPONENT_GROUP[$_k]} "* ]]; then
+                 local _o
+                 for _o in $(group_members "${COMPONENT_GROUP[$_k]}"); do deselect_component "$_o"; done
+                 select_component "$_k"
                else
                  toggle_component "$_k"
                fi ;;
@@ -326,7 +331,7 @@ _ui_toggle_group() {
   for (( i = UI_CURSOR; i >= 0; i-- )); do
     [[ ${UI_ROWS[i]} == group:* ]] && { g=${UI_ROWS[i]#group:}; break; }
   done
-  [[ -z $g || $g == gpu || $g == layout ]] && return
+  [[ -z $g || $g == gpu || $g == layout || " $UI_RADIO_GROUPS " == *" $g "* ]] && return
   # If anything in the group is off, turn the whole group on; else turn it off.
   local k want=0
   for k in $(group_members "$g"); do

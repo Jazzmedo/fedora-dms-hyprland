@@ -33,15 +33,6 @@ local_need() {
   die "Missing: ${missing[*]}" "" "$(bp_install_hint "${missing[@]}")"
 }
 
-# The checklist works off the installer's component lists. Swap them for this
-# script's own entries.
-new_list() {
-  COMPONENT_ORDER=(); COMPONENT_GROUPS=()
-  unset SELECTED COMPONENT_STATE
-  declare -gA SELECTED=() COMPONENT_STATE=()
-  DETECT_COMPONENTS_READY=1
-}
-
 picked() { is_selected "$1"; }
 
 # Comma list of the ticked "what" entries.

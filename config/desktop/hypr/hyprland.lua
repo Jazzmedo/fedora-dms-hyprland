@@ -423,7 +423,7 @@ end
 -- monitors.env, so keep the two in sync.  Anything past the ranges (an
 -- over-swipe can create workspace 11 and up) falls back to the first output.
 local monitors_path = "@@HOME@@/.config/hypr/monitors.lua"
-local monitors = { per_monitor = 10, order = {}, vertical = {} }
+local monitors = { per_monitor = 10, order = {}, vertical = {}, direction = {} }
 local monitors_ok, loaded_monitors = pcall(dofile, monitors_path)
 if monitors_ok and type(loaded_monitors) == "table" then
 	monitors.per_monitor = tonumber(loaded_monitors.per_monitor) or monitors.per_monitor
@@ -432,6 +432,9 @@ if monitors_ok and type(loaded_monitors) == "table" then
 	end
 	if type(loaded_monitors.vertical) == "table" then
 		monitors.vertical = loaded_monitors.vertical
+	end
+	if type(loaded_monitors.direction) == "table" then
+		monitors.direction = loaded_monitors.direction
 	end
 end
 
@@ -446,10 +449,13 @@ local function quattro_monitor_for_workspace(id)
 end
 
 -- Reapply this whenever a workspace enters scrolling so changing layouts never
--- loses the monitor-specific direction.  Portrait outputs scroll down the tape
--- rather than across it.
+-- loses the monitor-specific direction, which monitor-layout.sh sets per
+-- output.  A monitors.lua from before that only marks vertical outputs.
 local function quattro_scrolling_direction(workspace)
 	local monitor = quattro_monitor_for_workspace(workspace.id)
+	if monitor and monitors.direction[monitor] then
+		return monitors.direction[monitor]
+	end
 	return (monitor and monitors.vertical[monitor]) and "down" or "right"
 end
 

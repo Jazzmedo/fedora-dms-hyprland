@@ -16,8 +16,8 @@ focused_monitor="$(topo_focused_monitor)"
 index="$(topo_index_of "$focused_monitor")" || index=1
 workspace=$(( (index - 1) * QUATTRO_WORKSPACES_PER_MONITOR + number ))
 
-# A vertical tape switches workspaces along the other axis than a horizontal one.
-if topo_is_vertical "$focused_monitor"; then
+# Each output switches workspaces on its own axis, chosen in monitor-layout.sh.
+if topo_slides_sideways "$focused_monitor"; then
 	animation_style="slide"
 else
 	animation_style="slidevert"

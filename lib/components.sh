@@ -43,6 +43,15 @@ dms_plugin() { COMPONENT_PLUGIN[${COMPONENT_ORDER[-1]}]="$*"; }
 detect() { COMPONENT_DETECT[${COMPONENT_ORDER[-1]}]="$*"; }
 
 # ------------------------------------------------------------- predicates ---
+# The checklist works off these lists. A tool other than the installer swaps
+# them for its own entries with this, then calls group/component again.
+new_list() {
+  COMPONENT_ORDER=(); COMPONENT_GROUPS=()
+  unset SELECTED COMPONENT_STATE
+  declare -gA SELECTED=() COMPONENT_STATE=()
+  DETECT_COMPONENTS_READY=1
+}
+
 is_selected()      { [[ -n ${SELECTED[$1]:-} ]]; }
 component_locked() { [[ ${COMPONENT_DEFAULT[$1]:-} == base ]]; }
 select_component()   { SELECTED[$1]=1; }

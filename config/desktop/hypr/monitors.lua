@@ -6,9 +6,13 @@
 --
 --   per_monitor  workspaces each output owns
 --   order        outputs in workspace order; the first gets 1..per_monitor
---   vertical     outputs whose scrolling tape runs vertically
+--   direction    where new windows open on each output's tape
+--   slide        how its workspaces switch: slidevert up/down, slide left/right
+--   vertical     outputs whose tape runs up or down (derived from direction)
 return {
 	per_monitor = 10,
 	order = { "@@MONITOR@@" },
+	direction = { ["@@MONITOR@@"] = "right" },
+	slide = { ["@@MONITOR@@"] = "slidevert" },
 	vertical = {},
 }

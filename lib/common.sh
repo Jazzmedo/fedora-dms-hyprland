@@ -394,6 +394,7 @@ backup_path() {
 : "${TPL_BROWSER_DESKTOP:=app.zen_browser.zen.desktop}"
 : "${TPL_BROWSER_PRIVATE:=--private-window}"
 : "${TPL_OBSIDIAN_VAULT:=$HOME/Documents/Obsidian}"
+: "${TPL_REPO_DIR:=${REPO_DIR:-}}"
 
 # Rewrite @@PLACEHOLDER@@ in a text file, in place.
 apply_template() {
@@ -409,6 +410,7 @@ apply_template() {
     -e "s|@@BROWSER@@|$TPL_BROWSER|g" \
     -e "s|@@ZEN_PROFILE@@|$TPL_ZEN_PROFILE|g" \
     -e "s|@@OBSIDIAN_VAULT@@|$TPL_OBSIDIAN_VAULT|g" \
+    -e "s|@@REPO_DIR@@|$TPL_REPO_DIR|g" \
     "$f"
 }
 

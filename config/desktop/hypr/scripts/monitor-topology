@@ -5,6 +5,8 @@
 # The installer writes ~/.config/hypr/monitors.env alongside monitors.lua:
 #   QUATTRO_WORKSPACES_PER_MONITOR=5
 #   QUATTRO_MONITOR_ORDER="eDP-1 DP-2"
+#   QUATTRO_MONITOR_DIRECTIONS="eDP-1:right DP-2:down"
+#   QUATTRO_MONITOR_SIDEWAYS="DP-2"
 #   QUATTRO_MONITOR_VERTICAL="DP-2"
 #
 # Defaults below keep the scripts working if that file is missing.
@@ -12,6 +14,7 @@
 QUATTRO_WORKSPACES_PER_MONITOR=10
 QUATTRO_MONITOR_ORDER=""
 QUATTRO_MONITOR_VERTICAL=""
+unset QUATTRO_MONITOR_SIDEWAYS
 [ -r "$HOME/.config/hypr/monitors.env" ] && . "$HOME/.config/hypr/monitors.env"
 
 # Fall back to whatever Hyprland reports if the file said nothing.
@@ -50,6 +53,16 @@ topo_count() {
 # True when this output's scrolling tape runs vertically.
 topo_is_vertical() {
 	for m in $QUATTRO_MONITOR_VERTICAL; do
+		[ "$m" = "$1" ] && return 0
+	done
+	return 1
+}
+
+# True when this output's workspaces switch left/right. A monitors.env from
+# before monitor-layout.sh has no such list; there a vertical tape did.
+topo_slides_sideways() {
+	[ -n "${QUATTRO_MONITOR_SIDEWAYS+set}" ] || { topo_is_vertical "$1"; return; }
+	for m in $QUATTRO_MONITOR_SIDEWAYS; do
 		[ "$m" = "$1" ] && return 0
 	done
 	return 1

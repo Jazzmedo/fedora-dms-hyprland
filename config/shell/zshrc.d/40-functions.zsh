@@ -85,3 +85,12 @@ fetch(){ # Standard Git fetch and pull from origin main
   git pull origin main
 }
 
+monitor-layout(){ # Rotate a monitor and pick where its windows open and how its workspaces switch
+  local script="@@REPO_DIR@@/monitor-layout.sh"
+  if [[ ! -x $script ]]; then
+    echo "monitor-layout lives in the fedora-nothing repo, which is no longer at @@REPO_DIR@@."
+    echo "Run monitor-layout.sh from wherever it is now, then ./install.sh --only=shell there."
+    return 1
+  fi
+  "$script" "$@"
+}

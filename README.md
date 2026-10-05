@@ -157,6 +157,13 @@ simply does not exist.
 After plugging in or removing a monitor, `./install.sh --only=hyprland` rewrites
 the layout from the outputs the kernel reports.
 
+To turn a monitor, or change how it works, run `monitor-layout` (or
+`./monitor-layout.sh`). On the same kind of screen as the installer you pick
+the monitor, its rotation, where new windows open (right, left, down or up) and
+whether its workspaces switch up/down or left/right. It applies to the running
+session, and the theme wallpaper follows the monitor's new shape. A reinstall
+keeps these choices.
+
 ### Browser extensions
 
 `./browser-backup.sh` backs up or restores your browser extensions and their
