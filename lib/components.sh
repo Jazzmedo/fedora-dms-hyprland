@@ -122,7 +122,7 @@ component core        base base "Hyprland + DMS"  "compositor, shell, lock, clip
 # exiting 255 on an unrecognized pragma while every command reports success.
 copr "sdegler/hyprland ashbuk/Hyprland-Fedora solopasha/hyprland"
 pkgs "hyprland hyprland-devel hyprpaper hyprlock hypridle hyprpicker \
-      xdg-desktop-portal-hyprland xdg-desktop-portal-gtk xdg-utils \
+      xdg-desktop-portal-hyprland xdg-desktop-portal-gtk xdg-desktop-portal-kde xdg-utils \
       matugen sddm weston qt6-qtvirtualkeyboard accountsservice \
       qt6-qtdeclarative qt6-qt5compat qt6-qtsvg qt6-qtmultimedia \
       polkit-kde qt6ct qt5ct kvantum \
@@ -325,6 +325,10 @@ pkgs "flatpak"
 component gearlever   apps off "Gear Lever"   "manage AppImages as normal apps; requires Flatpak"
 flatpaks "it.mijorus.gearlever"
 detect 'all_of "flatpak_installed it.mijorus.gearlever"' 
+
+component mimic       apps off "Mimic"        "change which app opens each file and link type; requires Flatpak"
+flatpaks "io.github.arijanj.Mimic"
+detect 'all_of "flatpak_installed io.github.arijanj.Mimic"'
 
 # ---------------------------------------------------------------------------
 group services "Services & sessions"

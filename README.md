@@ -49,7 +49,7 @@ within seconds, using Catppuccin's userstyles rebuilt with your colours.
 | 🎛️ **Shell**    | DankMaterialShell: bar, launcher, notifications, control centre, lock screen, nine plugins                    |
 | 🖼️ **Theming**  | matugen everywhere, themed wallpapers, matching login screen, optional boot splash                            |
 | ⌨️ **Terminal** | zsh, oh-my-zsh, starship, fastfetch greeting, tmux, yazi, eza/bat/ripgrep/fd/fzf                              |
-| 📦 **Apps**     | foot and/or kitty, any of Zen, Firefox, LibreWolf, Brave, Brave Origin, Vivaldi and Helium (you pick the default of each), Dolphin, Vesktop, Obsidian, OBS, qBittorrent, mpv, Strawberry, CLIAMP, EasyEffects |
+| 📦 **Apps**     | foot and/or kitty, any of Zen, Firefox, LibreWolf, Brave, Brave Origin, Vivaldi and Helium (you pick the default of each), Dolphin, Vesktop, Obsidian, OBS, qBittorrent, mpv, Strawberry, CLIAMP, EasyEffects, Gear Lever, Mimic (default apps per file and link type) |
 | 🧑‍💻 **Dev**      | Neovim + LazyVim; pick any of mise, uv, pipx, pnpm, Rust, Go, Podman, Docker, yt-dlp                          |
 | 🤖 **AI**       | pick any of Claude Code, Codex, OpenCode, GLM (Claude Code on a Z.ai GLM Coding Plan, as the `glm` command)  |
 | 🔒 **Services** | Tailscale, Cloudflare WARP, a niri session, system tweaks                                                     |
