@@ -8,20 +8,21 @@ Rectangle {
     id: root
     width: Screen.width
     height: Screen.height
-    Rectangle {
-        anchors.fill: parent
-        gradient: Gradient {
-            GradientStop { position: 0.0; color: "#e8ebed" }
-            GradientStop { position: 1.0; color: "#d2d6d9" }
-        }
-        z: -100
+    // Inverted palette: dark field, light cards. The card tone is the
+    // background this theme used to sit on, so nothing new had to be judged —
+    // the two were swapped. The gradient is painted by the root itself: as a
+    // negative-z child it silently failed to draw in the greeter's render
+    // path and the window's white base showed through instead.
+    gradient: Gradient {
+        GradientStop { position: 0.0; color: "#111111" }
+        GradientStop { position: 1.0; color: "#050505" }
     }
 
     readonly property real s: Screen.height / 768
     property bool isQuickshell: typeof sddm === "undefined" || sddm.hostName === undefined
     property int sessionIndex: (typeof sessionModel !== "undefined" && sessionModel.lastIndex >= 0) ? sessionModel.lastIndex : 0
     property int userIndex: (typeof userModel !== "undefined" && userModel.lastIndex >= 0) ? userModel.lastIndex : 0
-    
+
     // UI States
     property real ui1: 0
     property real ui2: 0
@@ -119,7 +120,7 @@ Rectangle {
         text: "AUTHENTICATE"
         font.family: pfDot.name
         font.pixelSize: 24 * s
-        color: "#111111"
+        color: "#ffffff"
         opacity: root.ui1
         transform: Translate { y: (1 - root.ui1) * -20 * s }
     }
@@ -135,11 +136,11 @@ Rectangle {
             width: 280 * s
             height: 280 * s
             radius: 48 * s
-            color: "#111111"
+            color: "#e8ebed"
             opacity: root.ui1
             scale: 0.95 + (0.05 * root.ui1)
             transform: Translate { y: (1 - root.ui1) * 40 * s }
-            
+
             Timer {
                 interval: 1000
                 running: true
@@ -152,12 +153,12 @@ Rectangle {
                     dateText.text = Qt.formatDate(d, "MMM d").toUpperCase();
                 }
             }
-            
+
             Column {
                 anchors.centerIn: parent
                 anchors.verticalCenterOffset: -16 * s
                 spacing: 4 * s
-                
+
                 Text {
                     id: hourText
                     anchors.horizontalCenter: parent.horizontalCenter
@@ -165,7 +166,7 @@ Rectangle {
                     font.family: pfDot.name
                     font.pixelSize: 110 * s
                     font.letterSpacing: 4 * s
-                    color: "#ffffff"
+                    color: "#111111"
                     height: 84 * s
                     verticalAlignment: Text.AlignVCenter
                 }
@@ -181,13 +182,13 @@ Rectangle {
                     verticalAlignment: Text.AlignVCenter
                 }
             }
-            
+
             Row {
                 anchors.bottom: parent.bottom
                 anchors.bottomMargin: 32 * s
                 anchors.horizontalCenter: parent.horizontalCenter
                 spacing: 8 * s
-                
+
                 Text {
                     id: dayText
                     text: Qt.formatDate(new Date(), "dddd").toUpperCase()
@@ -204,7 +205,7 @@ Rectangle {
                     font.pixelSize: 11 * s
                     font.letterSpacing: 1.5 * s
                     font.bold: true
-                    color: "#ffffff"
+                    color: "#111111"
                 }
             }
         }
@@ -215,14 +216,14 @@ Rectangle {
             width: 320 * s
             height: 280 * s
             radius: 48 * s
-            color: "#111111"
+            color: "#e8ebed"
             opacity: root.ui2
             scale: 0.95 + (0.05 * root.ui2)
             transform: [
                 Translate { id: shakeTranslate },
                 Translate { y: (1 - root.ui2) * 40 * s }
             ]
-            
+
             Column {
                 anchors.centerIn: parent
                 spacing: 24 * s
@@ -234,18 +235,18 @@ Rectangle {
                     width: Math.min(parent.width, (userNameText.implicitWidth + 48 * s))
                     height: 40 * s
                     radius: 20 * s
-                    color: userMouse.pressed ? "#b31018" : (userMouse.containsMouse ? "#ea1821" : "#222222")
-                    border.color: userMouse.containsMouse ? "#ea1821" : "#2a2a2a"
+                    color: userMouse.pressed ? "#b31018" : (userMouse.containsMouse ? "#ea1821" : "#dde0e3")
+                    border.color: userMouse.containsMouse ? "#ea1821" : "#c4c9ce"
                     border.width: 1 * s
                     scale: userMouse.pressed ? 0.96 : (userMouse.containsMouse ? 1.02 : 1.0)
                     Behavior on color { ColorAnimation { duration: 150 } }
                     Behavior on border.color { ColorAnimation { duration: 150 } }
                     Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutBack } }
-                    
+
                     Row {
                         anchors.centerIn: parent
                         spacing: 8 * s
-                        
+
                         Text {
                             text: "•"
                             font.family: pfDot.source !== "" ? pfDot.name : root.sansFont
@@ -254,14 +255,14 @@ Rectangle {
                             Behavior on color { ColorAnimation { duration: 150 } }
                             anchors.verticalCenter: parent.verticalCenter
                         }
-                        
+
                         Text {
                             id: userNameText
                             text: ((userHelper.currentItem && userHelper.currentItem.uName) ? userHelper.currentItem.uName : (userModel.lastUser || "USER")).toUpperCase()
                             font.family: pfDot.source !== "" ? pfDot.name : root.sansFont
                             font.pixelSize: 16 * s
                             font.letterSpacing: 1.5 * s
-                            color: "#ffffff"
+                            color: "#111111"
                             anchors.verticalCenter: parent.verticalCenter
                         }
 
@@ -274,7 +275,7 @@ Rectangle {
                             anchors.verticalCenter: parent.verticalCenter
                         }
                     }
-                    
+
                     MouseArea {
                         id: userMouse
                         anchors.fill: parent
@@ -293,12 +294,12 @@ Rectangle {
                     width: parent.width
                     height: 52 * s
                     radius: 26 * s
-                    color: pwd.activeFocus ? "#1a1a1a" : "#222222"
-                    border.color: root.errorMessage !== "" ? "#ea1821" : (pwd.activeFocus ? "#ffffff" : "#2a2a2a")
+                    color: pwd.activeFocus ? "#ffffff" : "#eef0f2"
+                    border.color: root.errorMessage !== "" ? "#ea1821" : (pwd.activeFocus ? "#111111" : "#c4c9ce")
                     border.width: 1.5 * s
                     Behavior on color { ColorAnimation { duration: 150 } }
                     Behavior on border.color { ColorAnimation { duration: 150 } }
-                    
+
                     TextInput {
                         id: pwd
                         anchors.fill: parent
@@ -307,20 +308,20 @@ Rectangle {
                         font.family: root.sansFont
                         font.pixelSize: 20 * s
                         font.letterSpacing: 8 * s
-                        color: "#ffffff"
+                        color: "#111111"
                         echoMode: TextInput.Password
                         passwordCharacter: "•"
                         horizontalAlignment: TextInput.AlignHCenter
                         verticalAlignment: TextInput.AlignVCenter
                         clip: true
-                        
+
                         cursorVisible: false
                         cursorDelegate: Item { width: 0; height: 0 }
                         selectionColor: "#d0d4d8"
-                        
+
                         property bool wasClicked: false
                         onActiveFocusChanged: if (!activeFocus && text.length === 0) wasClicked = false
-                        
+
                         Text {
                             anchors.centerIn: parent
                             text: root.errorMessage !== "" ? root.errorMessage : "PASSWORD"
@@ -331,7 +332,7 @@ Rectangle {
                             opacity: pwd.text === "" && (!pwd.activeFocus || (!pwd.wasClicked && pwd.text.length === 0)) ? 1 : 0
                             Behavior on opacity { NumberAnimation { duration: 150 } }
                         }
-                        
+
                         // Cursor
                         Rectangle {
                             id: customCursor
@@ -341,7 +342,7 @@ Rectangle {
                             anchors.verticalCenter: parent.verticalCenter
                             x: pwd.cursorRectangle.x
                             visible: pwd.activeFocus && (pwd.text.length > 0 || pwd.wasClicked) && root.errorMessage === ""
-                            
+
                             SequentialAnimation {
                                 loops: Animation.Infinite
                                 running: customCursor.visible
@@ -349,7 +350,7 @@ Rectangle {
                                 NumberAnimation { target: customCursor; property: "opacity"; from: 0; to: 1; duration: 400; easing.type: Easing.InOutQuad }
                             }
                         }
-                        
+
                         MouseArea {
                             anchors.fill: parent
                             cursorShape: Qt.IBeamCursor
@@ -358,7 +359,7 @@ Rectangle {
                                 pwd.forceActiveFocus();
                             }
                         }
-                        
+
                         onAccepted: {
                             if (!root.isQuickshell && pwd.text !== "") {
                                 let currentUser = userHelper.currentItem ? userHelper.currentItem.uLogin : userModel.lastUser;
@@ -373,37 +374,35 @@ Rectangle {
                     width: parent.width
                     height: 52 * s
                     radius: 26 * s
-                    color: loginMouse.pressed ? "#b31018" : (loginMouse.containsMouse ? "#ea1821" : "#ffffff")
+                    color: loginMouse.pressed ? "#b31018" : (loginMouse.containsMouse ? "#ea1821" : "#111111")
                     scale: loginMouse.pressed ? 0.96 : (loginMouse.containsMouse ? 1.02 : 1.0)
                     Behavior on color { ColorAnimation { duration: 150 } }
                     Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutBack } }
-                    
+
                     Row {
                         anchors.centerIn: parent
                         spacing: 8 * s
-                        
+
                         Text {
                             text: "UNLOCK"
                             font.family: root.sansFont
                             font.pixelSize: 14 * s
                             font.letterSpacing: 2 * s
                             font.bold: true
-                            color: loginMouse.containsMouse ? "#ffffff" : "#111111"
-                            Behavior on color { ColorAnimation { duration: 150 } }
+                            color: "#ffffff"
                         }
                         Text {
                             text: "→"
                             font.family: pfDot.source !== "" ? pfDot.name : root.sansFont
                             font.pixelSize: 16 * s
-                            color: loginMouse.containsMouse ? "#ffffff" : "#111111"
-                            Behavior on color { ColorAnimation { duration: 150 } }
+                            color: "#ffffff"
                             transform: Translate {
                                 x: loginMouse.containsMouse ? 4 * s : 0
                                 Behavior on x { NumberAnimation { duration: 150; easing.type: Easing.OutQuad } }
                             }
                         }
                     }
-                    
+
                     MouseArea {
                         id: loginMouse
                         anchors.fill: parent
@@ -420,7 +419,7 @@ Rectangle {
             width: 280 * s
             height: 280 * s
             radius: 48 * s
-            color: "#111111"
+            color: "#e8ebed"
             opacity: root.ui3
             scale: 0.95 + (0.05 * root.ui3)
             transform: Translate { y: (1 - root.ui3) * 40 * s }
@@ -429,18 +428,18 @@ Rectangle {
                 anchors.centerIn: parent
                 columns: 2
                 spacing: 16 * s
-                
+
                 // Power
                 Rectangle {
                     width: 108 * s; height: 108 * s; radius: 54 * s
-                    color: powerMouse.pressed ? "#b31018" : (powerMouse.containsMouse ? "#ea1821" : "#222222")
-                    border.color: powerMouse.containsMouse ? "#ea1821" : "#2a2a2a"
+                    color: powerMouse.pressed ? "#b31018" : (powerMouse.containsMouse ? "#ea1821" : "#dde0e3")
+                    border.color: powerMouse.containsMouse ? "#ea1821" : "#c4c9ce"
                     border.width: 1 * s
                     scale: powerMouse.pressed ? 0.92 : (powerMouse.containsMouse ? 1.05 : 1.0)
                     Behavior on color { ColorAnimation { duration: 150 } }
                     Behavior on border.color { ColorAnimation { duration: 150 } }
                     Behavior on scale { NumberAnimation { duration: 250; easing.type: Easing.OutBack } }
-                    
+
                     Column {
                         anchors.centerIn: parent
                         spacing: 2 * s
@@ -448,7 +447,7 @@ Rectangle {
                             text: "P"
                             font.family: pfDot.name
                             font.pixelSize: 36 * s
-                            color: "#ffffff"
+                            color: "#111111"
                             anchors.horizontalCenter: parent.horizontalCenter
                         }
                         Text {
@@ -461,7 +460,7 @@ Rectangle {
                             anchors.horizontalCenter: parent.horizontalCenter
                         }
                     }
-                    
+
                     MouseArea {
                         id: powerMouse
                         anchors.fill: parent
@@ -470,18 +469,18 @@ Rectangle {
                         onClicked: if (!root.isQuickshell) sddm.powerOff();
                     }
                 }
-                
+
                 // Session
                 Rectangle {
                     width: 108 * s; height: 108 * s; radius: 54 * s
-                    color: sessionMouse.pressed ? "#d0d0d0" : (sessionMouse.containsMouse ? "#ffffff" : "#222222")
-                    border.color: sessionMouse.containsMouse ? "#ffffff" : "#2a2a2a"
+                    color: sessionMouse.pressed ? "#444444" : (sessionMouse.containsMouse ? "#111111" : "#dde0e3")
+                    border.color: sessionMouse.containsMouse ? "#111111" : "#c4c9ce"
                     border.width: 1 * s
                     scale: sessionMouse.pressed ? 0.92 : (sessionMouse.containsMouse ? 1.05 : 1.0)
                     Behavior on color { ColorAnimation { duration: 150 } }
                     Behavior on border.color { ColorAnimation { duration: 150 } }
                     Behavior on scale { NumberAnimation { duration: 250; easing.type: Easing.OutBack } }
-                    
+
                     Column {
                         anchors.centerIn: parent
                         spacing: 2 * s
@@ -490,7 +489,7 @@ Rectangle {
                             text: "S"
                             font.family: pfDot.name
                             font.pixelSize: 36 * s
-                            color: sessionMouse.containsMouse ? "#111111" : "#ffffff"
+                            color: sessionMouse.containsMouse ? "#ffffff" : "#111111"
                             anchors.horizontalCenter: parent.horizontalCenter
                             Behavior on color { ColorAnimation { duration: 150 } }
                         }
@@ -500,7 +499,7 @@ Rectangle {
                             font.pixelSize: 8 * s
                             font.bold: true
                             font.letterSpacing: 0.5 * s
-                            color: sessionMouse.containsMouse ? "#111111" : "#888888"
+                            color: sessionMouse.containsMouse ? "#ffffff" : "#888888"
                             anchors.horizontalCenter: parent.horizontalCenter
                             elide: Text.ElideRight
                             width: parent.width
@@ -508,7 +507,7 @@ Rectangle {
                             Behavior on color { ColorAnimation { duration: 150 } }
                         }
                     }
-                    
+
                     MouseArea {
                         id: sessionMouse
                         anchors.fill: parent
@@ -525,14 +524,14 @@ Rectangle {
                 // Reboot
                 Rectangle {
                     width: 108 * s; height: 108 * s; radius: 54 * s
-                    color: rebootMouse.pressed ? "#d0d0d0" : (rebootMouse.containsMouse ? "#ffffff" : "#222222")
-                    border.color: rebootMouse.containsMouse ? "#ffffff" : "#2a2a2a"
+                    color: rebootMouse.pressed ? "#444444" : (rebootMouse.containsMouse ? "#111111" : "#dde0e3")
+                    border.color: rebootMouse.containsMouse ? "#111111" : "#c4c9ce"
                     border.width: 1 * s
                     scale: rebootMouse.pressed ? 0.92 : (rebootMouse.containsMouse ? 1.05 : 1.0)
                     Behavior on color { ColorAnimation { duration: 150 } }
                     Behavior on border.color { ColorAnimation { duration: 150 } }
                     Behavior on scale { NumberAnimation { duration: 250; easing.type: Easing.OutBack } }
-                    
+
                     Column {
                         anchors.centerIn: parent
                         spacing: 2 * s
@@ -540,7 +539,7 @@ Rectangle {
                             text: "R"
                             font.family: pfDot.name
                             font.pixelSize: 36 * s
-                            color: rebootMouse.containsMouse ? "#111111" : "#ffffff"
+                            color: rebootMouse.containsMouse ? "#ffffff" : "#111111"
                             anchors.horizontalCenter: parent.horizontalCenter
                             Behavior on color { ColorAnimation { duration: 150 } }
                         }
@@ -550,12 +549,12 @@ Rectangle {
                             font.pixelSize: 9 * s
                             font.bold: true
                             font.letterSpacing: 1 * s
-                            color: rebootMouse.containsMouse ? "#111111" : "#888888"
+                            color: rebootMouse.containsMouse ? "#ffffff" : "#888888"
                             anchors.horizontalCenter: parent.horizontalCenter
                             Behavior on color { ColorAnimation { duration: 150 } }
                         }
                     }
-                    
+
                     MouseArea {
                         id: rebootMouse
                         anchors.fill: parent
@@ -568,14 +567,14 @@ Rectangle {
                 // Suspend
                 Rectangle {
                     width: 108 * s; height: 108 * s; radius: 54 * s
-                    color: suspendMouse.pressed ? "#1a1a1a" : (suspendMouse.containsMouse ? "#333333" : "#222222")
-                    border.color: suspendMouse.containsMouse ? "#444444" : "#2a2a2a"
+                    color: suspendMouse.pressed ? "#d0d4d8" : (suspendMouse.containsMouse ? "#eef0f2" : "#dde0e3")
+                    border.color: suspendMouse.containsMouse ? "#b8bec4" : "#c4c9ce"
                     border.width: 1 * s
                     scale: suspendMouse.pressed ? 0.92 : (suspendMouse.containsMouse ? 1.05 : 1.0)
                     Behavior on color { ColorAnimation { duration: 150 } }
                     Behavior on border.color { ColorAnimation { duration: 150 } }
                     Behavior on scale { NumberAnimation { duration: 250; easing.type: Easing.OutBack } }
-                    
+
                     Column {
                         anchors.centerIn: parent
                         spacing: 2 * s
@@ -592,11 +591,11 @@ Rectangle {
                             font.pixelSize: 9 * s
                             font.bold: true
                             font.letterSpacing: 1 * s
-                            color: suspendMouse.containsMouse ? "#ffffff" : "#888888"
+                            color: suspendMouse.containsMouse ? "#111111" : "#888888"
                             anchors.horizontalCenter: parent.horizontalCenter
                         }
                     }
-                    
+
                     MouseArea {
                         id: suspendMouse
                         anchors.fill: parent
