@@ -194,6 +194,18 @@ binds {
     // ---------- Brightness ----------
     XF86MonBrightnessUp   allow-when-locked=true { spawn-sh "dms ipc call brightness increment 5"; }
     XF86MonBrightnessDown allow-when-locked=true { spawn-sh "dms ipc call brightness decrement 5"; }
+    // With Mod held, the same keys steer the external screens (DDC/CI) through
+    // the scripts the Hyprland session uses, falling back to the built-in panel
+    // when none is attached.
+    Mod+XF86MonBrightnessUp   allow-when-locked=true { spawn-sh "@@HOME@@/.config/hypr/scripts/monitor-brightness up"; }
+    Mod+XF86MonBrightnessDown allow-when-locked=true { spawn-sh "@@HOME@@/.config/hypr/scripts/monitor-brightness down"; }
+    // Keyboard backlight: J dims, K brightens.
+    Mod+Alt+J allow-when-locked=true { spawn-sh "@@HOME@@/.config/hypr/scripts/kbd-backlight down"; }
+    Mod+Alt+K allow-when-locked=true { spawn-sh "@@HOME@@/.config/hypr/scripts/kbd-backlight up"; }
+
+    // Night light (DMS warms the screens) and screenshot annotation (satty).
+    Mod+Alt+N allow-when-locked=true { spawn-sh "dms ipc call night toggle"; }
+    Mod+Alt+P allow-when-locked=true { spawn-sh "@@HOME@@/.config/hypr/scripts/dms-screenshot annotate"; }
 
     // ---------- Session ----------
     Mod+Escape allow-inhibiting=false { toggle-keyboard-shortcuts-inhibit; }

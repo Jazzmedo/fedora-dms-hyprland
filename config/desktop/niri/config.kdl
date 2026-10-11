@@ -285,6 +285,11 @@ spawn-at-startup "dbus-update-activation-environment" "--systemd" "--all"
 
 spawn-at-startup "kbuildsycoca6" "--noincremental"
 
+// XDG autostart: run the entries applications install in /etc/xdg/autostart
+// and ~/.config/autostart. dex is what does this job; niri has no notion of
+// them. The guard keeps the session clean if dex is ever missing.
+spawn-sh-at-startup "command -v dex >/dev/null 2>&1 && dex -a -s /etc/xdg/autostart/:@@HOME@@/.config/autostart/"
+
 // To run a shell command (with variables, pipes, etc.), use spawn-sh-at-startup:
 // spawn-sh-at-startup "qs -c ~/source/qs/MyAwesomeShell"
 

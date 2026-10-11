@@ -149,6 +149,24 @@ kv "kdeglobals colour blocks" "$(grep -c '^\[Colors' "$kg" 2>/dev/null || echo 0
 kv "ColorScheme" "$(sed -n 's/^ColorScheme=//p' "$kg" 2>/dev/null | head -1)"
 kv "qt6ct palette" "$([[ -f $HOME/.config/qt6ct/colors/matugen.conf ]] && echo present || echo MISSING)"
 
+# The daemons a desktop environment would have started, which the shell's
+# widgets depend on quietly: no upower means no battery widget, no
+# power-profiles-daemon means no power-profile OSD, no secret service means
+# saved passwords go nowhere.
+sec "desktop services"
+kv "upower"        "$(systemctl is-active upower 2>/dev/null || echo INACTIVE — battery widget is dead)"
+kv "power-profiles" "$(systemctl is-active power-profiles-daemon 2>/dev/null || echo INACTIVE — power OSD is dead)"
+kv "firewalld"     "$(systemctl is-active firewalld 2>/dev/null || echo INACTIVE)"
+kv "secret service" "$(busctl --user list 2>/dev/null | grep -q org.freedesktop.secrets && echo present || echo MISSING — saved passwords have nowhere to go)"
+kv "keyring PAM"   "$(grep -q pam_gnome_keyring /etc/pam.d/sddm 2>/dev/null && echo unlocks at login || echo 'not wired into the login screen')"
+kv "hyprlock PAM"  "$([[ -f /etc/pam.d/hyprlock ]] && echo present || echo 'MISSING — the lock screen may not accept the password')"
+kv "dex autostart" "$(command -v dex >/dev/null 2>&1 && echo present || echo MISSING)"
+kv "user dirs"     "$([[ -f $HOME/.config/user-dirs.dirs ]] && echo present || echo MISSING — no Documents/Downloads)"
+# The optional pieces report only when installed, so a machine that declined
+# printing does not show red for it.
+rpm -q cups >/dev/null 2>&1 && kv "cups" "$(systemctl is-active cups 2>/dev/null || echo INACTIVE)"
+rpm -q fwupd >/dev/null 2>&1 && kv "fwupd timer" "$(systemctl is-active fwupd-refresh.timer 2>/dev/null || echo INACTIVE)"
+
 sec "shell"
 login=$(getent passwd "$USER" | cut -d: -f7) || login=""
 zsh=$(command -v zsh 2>/dev/null)

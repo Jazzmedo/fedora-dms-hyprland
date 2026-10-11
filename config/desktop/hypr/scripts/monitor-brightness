@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+# Brightness for the screens the Fn keys cannot reach, for SUPER + Fn.
+#
+# The bare brightness keys drive the built-in panel through DMS's preferred
+# device. External screens speak DDC/CI over the display's i2c bus, which the
+# dms daemon talks to directly (Fedora's ddcutil udev rule already gives the
+# logged-in user that bus). This steps every DDC screen the shell knows about,
+# so its on-screen display pops up exactly as it does for the built-in panel;
+# with no DDC screen attached it falls back to that same panel, so the keys
+# always do something.
+set -euo pipefail
+
+usage() { echo "usage: ${0##*/} up|down [step]" >&2; exit 2; }
+(( $# == 1 || $# == 2 )) || usage
+case $1 in
+  up)   verb=increment ;;
+  down) verb=decrement ;;
+  *)    usage ;;
+esac
+step=${2:-10}
+
+# Device ids may contain spaces, so read the list line by line.
+devices=()
+while IFS= read -r line; do
+  case $line in
+    *' (ddc)'*) devices+=("${line%% (*}") ;;
+  esac
+done < <(dms ipc call brightness list 2>/dev/null || true)
+
+if (( ${#devices[@]} )); then
+  for id in "${devices[@]}"; do
+    dms ipc call brightness "$verb" "$step" "$id" >/dev/null
+  done
+else
+  # Nothing external to steer: behave like the bare Fn keys do.
+  exec dms ipc call brightness "$verb" "$step" ""
+fi

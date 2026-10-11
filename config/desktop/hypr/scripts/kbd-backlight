@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# Keyboard backlight, one level per press, for SUPER + ALT + J/K.
+#
+# The backlight is a two- or three-level LED (dell::kbd_backlight, and
+# tpacpi::kbd_backlight on ThinkPads), not a percentage scale: DMS's curve-
+# shaped percent steps land between the levels and stick at the bottom one.
+# logind's SetBrightness takes the exact level for the session's own user, no
+# privileges needed, and the lit keyboard is its own on-screen display.
+set -euo pipefail
+
+usage() { echo "usage: ${0##*/} up|down|off|max" >&2; exit 2; }
+[[ $# -eq 1 ]] || usage
+
+# The first keyboard backlight LED the kernel exposes, whatever made the laptop.
+led=""
+for d in /sys/class/leds/*:kbd_backlight; do
+  if [[ -d $d ]]; then led=$d; break; fi
+done
+# No keyboard backlight on this machine is a state, not an error.
+[[ -n $led ]] || exit 0
+
+max=$(<"$led/max_brightness")
+level=$(<"$led/brightness")
+
+case $1 in
+  up)   level=$(( level + 1 )) ;;
+  down) level=$(( level - 1 )) ;;
+  off)  level=0 ;;
+  max)  level=$max ;;
+  *)    usage ;;
+esac
+if (( level > max )); then level=$max; fi
+if (( level < 0 )); then level=0; fi
+
+# Keybindings run inside the session, where the id is in the environment; from
+# a bare ssh login there is no session to set the LED through.
+sid=${XDG_SESSION_ID:-}
+if [[ -z $sid ]]; then
+  sid=$(loginctl list-sessions --no-legend 2>/dev/null \
+    | awk -v u="$USER" '$3 == u { print $1; exit }')
+fi
+[[ -n $sid ]] || { echo "${0##*/}: no logind session to set the backlight through" >&2; exit 1; }
+
+busctl call org.freedesktop.login1 "/org/freedesktop/login1/session/$sid" \
+  org.freedesktop.login1.Session SetBrightness ssu leds "${led##*/}" "$level"

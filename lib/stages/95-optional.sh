@@ -4,7 +4,8 @@
 
 stage_optional() {
   local any=0
-  for c in tailscale warp niri splash; do is_selected "$c" && any=1; done
+  local c
+  for c in tailscale warp niri splash printing firmware draw; do is_selected "$c" && any=1; done
   (( any )) || { skip "No extras were chosen"; return 0; }
 
 
@@ -51,6 +52,41 @@ stage_optional() {
     else
       soft_fail "niri did not install, so that session is not available" "" "./install.sh --only=packages,optional"
     fi
+  fi
+
+  if is_selected printing; then
+    if rpm_has cups; then
+      systemctl is-enabled cups >/dev/null 2>&1 || record unit-system cups
+      as_root systemctl enable --now cups && ok "The print server is running" \
+        || soft_fail "Could not start the print server" \
+                     "cups is installed but refused to start." \
+                     "sudo systemctl status cups"
+      info "Add your printer in System Settings → Printing, or with: system-config-printer"
+    else
+      soft_fail "Printing did not install, so there is no print server" \
+                "Its packages were not available in the sources this run used." \
+                "./install.sh --only=packages,optional"
+    fi
+  fi
+
+  if is_selected firmware; then
+    if rpm_has fwupd; then
+      systemctl is-enabled fwupd-refresh.timer >/dev/null 2>&1 || record unit-system fwupd-refresh.timer
+      as_root systemctl enable --now fwupd-refresh.timer \
+        && ok "Firmware metadata will refresh on its own; check with: fwupdmgr get-updates" \
+        || soft_fail "Could not enable the firmware refresh timer" \
+                     "fwupd is installed but its timer refused to start." \
+                     "sudo systemctl enable --now fwupd-refresh.timer"
+    else
+      soft_fail "fwupd did not install, so firmware updates stay manual" \
+                "Its package was not available in the sources this run used." \
+                "./install.sh --only=packages,optional"
+    fi
+  fi
+
+  if is_selected draw; then
+    # install_github_rpm is defined in the apps stage, which has run by now.
+    install_github_rpm devmobasa/wayscriber 'wayscriber-x86_64\.rpm$' wayscriber "wayscriber"
   fi
 }
 

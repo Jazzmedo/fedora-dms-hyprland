@@ -123,15 +123,15 @@ component core        base base "Hyprland + DMS"  "compositor, shell, lock, clip
 copr "sdegler/hyprland ashbuk/Hyprland-Fedora solopasha/hyprland"
 pkgs "hyprland hyprland-devel hyprpaper hyprlock hypridle hyprpicker \
       xdg-desktop-portal-hyprland xdg-desktop-portal-gtk xdg-desktop-portal-kde xdg-utils \
-      matugen sddm weston qt6-qtvirtualkeyboard accountsservice \
+      matugen sddm weston accountsservice \
       qt6-qtdeclarative qt6-qt5compat qt6-qtsvg qt6-qtmultimedia \
       polkit-kde qt6ct qt5ct kvantum \
       breeze-icon-theme hicolor-icon-theme adw-gtk3-theme kde-gtk-config \
       cmake meson ninja-build gcc-c++ pkgconf git curl jq \
       ImageMagick brightnessctl playerctl libnotify \
-      wl-clipboard cliphist grim slurp wtype \
+      wl-clipboard cliphist grim slurp wtype satty \
       NetworkManager NetworkManager-wifi nm-connection-editor \
-      bluez blueman kdeconnectd cargo"
+      bluez bluez-obex blueman kdeconnectd cargo"
 detect 'all_of "pkg_installed hyprland" "have quickshell" \
                "have dms" "[[ -f $HOME/.config/hypr/hyprland.lua ]]" \
                "[[ -f /usr/share/wayland-sessions/hyprland.desktop ]]"' 
@@ -141,10 +141,42 @@ pkgs "pipewire pipewire-pulseaudio pipewire-alsa pipewire-utils \
       wireplumber pavucontrol alsa-utils"
 detect 'all_of "pkg_installed pipewire" "pkg_installed wireplumber" "pkg_installed pavucontrol"' 
 
-component apps_base   base base "Dolphin"         "file manager and thumbnails"
-pkgs "dolphin kf6-kio kf6-kservice ffmpegthumbs kdegraphics-thumbnailers libsecret zstd"
+component apps_base   base base "Dolphin"         "file manager, thumbnails, phone and network browsing"
+# kio-extras and gvfs are what let Dolphin open a phone over MTP or a Samba/NFS
+# share, and what give GTK applications a working trash and mount view.
+pkgs "dolphin kf6-kio kf6-kservice kio-extras ffmpegthumbs kdegraphics-thumbnailers \
+      gvfs gvfs-mtp gvfs-smb gvfs-nfs gvfs-gphoto2 gvfs-archive gvfs-fuse libsecret zstd"
 detect 'all_of "pkg_installed dolphin" \
-               "[[ -f $HOME/.config/mimeapps.list ]]"' 
+               "[[ -f $HOME/.config/mimeapps.list ]]"'
+
+# The rest of what a DE would install alongside its file manager. These are the
+# apps the generated mimeapps.list and the Hyprland window rules already name
+# as their fallbacks; without them those lines simply never fire.
+component desktop_apps base base "Desktop utilities" "ark, gwenview, okular, kate, kcalc, filelight, satty"
+pkgs "ark gwenview okular kate kcalc filelight satty"
+detect 'all_of "pkg_installed ark" "pkg_installed gwenview" "pkg_installed okular" \
+               "pkg_installed kate" "pkg_installed kcalc" "pkg_installed filelight" \
+               "pkg_installed satty"'
+
+# The daemons a desktop environment starts for you and this one would otherwise
+# forget. upower feeds the DMS battery widget (and brings udisks2, which mounts
+# removable drives); power-profiles-daemon feeds its power-profile OSD;
+# firewalld is what Fedora's Standard group normally — but only normally —
+# provides; dex runs the autostart entries applications install; and
+# xdg-user-dirs makes Documents and Downloads exist on an install that never
+# had a desktop to create them.
+component de_services base base "Desktop services" "upower, power profiles, firewall, app autostart, standard folders"
+pkgs "upower power-profiles-daemon firewalld dex xdg-user-dirs"
+detect 'all_of "pkg_installed upower" "pkg_installed power-profiles-daemon" \
+               "pkg_installed firewalld" "pkg_installed dex" \
+               "pkg_installed xdg-user-dirs" "[[ -f $HOME/.config/user-dirs.dirs ]]"'
+
+# libsecret is only the client library; without the service behind it, a
+# browser that offers to save a password cannot keep it. The PAM half unlocks
+# the keyring with the login password; stage_sddm wires that stack.
+component keyring base base "Secret service" "gnome-keyring, unlocked at login; seahorse to manage it"
+pkgs "gnome-keyring gnome-keyring-pam seahorse"
+detect 'all_of "pkg_installed gnome-keyring" "grep -q pam_gnome_keyring /etc/pam.d/sddm"'
 
 component fonts       base base "Nothing fonts"   "Ndot 55/57, NType 82, JetBrainsMono Nerd Font, Arabic faces"
 pkgs "fontconfig google-noto-sans-fonts google-noto-emoji-fonts ibm-plex-sans-arabic-fonts"
@@ -355,7 +387,26 @@ detect 'all_of "[[ -f /usr/share/plymouth/themes/nothing/nothing.script ]]" \
 component tweaks      services off "System tweaks"   "search engine policy, mDNS resolution, writeback cap, Egyptian regional formats"
 detect 'all_of "[[ -f /etc/sysctl.d/99-usb-copy-fix.conf ]]" \
                "grep -q mdns4_minimal /etc/nsswitch.conf" \
-               "[[ -f /etc/zen/policies/policies.json ]]"' 
+               "[[ -f /etc/zen/policies/policies.json ]]"'
+
+component printing    services off "Printing & scanning" "cups, the KDE printer settings, skanpage"
+pkgs "cups cups-filters print-manager sane-backends-drivers-scanners skanpage"
+detect 'all_of "pkg_installed cups" "systemctl is-enabled cups"'
+
+component firmware    services off "Firmware updates" "fwupd, with its refresh timer enabled"
+pkgs "fwupd"
+detect 'all_of "pkg_installed fwupd" "systemctl is-enabled fwupd-refresh.timer"'
+
+component office      services off "Office"          "LibreOffice with the Arabic language pack"
+pkgs "libreoffice libreoffice-langpack-ar"
+
+component backups     services off "System snapshots" "timeshift: restore points for the whole disk"
+pkgs "timeshift"
+
+# The tool behind the SUPER+ALT+D draw-on-screen bind. No dnf package exists;
+# the project publishes an rpm of its own, which install_github_rpm fetches.
+component draw        services off "Draw on screen"  "wayscriber: annotate over anything on screen (SUPER+ALT+D)"
+detect 'all_of "have wayscriber"'
 
 # A screen driven at limited RGB range looks washed out, and Hyprland offers no
 # way to change it: the range is a DRM connector property its backend leaves at

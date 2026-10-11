@@ -52,7 +52,7 @@ within seconds, using Catppuccin's userstyles rebuilt with your colours.
 | 📦 **Apps**     | foot and/or kitty, any of Zen, Firefox, LibreWolf, Brave, Brave Origin, Vivaldi and Helium (you pick the default of each), Dolphin, Vesktop, Obsidian, OBS, qBittorrent, mpv, Strawberry, CLIAMP, EasyEffects, Gear Lever, Mimic (default apps per file and link type) |
 | 🧑‍💻 **Dev**      | Neovim + LazyVim; pick any of mise, uv, pipx, pnpm, Rust, Go, Podman, Docker, yt-dlp                          |
 | 🤖 **AI**       | pick any of Claude Code, Codex, OpenCode, GLM (Claude Code on a Z.ai GLM Coding Plan, as the `glm` command)  |
-| 🔒 **Services** | Tailscale, Cloudflare WARP, a niri session, system tweaks                                                     |
+| 🔒 **Services** | Tailscale, Cloudflare WARP, a niri session, system tweaks; optional printing, firmware updates, LibreOffice and disk snapshots |
 
 Everything outside the base desktop is optional and shown in the checklist.
 
@@ -163,6 +163,19 @@ the monitor, its rotation, where new windows open (right, left, down or up) and
 whether its workspaces switch up/down or left/right. It applies to the running
 session, and the theme wallpaper follows the monitor's new shape. A reinstall
 keeps these choices.
+
+The brightness keys are doubled up: on their own they dim the built-in screen,
+and holding SUPER on them steers the external ones over DDC/CI, falling back to
+the built-in screen when none is attached. SUPER+ALT+J and SUPER+ALT+K dim and
+brighten the keyboard backlight, SUPER+ALT+N toggles the night light, and
+SUPER+ALT+P grabs a screen region and opens it for annotation.
+
+### Desktop-environment parity
+
+A desktop environment does more than draw windows, and the things it does
+silently are the ones a compositor setup forgets. [docs/de-parity.md](docs/de-parity.md)
+is the audit: what GNOME and KDE give you that this did not, what it costs to
+close each gap, and what was left out on purpose.
 
 ### Browser extensions
 

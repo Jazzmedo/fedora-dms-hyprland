@@ -40,6 +40,14 @@ end)
 hl.on("hyprland.start", function()
 	hl.exec_cmd("hyprpm list >/dev/null 2>&1 && hyprpm reload -n && hyprctl reload")
 end)
+
+-- XDG autostart. Applications install entries in /etc/xdg/autostart expecting
+-- the session to run them — EasyEffects, KDE Connect helpers, anything added
+-- later — and Hyprland has no notion of them, so dex does this job. Kept
+-- outside the DMS_STARTUP block above, which that installer may rewrite.
+hl.on("hyprland.start", function()
+	hl.exec_cmd("command -v dex >/dev/null 2>&1 && dex -a -s /etc/xdg/autostart/:@@HOME@@/.config/autostart/")
+end)
 -- DMS_STARTUP_END
 
 hl.config({
@@ -748,12 +756,38 @@ hl.bind("SUPER + ALT + equal", exec(magnifier .. " in"), { repeating = true, des
 hl.bind("SUPER + ALT + minus", exec(magnifier .. " out"), { repeating = true, description = "Magnifier: zoom out" })
 hl.bind("SUPER + ALT + 0", exec(magnifier .. " reset"), { description = "Magnifier: reset zoom" })
 
+-- Brightness beyond the built-in panel, which the bare Fn keys already drive
+-- through DMS's preferred device. Holding SUPER on those same keys steers the
+-- external screens instead: they speak DDC/CI, which only the shell's daemon
+-- can reach, and with none attached the keys fall back to the built-in panel
+-- so they always do something.
+monitor_brightness = "@@HOME@@/.config/hypr/scripts/monitor-brightness"
+hl.bind("SUPER + XF86MonBrightnessUp", exec(monitor_brightness .. " up"), { locked = true, repeating = true, description = "Brightness up on external screens" })
+hl.bind("SUPER + XF86MonBrightnessDown", exec(monitor_brightness .. " down"), { locked = true, repeating = true, description = "Brightness down on external screens" })
+
+-- The keyboard backlight is two or three levels, not a percentage scale, so
+-- DMS's curve-shaped steps land between them; the script goes through logind,
+-- which takes the exact level. J dims and K brightens, like volume down and up.
+kbd_backlight = "@@HOME@@/.config/hypr/scripts/kbd-backlight"
+hl.bind("SUPER + ALT + J", exec(kbd_backlight .. " down"), { locked = true, repeating = true, description = "Keyboard backlight: dimmer" })
+hl.bind("SUPER + ALT + K", exec(kbd_backlight .. " up"), { locked = true, repeating = true, description = "Keyboard backlight: brighter" })
+
 -- Draw on screen, in the shape KDE's Mouse Mark effect has.  wayscriber runs as
 -- a user service and paints onto a wlr-layer-shell surface, so it draws over
 -- native Wayland windows rather than only XWayland ones the way gromit-mpx
--- would.  Hyprland cannot express "while SUPER + SHIFT is held" -- a
--- modifier-only bind fires on release -- so this toggles the overlay instead.
+-- would.  It arrives with the optional Draw component; until then this bind
+-- quietly does nothing.  Hyprland cannot express "while SUPER + SHIFT is
+-- held" -- a modifier-only bind fires on release -- so this toggles the
+-- overlay instead.
 hl.bind("SUPER + ALT + D", exec("wayscriber --daemon-toggle"), { description = "Draw on screen" })
+
+-- Night light.  DMS warms the screens itself; this is its only key.
+hl.bind("SUPER + ALT + N", exec("dms ipc call night toggle"), { description = "Toggle night light" })
+
+-- Grab a region and hand it to satty for annotation.  The Print-family keys
+-- above stay with DMS's own captures, which save straight to disk.
+hl.bind("SUPER + ALT + P", exec("@@HOME@@/.config/hypr/scripts/dms-screenshot annotate"),
+	{ description = "Capture a region and annotate it" })
 
 -- Show the focused window on every workspace.  Hyprland refuses to pin a tiled
 -- window -- it warns "Window does not qualify to be pinned" -- so pinning has

@@ -1,11 +1,26 @@
 #!/usr/bin/env bash
 # Keep hover-focus from pulling Hyprland's scrolling tape while DMS freezes the
 # screen and displays its screenshot selector.
+#
+# "annotate" goes the other way: grab a region with grim and hand the image to
+# satty for drawing on, since DMS's own captures save straight to disk.
 set -u
 
 restore_follow_focus() {
 	hyprctl keyword scrolling:follow_focus true >/dev/null 2>&1 || true
 }
+
+case "${1:-}" in
+annotate)
+	if ! command -v satty >/dev/null 2>&1; then
+		notify-send -a "Screenshot" "satty is not installed" \
+			"It comes with the Desktop utilities part of the installer." 2>/dev/null
+		exit 1
+	fi
+	region=$(slurp) || exit 1
+	exec grim -g "$region" - | satty --filename - --early-exit-key Escape
+	;;
+esac
 
 trap restore_follow_focus EXIT INT TERM
 hyprctl keyword scrolling:follow_focus false >/dev/null 2>&1 || true

@@ -36,6 +36,53 @@ make_sddm_the_login_screen() {
   return 0
 }
 
+# A keyring nobody unlocks is a keyring you type a separate password into on
+# every login. The greeter hands the login password to pam_gnome_keyring, and
+# the session's gnome-keyring-daemon picks the unlocked keyring up from there.
+# Fedora's sddm PAM ships the kwallet lines but not these, so they are added:
+# after the first auth line that pulls in the system stack, and after the last
+# session line. Both are `optional`, so a stack that grows later is unaffected.
+configure_keyring_pam() {
+  if ! rpm_has gnome-keyring-pam; then
+    soft_fail "The keyring package did not install, so logins cannot unlock it" \
+              "Saved passwords would ask for a separate unlock on every login." \
+              "sudo dnf install gnome-keyring-pam && ./install.sh --only=sddm"
+    return 0
+  fi
+
+  local stack file tmp
+  for stack in sddm sddm-autologin sddm-greeter; do
+    file=/etc/pam.d/$stack
+    [[ -f $file ]] || continue
+    if grep -q pam_gnome_keyring "$file"; then
+      skip "The $stack login already unlocks the keyring"
+      continue
+    fi
+    backup_path "$file"
+    (( DRY_RUN )) && { info "Would make the $stack login unlock the keyring"; continue; }
+    tmp=$(mktemp)
+    awk '
+      { lines[++n] = $0 }
+      /^auth[ \t]/ && !done_auth && /(substack|include)/ { auth_at = n; done_auth = 1 }
+      /^session[ \t]/ { last = n }
+      END {
+        for (i = 1; i <= n; i++) {
+          print lines[i]
+          if (i == auth_at) print "auth        optional       pam_gnome_keyring.so"
+          if (i == last) print "session     optional       pam_gnome_keyring.so auto_start"
+        }
+        if (!done_auth) print "auth        optional       pam_gnome_keyring.so"
+        if (!last) print "session     optional       pam_gnome_keyring.so auto_start"
+      }
+    ' "$file" > "$tmp"
+    as_root cp "$tmp" "$file"
+    rm -f "$tmp"
+    record edited "$file"
+    ok "The $stack login will unlock the keyring"
+  done
+  return 0
+}
+
 # Num Lock on the text consoles as well as the login screen. SDDM handles its
 # own greeter with Numlock=on above; the consoles have no such setting, so a
 # one-shot service does it once the terminals exist.
@@ -166,6 +213,8 @@ EOF
     info "Moved an old login screen config aside so these settings take effect"
 
   enable_console_numlock
+
+  configure_keyring_pam
 
   make_sddm_the_login_screen
   # The target as it stands, so uninstall can put it back rather than guess.

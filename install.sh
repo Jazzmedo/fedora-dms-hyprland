@@ -42,7 +42,7 @@ SHOW_STATUS=0
 # the same directories this repository does. It therefore runs BEFORE any
 # configuration is deployed, so that what it writes is overwritten by these
 # settings rather than the other way round.
-ALL_STAGES=(preflight repos gpu packages fonts dms hyprland themes apps shell tweaks sddm optional)
+ALL_STAGES=(preflight repos gpu packages fonts dms hyprland themes apps shell tweaks desktop sddm optional)
 STAGES_TO_RUN=()
 
 usage() {
