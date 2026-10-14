@@ -278,8 +278,12 @@ install_helium() {
     skip "The Helium browser is already installed"; return 0
   fi
   local tmp; tmp=$(mktemp -d)
+  # `|| true` on purpose: pipefail turns grep's SIGPIPE (head leaves after the
+  # first match) or a failed API call into a failed assignment, and set -e
+  # would end the stage before the message below could run. Whatever made it
+  # through is still captured; empty means the same thing either way.
   local url; url=$(curl -fsSL https://api.github.com/repos/imputnet/helium-linux/releases/latest 2>/dev/null \
-    | grep -oP '"browser_download_url":\s*"\K[^"]*x86_64[^"]*\.tar\.xz' | head -1)
+    | grep -oP '"browser_download_url":\s*"\K[^"]*x86_64[^"]*\.tar\.xz' | head -1) || true
   if [[ -z $url ]] || ! retry 3 curl -fL --progress-bar -o "$tmp/helium.tar.xz" "$url"; then
     clean_tmp "$tmp"; soft_fail "Could not download the Helium browser" "The download failed." "./install.sh --only=apps"; return 0
   fi
@@ -341,11 +345,15 @@ install_github_rpm() {
   fi
 
   local url
+  # `|| true` for the same reason as the Helium download above: pipefail plus
+  # head's early exit can fail this assignment on a release with several
+  # matching assets, and the message below is the better answer to an empty
+  # url than a silent stage death.
   url=$(curl -fsSL --max-time 30 "https://api.github.com/repos/$repo/releases/latest" 2>/dev/null \
         | grep -oiE '"browser_download_url":[[:space:]]*"[^"]+"' \
         | cut -d'"' -f4 \
         | grep -iE "$pattern" \
-        | head -1)
+        | head -1) || true
 
   if [[ -z $url ]]; then
     soft_fail "Could not find an installer for $label" \
