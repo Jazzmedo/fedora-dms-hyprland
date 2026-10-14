@@ -21,6 +21,9 @@ install_exit_trap() {
 
   spin_cleanup 2>/dev/null || true
   [[ -n $SUDO_KEEPALIVE ]] && { kill "$SUDO_KEEPALIVE" 2>/dev/null || true; }
+  # Give the screen back before the crash report prints, so it is not painted
+  # over the pinned stage header or trapped in the scroll region.
+  declare -F progress_teardown >/dev/null && progress_teardown
 
   (( INSTALL_COMPLETED )) && return 0
   (( code == 0 )) && return 0        # an intentional early exit, such as --status
@@ -77,10 +80,11 @@ set_colors() {
     C_BLUE=$'\e[38;5;75m'
     C_MAGENTA=$'\e[38;5;176m'
     C_GREY=$'\e[38;5;245m'
+    C_FAINT=$'\e[38;5;238m'       # settled log lines: readable, deliberately quiet
     C_DIM=$'\e[2m'; C_BOLD=$'\e[1m'; C_OFF=$'\e[0m'
   else
     C_RED=""; C_OK=""; C_WARN=""; C_CYAN=""; C_BLUE=""; C_MAGENTA=""
-    C_GREY=""; C_DIM=""; C_BOLD=""; C_OFF=""
+    C_GREY=""; C_FAINT=""; C_DIM=""; C_BOLD=""; C_OFF=""
   fi
 }
 set_colors
@@ -92,13 +96,13 @@ _log_raw() {
   return 0
 }
 
-# Each class gets its own glyph and colour. They used to share: info and skip
-# were both a grey dot, so "doing this" and "not doing this" looked identical,
-# and soft_fail rendered exactly like warn, so a broken step read as an aside.
+# Log lines print faint on purpose: they are the record, not the news. With
+# the pinned stage header overhead, the only bright things left on screen are
+# warnings and failures, which is where the eye is meant to land.
 step()  { printf '\n%s▌ %s%s\n' "$C_RED$C_BOLD" "$*" "$C_OFF";     _log_raw "STEP  $*"; }
-info()  { printf '  %s→%s %s\n'  "$C_CYAN" "$C_OFF" "$*";           _log_raw "INFO  $*"; }
-ok()    { printf '  %s✓%s %s\n'  "$C_OK"   "$C_OFF" "$*";           _log_raw "OK    $*"; }
-skip()  { printf '  %s·%s %s%s%s\n' "$C_GREY" "$C_OFF" "$C_DIM" "$*" "$C_OFF"; _log_raw "SKIP  $*"; }
+info()  { printf '  %s→%s %s%s%s\n'  "$C_FAINT" "$C_OFF" "$C_FAINT" "$*" "$C_OFF"; _log_raw "INFO  $*"; }
+ok()    { printf '  %s✓%s %s%s%s\n' "$C_FAINT" "$C_OFF" "$C_FAINT" "$*" "$C_OFF"; _log_raw "OK    $*"; }
+skip()  { printf '  %s·%s %s%s%s\n' "$C_FAINT" "$C_OFF" "$C_FAINT" "$*" "$C_OFF"; _log_raw "SKIP  $*"; }
 warn()  { printf '  %s▲%s %s\n'  "$C_WARN" "$C_OFF" "$*" >&2;       _log_raw "WARN  $*"; }
 
 # why/fix: an indented explanation under a failure. Callers pass them as the
@@ -134,6 +138,8 @@ soft_fail() {
   SOFT_FAILURES+=("$1")
   SOFT_WHY+=("${2:-}")
   SOFT_FIX+=("${3:-}")
+  # The pinned stage header carries a live tally of these.
+  declare -F progress_repaint >/dev/null && progress_repaint
   return 0
 }
 

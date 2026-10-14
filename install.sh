@@ -444,6 +444,9 @@ main() {
   for s in "${STAGES_TO_RUN[@]}"; do
     run_stage "$s"
   done
+  # Hand the screen back before the final checks print: they and the summary
+  # are the end of the run, not log lines under the pinned header.
+  progress_teardown
 
   INSTALL_COMPLETED=1
   (( DRY_RUN )) || verify_install

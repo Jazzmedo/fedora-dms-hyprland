@@ -68,10 +68,54 @@ PROGRESS_TOTAL=0
 PROGRESS_INDEX=0
 PROGRESS_START=0
 
+# Pinned-header mode. When the terminal can take it, the stage box lives on
+# rows 1..HEADER_ROWS and everything else scrolls inside a scroll region below
+# it: output can never push the box away, so it is painted once and repainted
+# in place as stages advance, instead of one box per stage piling into the
+# scrollback. LOG lines print dimmed; warnings and failures print bright, so
+# the eye lands on what needs attention without scrolling.
+HEADER_ROWS=6
+PROGRESS_TTY=0
+PROGRESS_LINES=0
+
 progress_init() {
   PROGRESS_TOTAL=$1
   PROGRESS_INDEX=0
   PROGRESS_START=$SECONDS
+  PROGRESS_TTY=0
+  (( COLOR_ON )) && [[ -t 1 ]] || return 0
+
+  local lines; lines=$(tput lines 2>/dev/null)
+  [[ $lines =~ ^[0-9]+$ ]] || lines=${LINES:-24}
+  # Short terminals keep the old linear layout: a pinned header plus room to
+  # read what is happening needs more rows than a 15-line window has.
+  (( lines >= HEADER_ROWS + 12 )) || return 0
+  PROGRESS_LINES=$lines
+  PROGRESS_TTY=1
+
+  printf '\0337'                          # remember where output continues
+  printf '\033[%d;%dr' $(( HEADER_ROWS + 1 )) "$lines"
+  _progress_paint
+  printf '\0338'
+}
+
+progress_active() { (( PROGRESS_TTY )); }
+
+# Repaint from wherever output currently is, leaving that spot untouched.
+progress_repaint() {
+  (( PROGRESS_TTY )) || return 0
+  printf '\0337'
+  _progress_paint
+  printf '\0338'
+}
+
+# Hand the whole screen back: the box joins the scrollback and everything
+# after this (the final checks, the summary, a crash report) prints normally.
+progress_teardown() {
+  (( PROGRESS_TTY )) || return 0
+  PROGRESS_TTY=0
+  printf '\033[r'                         # scroll region: the full screen again
+  printf '\033[%dH\n' "$PROGRESS_LINES"   # scroll once, then continue below it
 }
 
 # m:ss for anything under an hour, which is every realistic run.
@@ -91,44 +135,90 @@ _box_row() {
     "$C_RED" "$C_OFF" "$colour" "$text" "${colour:+$C_OFF}" "$pad" '' "$C_RED" "$C_OFF"
 }
 
-# Printed once as each stage starts. Deliberately not redrawn: a header that
-# repaints would fight with the sudo prompt and with dnf drawing its own
-# output, and those matter more than a live counter.
+# Redraw the fixed header in place. Every row is cursor-addressed and cleared
+# first, so stale content of any length is gone; the caller wraps this in
+# cursor save/restore.
+_progress_paint() {
+  local name=${CURRENT_STAGE:-}
+  local title=${STAGE_TITLE[$name]:-$name}
+  local blurb=${STAGE_BLURB[$name]:-}
+  if [[ -z $name || $name == startup ]]; then
+    # Painted before the first stage begins; nothing real to name yet.
+    title="fedora-nothing"
+    blurb="Preparing the install."
+  fi
+  local total=$(( PROGRESS_TOTAL > 0 ? PROGRESS_TOTAL : 1 ))
+  local inner=$(( UI_WIDTH - 4 ))
+  local barw=$(( inner - 16 )); (( barw < 8 )) && barw=8
+  local pct=$(( PROGRESS_INDEX * 100 / total ))
+  local filled=$(( PROGRESS_INDEX * barw / total ))
+  local tail; printf -v tail '%5s%%  %8s' "$pct" "$(elapsed_since)"
+
+  # Right-aligned tally of soft failures, so trouble is visible up top without
+  # reading a single log line. On a narrow row the tally is dropped rather
+  # than let the box wrap.
+  local text line counter=""
+  if (( ${#SOFT_FAILURES[@]} )); then
+    counter="⚠ ${#SOFT_FAILURES[@]} to look at"
+    local pad=$(( inner - 14 - ${#PROGRESS_INDEX} - ${#PROGRESS_TOTAL} - ${#title} - ${#counter} - 2 ))
+    if (( pad >= 0 )); then
+      printf -v text '%s%*s%s%s%s  ' "Step $PROGRESS_INDEX of $PROGRESS_TOTAL  ·  $title" \
+        "$pad" '' "$C_WARN$C_BOLD" "$counter" "$C_OFF"
+    else
+      counter=""
+    fi
+  fi
+  [[ -n $counter ]] || text="Step $PROGRESS_INDEX of $PROGRESS_TOTAL  ·  $title"
+
+  printf '\033[1;1H\033[K%s╭%s╮%s' "$C_RED" "$(rule $(( inner + 2 )))" "$C_OFF"
+  printf '\033[2;1H\033[K%s│%s  %s%s%s%s│%s' \
+    "$C_RED" "$C_OFF" "$C_BOLD" "$text" "$C_OFF" "$C_RED" "$C_OFF"
+  printf '\033[3;1H\033[K'
+  [[ -n $blurb ]] && _box_row "$blurb" "$C_GREY"
+  printf '\033[4;1H\033[K%s│%s  %s%s%s%s%s%s%s%*s%s│%s' \
+    "$C_RED" "$C_OFF" \
+    "$C_RED" "$(rule "$filled" '█')" "$C_GREY" "$(rule $(( barw - filled )) '░')" "$C_OFF" \
+    "$C_GREY" "$tail" $(( inner - barw - 16 )) '' "$C_RED" "$C_OFF"
+  printf '\033[5;1H\033[K%s╰%s╯%s' "$C_RED" "$(rule $(( inner + 2 )))" "$C_OFF"
+  printf '\033[6;1H\033[K'
+}
+
+# Called as each stage starts: move the pinned header on to the new stage.
 progress_stage_begin() {
   local name=$1
   PROGRESS_INDEX=$(( PROGRESS_INDEX + 1 ))
+  CURRENT_STAGE=$name
 
   local title=${STAGE_TITLE[$name]:-$name}
   local blurb=${STAGE_BLURB[$name]:-}
   local total=$(( PROGRESS_TOTAL > 0 ? PROGRESS_TOTAL : 1 ))
   local pct=$(( (PROGRESS_INDEX - 1) * 100 / total ))
 
-  if ! (( COLOR_ON )); then
-    printf '\n== Step %d of %d: %s ==\n%s\n\n' \
-      "$PROGRESS_INDEX" "$PROGRESS_TOTAL" "$title" "$blurb"
-    _log_raw "STAGE $PROGRESS_INDEX/$PROGRESS_TOTAL $name"
+  _log_raw "STAGE $PROGRESS_INDEX/$PROGRESS_TOTAL $name"
+
+  if ! progress_active; then
+    if (( COLOR_ON )); then
+      local inner=$(( UI_WIDTH - 4 ))
+      local barw=$(( inner - 16 )); (( barw < 8 )) && barw=8
+      local filled=$(( (PROGRESS_INDEX - 1) * barw / total ))
+      local tail; printf -v tail '%5s%%  %8s' "$pct" "$(elapsed_since)"
+
+      printf '\n%s╭%s╮%s\n' "$C_RED" "$(rule $(( inner + 2 )))" "$C_OFF"
+      _box_row "Step $PROGRESS_INDEX of $PROGRESS_TOTAL  ·  $title" "$C_BOLD"
+      [[ -n $blurb ]] && _box_row "$blurb" "$C_GREY"
+      printf '%s│%s  %s%s%s%s%s%s%s%*s%s│%s\n' \
+        "$C_RED" "$C_OFF" \
+        "$C_RED" "$(rule "$filled" '█')" "$C_GREY" "$(rule $(( barw - filled )) '░')" "$C_OFF" \
+        "$C_GREY" "$tail" $(( inner - barw - 16 )) '' "$C_RED" "$C_OFF"
+      printf '%s╰%s╯%s\n\n' "$C_RED" "$(rule $(( inner + 2 )))" "$C_OFF"
+    else
+      printf '\n== Step %d of %d: %s ==\n%s\n\n' \
+        "$PROGRESS_INDEX" "$PROGRESS_TOTAL" "$title" "$blurb"
+    fi
     return 0
   fi
 
-  local inner=$(( UI_WIDTH - 4 ))
-  # The bar shares the row with "  100%   59m 59s", 16 characters.
-  local barw=$(( inner - 16 ))
-  (( barw < 8 )) && barw=8
-  local filled=$(( (PROGRESS_INDEX - 1) * barw / total ))
-  local tail; printf -v tail '%5s%%  %8s' "$pct" "$(elapsed_since)"
-
-  printf '\n%s╭%s╮%s\n' "$C_RED" "$(rule $(( inner + 2 )))" "$C_OFF"
-  _box_row "Step $PROGRESS_INDEX of $PROGRESS_TOTAL  ·  $title" "$C_BOLD"
-  [[ -n $blurb ]] && _box_row "$blurb" "$C_GREY"
-  # Built by hand rather than through _box_row, because the bar carries its own
-  # colours in the middle of the row.
-  printf '%s│%s  %s%s%s%s%s%s%s%*s%s│%s\n' \
-    "$C_RED" "$C_OFF" \
-    "$C_RED" "$(rule "$filled" '█')" "$C_GREY" "$(rule $(( barw - filled )) '░')" "$C_OFF" \
-    "$C_GREY" "$tail" $(( inner - barw - 16 )) '' "$C_RED" "$C_OFF"
-  printf '%s╰%s╯%s\n\n' "$C_RED" "$(rule $(( inner + 2 )))" "$C_OFF"
-
-  _log_raw "STAGE $PROGRESS_INDEX/$PROGRESS_TOTAL $name"
+  progress_repaint
 }
 
 # ----------------------------------------------------------------- spinner ---
