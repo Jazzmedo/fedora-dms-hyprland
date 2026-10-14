@@ -36,10 +36,14 @@ stage_optional() {
   fi
 
   if is_selected kdeconnect; then
-    # The daemon starts itself at login through its autostart entry, which dex
-    # runs; what it cannot do for itself is open the firewall. Without these
-    # ports the phone never appears, which looks exactly like a broken install.
-    if rpm_has kdeconnectd && have firewall-cmd && firewall-cmd --state >/dev/null 2>&1; then
+    # The daemon starts itself at login through its dms-kdeconnect unit; what
+    # it cannot do for itself is open the firewall. Without these ports the
+    # phone never appears, which looks exactly like a broken install.
+    #
+    # The check is deliberately not `firewall-cmd --state` as this user: that
+    # query goes through polkit, and on a tty with no agent it answers
+    # "Authorization failed" even with firewalld perfectly healthy.
+    if rpm_has kdeconnectd && have firewall-cmd; then
       if as_root firewall-cmd --permanent --add-service=kdeconnect \
         && as_root firewall-cmd --reload; then
         ok "KDE Connect's ports are open — your phone should now be discoverable"
