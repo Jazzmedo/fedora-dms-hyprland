@@ -13,8 +13,6 @@ DesktopPluginComponent {
 
     minWidth: 200
     minHeight: 160
-    defaultWidth: 240
-    defaultHeight: 220
 
     property string themeMode: pluginData.themeMode ?? "dark"
     property string backgroundMode: pluginData.background ?? "card"
