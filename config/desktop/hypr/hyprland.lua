@@ -779,14 +779,14 @@ hl.bind("SUPER + ALT + K", exec(kbd_backlight .. " up"), { locked = true, repeat
 -- quietly does nothing.  Hyprland cannot express "while SUPER + SHIFT is
 -- held" -- a modifier-only bind fires on release -- so this toggles the
 -- overlay instead.
-hl.bind("SUPER + ALT + D", exec("wayscriber --daemon-toggle"), { description = "Draw on screen" })
+hl.bind("SUPER + ALT + X", exec("wayscriber --daemon-toggle"), { description = "Draw on screen" })
 
 -- Night light.  DMS warms the screens itself; this is its only key.
 hl.bind("SUPER + ALT + N", exec("dms ipc call night toggle"), { description = "Toggle night light" })
 
--- Grab a region and hand it to satty for annotation.  The Print-family keys
--- above stay with DMS's own captures, which save straight to disk.
-hl.bind("SUPER + ALT + P", exec("@@HOME@@/.config/hypr/scripts/dms-screenshot annotate"),
+-- Grab a region and hand it to the quickCapture plugin's annotation editor.
+-- The Print-family keys above stay with DMS's own captures, which save straight to disk.
+hl.bind("SUPER + ALT + P", exec("dms ipc call quickCapture screenshot region edit"),
 	{ description = "Capture a region and annotate it" })
 
 -- Show the focused window on every workspace.  Hyprland refuses to pin a tiled

@@ -148,7 +148,8 @@ hl.bind("SUPER + SHIFT + D", function() quattro_move_direction("r") end, { descr
 hl.unbind("SUPER + SHIFT + Grave")
 hl.bind("SUPER + SHIFT + Grave", move_window({ monitor = "+1" }), { description = "Move window to other monitor" })
 hl.unbind("SUPER + SHIFT + M")
-hl.bind("SUPER + SHIFT + M", exec("zen --private-window"), { description = "Open Zen private window" })  -- @component:zen
+hl.unbind("SUPER + CTRL + SHIFT + Z")
+hl.bind("SUPER + CTRL + SHIFT + Z", exec("zen --private-window"), { description = "Open Zen private window" })  -- @component:zen
 hl.unbind("SUPER + SHIFT + R")
 hl.bind("SUPER + SHIFT + R", quattro_layout_action("colresize -conf", "swapsplit"), { description = "Cycle column width backward" })
 hl.unbind("SUPER + SHIFT + S")
@@ -198,25 +199,35 @@ hl.bind("CTRL + Print", exec(screenshot .. " full"), { description = "Capture th
 hl.unbind("Print")
 hl.bind("Print", exec(screenshot), { description = "Capture a screen region" })
 hl.unbind("SUPER + B")
-hl.bind("SUPER + B", exec("@@BROWSER@@"), { description = "Open default browser" })
+hl.unbind("SUPER + ALT + B")
+hl.bind("SUPER + ALT + B", exec("@@BROWSER@@"), { description = "Open default browser" })
 hl.unbind("SUPER + J")
 hl.unbind("SUPER + K")
-hl.bind("SUPER + K", exec("vesktop"), { description = "Open Vesktop" })  -- @component:vesktop
+hl.unbind("SUPER + ALT + V")
+hl.bind("SUPER + ALT + V", exec("vesktop"), { description = "Open Vesktop" })  -- @component:vesktop
 hl.unbind("SUPER + M")
-hl.bind("SUPER + M", exec("zen"), { description = "Open Zen Browser" })  -- @component:zen
+hl.unbind("SUPER + ALT + Z")
+hl.bind("SUPER + ALT + Z", exec("zen"), { description = "Open Zen Browser" })  -- @component:zen
 hl.unbind("SUPER + N")
-hl.bind("SUPER + N", exec("helium"), { description = "Open Helium browser" })  -- @component:helium
+hl.unbind("SUPER + ALT + H")
+hl.bind("SUPER + ALT + H", exec("helium"), { description = "Open Helium browser" })  -- @component:helium
 hl.unbind("SUPER + O")
-hl.bind("SUPER + O", exec("obsidian"), { description = "Open Obsidian" })  -- @component:obsidian
+hl.unbind("SUPER + ALT + O")
+hl.bind("SUPER + ALT + O", exec("obsidian"), { description = "Open Obsidian" })  -- @component:obsidian
 hl.unbind("SUPER + Return")
 hl.bind("SUPER + Return", exec("@@TERMINAL@@"), { description = "Open terminal" })
 hl.unbind("SUPER + SHIFT + B")
-hl.bind("SUPER + SHIFT + B", exec("@@BROWSER@@ @@BROWSER_PRIVATE@@"), { description = "Open default browser private window" })
+hl.unbind("SUPER + CTRL + SHIFT + B")
+hl.bind("SUPER + CTRL + SHIFT + B", exec("@@BROWSER@@ @@BROWSER_PRIVATE@@"), { description = "Open default browser private window" })
 hl.unbind("SUPER + SHIFT + N")
-hl.bind("SUPER + SHIFT + N", exec("helium --incognito"), { description = "Open Helium private window" })  -- @component:helium
-hl.bind("SUPER + SHIFT + X", exec("flatpak run com.github.wwmm.easyeffects --load-preset Handfree"), { description = "EasyEffects output preset: Handfree" })  -- @component:easyeffects
-hl.bind("SUPER + SHIFT + Z", exec("flatpak run com.github.wwmm.easyeffects --load-preset Normal"), { description = "EasyEffects output preset: Normal" })  -- @component:easyeffects
-hl.bind("SUPER + SHIFT + C", exec("@@HOME@@/.local/bin/easyeffects-toggle-preset"), { description = "EasyEffects: cycle output preset" })  -- @component:easyeffects
+hl.unbind("SUPER + CTRL + SHIFT + H")
+hl.bind("SUPER + CTRL + SHIFT + H", exec("helium --incognito"), { description = "Open Helium private window" })  -- @component:helium
+hl.unbind("SUPER + CTRL + X")
+hl.bind("SUPER + CTRL + X", exec("flatpak run com.github.wwmm.easyeffects --load-preset Handfree"), { description = "EasyEffects output preset: Handfree" })  -- @component:easyeffects
+hl.unbind("SUPER + CTRL + Z")
+hl.bind("SUPER + CTRL + Z", exec("flatpak run com.github.wwmm.easyeffects --load-preset Normal"), { description = "EasyEffects output preset: Normal" })  -- @component:easyeffects
+hl.unbind("SUPER + CTRL + C")
+hl.bind("SUPER + CTRL + C", exec("@@HOME@@/.local/bin/easyeffects-toggle-preset"), { description = "EasyEffects: cycle output preset" })  -- @component:easyeffects
 hl.unbind("SUPER + SHIFT + O")
 hl.unbind("SUPER + SHIFT + Return")
 hl.bind("SUPER + SHIFT + Return", exec("@@ALT_TERMINAL@@"), { description = "Open the other terminal" })
@@ -275,3 +286,17 @@ hl.unbind("SUPER + mouse:272")
 hl.unbind("SUPER + mouse:273")
 hl.unbind("SUPER + code:20")
 hl.unbind("SUPER + code:21")
+-- App-launch layer: SUPER + ALT opens things; plain SUPER only manages windows
+-- and the shell. Letters match what the app is, not where it used to live.
+hl.unbind("SUPER + ALT + T")
+hl.bind("SUPER + ALT + T", exec("@@TERMINAL@@"), { description = "Open terminal" })
+hl.unbind("SUPER + ALT + F")
+hl.bind("SUPER + ALT + F", exec("@@HOME@@/.local/bin/dolphin-dms"), { description = "Open Dolphin file manager" })
+hl.unbind("SUPER + ALT + E")
+hl.bind("SUPER + ALT + E", exec("dms ipc call spotlight openQuery :e"), { description = "Emoji picker" })
+-- Throw the focused window to the previous or next monitor: SHIFT moves within
+-- the workspace, CTRL+SHIFT up/down across workspaces, left/right across monitors.
+hl.unbind("SUPER + CTRL + SHIFT + left")
+hl.bind("SUPER + CTRL + SHIFT + left", move_window({ monitor = "l" }), { description = "Move window to monitor left" })
+hl.unbind("SUPER + CTRL + SHIFT + right")
+hl.bind("SUPER + CTRL + SHIFT + right", move_window({ monitor = "r" }), { description = "Move window to monitor right" })
