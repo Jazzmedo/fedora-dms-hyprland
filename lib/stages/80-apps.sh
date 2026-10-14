@@ -417,7 +417,9 @@ install_shelltint() {
 # the first login anyway. The pre-redesign single "nothingWidgets" plugin is
 # removed from machines that ran an earlier version of this installer.
 install_nothing_widgets() {
-  local suite="nothingmedia nothingweather nothingbattery nothingcalendar nothingdatetime"
+  # CamelCase: these are the directory names in the repository, the plugin ids
+  # and the case DMS lists them under.
+  local suite="nothingMedia nothingWeather nothingBattery nothingCalendar nothingDateTime"
   local changed=0 p dest
 
   if [[ -d $HOME/.config/DankMaterialShell/plugins/nothingWidgets ]]; then
@@ -431,7 +433,10 @@ install_nothing_widgets() {
        && diff -rq "$REPO_DIR/config/shell-ui/DankMaterialShell/plugins/$p" "$dest" >/dev/null 2>&1; then
       continue
     fi
-    deploy_tree "$REPO_DIR/config/shell-ui/DankMaterialShell/plugins/$p" "$dest"
+    deploy_tree "$REPO_DIR/config/shell-ui/DankMaterialShell/plugins/$p" "$dest" \
+      || soft_fail "Could not deploy the $p widget" \
+                   "Its files are missing from the repository checkout." \
+                   "git -C ~/fedora-dms-hyprland pull"
     changed=1
   done
 
