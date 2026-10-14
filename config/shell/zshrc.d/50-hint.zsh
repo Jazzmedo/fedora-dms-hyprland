@@ -22,6 +22,7 @@ hint() { # Displays a colorful, organized guide for all custom aliases and funct
 
    # 2. Cybersecurity & Docker Labs
   print -P "\n${P}[ CYBERSECURITY & LABS ]${R}"
+  print -P "  ${A}tnl${R}       : tunnl.gg expose ssh          "
   print -P "  ${A}dbe${R}       : Enable Kali Lab Bridge       "
   print -P "  ${A}dbd${R}       : Disable Kali Lab Bridge      "
   print -P "  ${A}dstop${R}     : Kill all Docker containers   "
@@ -44,6 +45,7 @@ hint() { # Displays a colorful, organized guide for all custom aliases and funct
   print -P "  ${A}cat${R} / ${A}grep${R}  : Uses ${S}batcat${R} / ${S}ripgrep${R}"
   print -P "  ${A}ls${R} / ${A}ll${R}    : Uses ${S}eza${R} (Icons/Grouped)"
   print -P "  ${A}htop${R}      : Uses ${S}btop${R}"
+  print -P "  ${A}kp${R}        : Kill the process on a port   "
   print -P "  ${A}rm${R}        : Uses ${S}trash-put${R} (Safe)"
   print -P "  ${A}vim${R}       : Uses ${S}Neovim${R}"
 

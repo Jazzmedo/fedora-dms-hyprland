@@ -4,6 +4,7 @@
 # --- system ---
 alias updt="sudo dnf upgrade --refresh -y && flatpak update -y"  # Full system upgrade
 alias cln="sudo sync; echo 3 | sudo tee /proc/sys/vm/drop_caches" # Drop the page cache
+alias wrp="warp-cli registration delete && warp-cli registration new" # Reset Cloudflare WARP
 alias apprfrsh='kbuildsycoca6'                                    # Rebuild the KDE app database
 alias cls="clear && fastfetch"                                    # Clear and show system info
 
@@ -25,6 +26,9 @@ alias cup="podman-compose up -d"
 alias cdown="podman-compose down"
 alias clogs="podman-compose logs -f"
 alias cbuild="podman-compose build"
+alias sup="podman-compose -f ~/SelfHosted/docker-compose.yaml up -d" # Bring up the SelfHosted stack
+alias sdown="podman-compose -f ~/SelfHosted/docker-compose.yaml down" # Tear down the SelfHosted stack
+alias slogs="podman-compose -f ~/SelfHosted/docker-compose.yaml logs -f" # Follow the SelfHosted stack logs
 
 # --- media ---
 alias yt='yt-dlp -f "bv*[vcodec^=avc]+ba[acodec^=mp4a]/b[vcodec^=avc]" --merge-output-format mp4'
@@ -34,3 +38,5 @@ alias ytclip='yt-dlp -f "bv*[vcodec^=avc][height<=720]+ba[acodec^=mp4a]/b[vcodec
 # --- shortcuts ---
 alias dev="dev-env"
 alias hnt='hint'
+alias pray="pray -o pretty --dua --ramadan --jumuah" # Prayer times, pretty output
+alias claude="claude --continue" # Resume the last Claude session
