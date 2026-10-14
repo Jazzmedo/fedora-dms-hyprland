@@ -70,7 +70,10 @@ stage_packages() {
       if flatpak info "$f" >/dev/null 2>&1; then
         skip "$f is already installed"
       else
-        run_visible flatpak install -y --noninteractive flathub "$f" \
+        # Through sudo for the same reason as the Flathub remote: a user-level
+        # system installation is polkit's business, and polkit asks again.
+        # as_root rides the sudo grant taken once at the start of the run.
+        as_root flatpak install -y --noninteractive flathub "$f" \
           && record flatpak "$f" \
           || soft_fail "Could not install $f" \
                "The download from Flathub failed." \

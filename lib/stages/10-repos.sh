@@ -100,7 +100,10 @@ stage_repos() {
   # integrate better. Only Gear Lever needs it.
   if is_selected flatpak; then
     have flatpak || { record_new_pkgs flatpak; as_root dnf install -y flatpak; }
-    run_visible flatpak remote-add --if-not-exists flathub \
+    # Through sudo, not as your user: a user-run remote-add to the system
+    # installation makes polkit ask for the password a second time, when the
+    # one sudo grant from the start of the run already covers it.
+    as_root flatpak remote-add --if-not-exists flathub \
       https://dl.flathub.org/repo/flathub.flatpakrepo || soft_fail "Could not add Flathub, where Flatpak apps come from" \
          "Their server did not respond." \
          "./install.sh --only=repos"
