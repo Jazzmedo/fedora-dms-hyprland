@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# Launch the default terminal, resolved at press time — changing the default
+# (DMS Settings → Default Apps, or anything that writes xdg-terminals.list)
+# never requires touching a keybind. Resolution order:
+#   1. xdg-terminal-exec, when the freedesktop helper is installed
+#   2. ~/.config/xdg-terminals.list — the same file DMS's Default Apps writes
+#   3. the first common terminal on the machine
+set -u
+
+if command -v xdg-terminal-exec >/dev/null 2>&1; then
+    exec xdg-terminal-exec "$@"
+fi
+
+list="${XDG_CONFIG_HOME:-$HOME/.config}/xdg-terminals.list"
+if [[ -f $list ]]; then
+    id=$(awk -F= '
+        /^\[/ { in_default = ($0 == "[Default Applications]"); next }
+        in_default && $2 != "" { print $2; exit }
+    ' "$list")
+    if [[ -n ${id:-} ]] && command -v gtk-launch >/dev/null 2>&1; then
+        exec gtk-launch "${id%.desktop}" "$@"
+    fi
+fi
+
+for t in foot kitty alacritty gnome-terminal konsole xterm; do
+    command -v "$t" >/dev/null 2>&1 && exec "$t" "$@"
+done
+
+echo "default-terminal: no terminal found (tried xdg-terminals.list and the common ones)" >&2
+exit 1

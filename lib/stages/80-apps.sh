@@ -46,6 +46,7 @@ stage_apps() {
   # Always: deploys the five Nothing widget plugins, and clears the old
   # single-plugin directory off machines that ran the previous design.
   install_nothing_widgets
+  install_default_launchers
   install_app_configs
   is_selected spicetify && install_spicetify_theme
   write_mimeapps
@@ -446,6 +447,27 @@ install_nothing_widgets() {
       run dms restart || true
     fi
   fi
+}
+
+# Two tiny launchers the keybinds call instead of hardcoded commands: they
+# resolve the default file manager and terminal at press time (mimeapps and
+# xdg-terminals.list — the same answers DMS's Default Apps writes), so
+# changing the default never means editing a keybind.
+install_default_launchers() {
+  local changed=0 f dest
+  for f in default-terminal default-filemanager; do
+    dest="$HOME/.local/bin/$f"
+    if [[ -x $dest ]] && diff -q "$REPO_DIR/assets/bin/$f" "$dest" >/dev/null 2>&1; then
+      continue
+    fi
+    run mkdir -p "$HOME/.local/bin"
+    run cp -a "$REPO_DIR/assets/bin/$f" "$dest"
+    run chmod 755 "$dest"
+    record file "$dest"
+    changed=1
+  done
+  (( changed )) && ok "Installed the default-app launchers (keybinds now follow DMS's Default Apps)"
+  return 0
 }
 
 install_app_configs() {

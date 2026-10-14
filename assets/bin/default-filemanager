@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# Launch the default file manager, resolved at press time from the desktop's
+# own answer (inode/directory) — the same source DMS's Default Apps and every
+# "Open folder" action use. Changing the default never requires touching a
+# keybind. A missing answer falls back to the common file managers.
+set -u
+
+id=$(xdg-mime query default inode/directory 2>/dev/null || true)
+
+# On machines with the Dolphin palette wrapper, keep launching through it so
+# the themed path stays the one the rest of the desktop uses.
+if [[ ${id:-} == org.kde.dolphin.desktop && -x "$HOME/.local/bin/dolphin-dms" ]]; then
+    exec "$HOME/.local/bin/dolphin-dms" "$@"
+fi
+
+if [[ -n ${id:-} ]] && command -v gtk-launch >/dev/null 2>&1; then
+    exec gtk-launch "${id%.desktop}" "$@"
+fi
+
+for fm in thunar dolphin nautilus pcmanfm; do
+    command -v "$fm" >/dev/null 2>&1 && exec "$fm" "$@"
+done
+
+echo "default-filemanager: no file manager found (tried mimeapps and the common ones)" >&2
+exit 1
