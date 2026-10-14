@@ -43,7 +43,9 @@ stage_apps() {
   is_selected vesktop  && install_github_rpm Vencord/Vesktop  'vesktop.*\.x86_64\.rpm$' vesktop  Vesktop
   is_selected obsidian && install_github_rpm obsidianmd/obsidian-releases 'obsidian-[0-9.]+[^"]*\.rpm$' obsidian Obsidian
   is_selected shelltint && install_shelltint
-  is_selected nothingwidgets && install_nothing_widgets
+  # Always: deploys the five Nothing widget plugins, and clears the old
+  # single-plugin directory off machines that ran the previous design.
+  install_nothing_widgets
   install_app_configs
   is_selected spicetify && install_spicetify_theme
   write_mimeapps
