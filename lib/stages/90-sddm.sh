@@ -166,7 +166,24 @@ ensure_x11_greeter() {
   return 0
 }
 
+# Which entry the greeter highlights before you have ever logged in: the full
+# RGB session leads when the colour fix is installed. After the first manual
+# login SDDM remembers the session you picked, which is the way it should be.
+install_default_session() {
+  local session=hyprland
+  [[ -f /usr/share/wayland-sessions/hyprland-rgb-full.desktop ]] && session=hyprland-rgb-full
+  local conf=/etc/sddm.conf.d/zz-fedora-nothing-session.conf
+  as_root tee "$conf" >/dev/null <<EOF
+[General]
+Session=$session
+EOF
+  record file "$conf"
+  ok "The login screen starts with \"$session\" selected"
+}
+
 stage_sddm() {
+
+  install_default_session
 
   local dest=/usr/share/sddm/themes/nothing
 

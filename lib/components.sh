@@ -347,6 +347,16 @@ detect 'all_of "[[ -e $HOME/.config/DankMaterialShell/plugins/lyricsOnPanel ]]" 
 pkgs "python3 python3-devel dbus-devel glib2-devel pkgconf gcc"
 dms_plugin "lyricsOnPanel"
 
+component shelltint   apps on  "ShellTint helper" "connects the ShellTint browser add-on to your desktop colours"
+# The helper comes from the user's own ShellTint repository; the apps stage
+# clones it and runs its installer, which registers native messaging for the
+# Firefox-family browsers and, when their folders exist, Chromium ones too.
+# node and npm usually arrive with the Zen site theming; listed here so the
+# helper never depends on another component being ticked.
+pkgs "nodejs npm"
+detect 'all_of "[[ -x $HOME/.local/share/shelltint/host/shelltint_host.py ]]" \
+               "[[ -f $HOME/.mozilla/native-messaging-hosts/shelltint.json ]]"'
+
 component mpv         apps on  "mpv"          "video player; becomes the default for video files"
 pkgs "mpv"
 

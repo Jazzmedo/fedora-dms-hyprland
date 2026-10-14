@@ -42,6 +42,7 @@ stage_apps() {
   is_selected zen && is_selected zen_sites && install_zen_site_theming
   is_selected vesktop  && install_github_rpm Vencord/Vesktop  'vesktop.*\.x86_64\.rpm$' vesktop  Vesktop
   is_selected obsidian && install_github_rpm obsidianmd/obsidian-releases 'obsidian-[0-9.]+\.rpm$' obsidian Obsidian
+  is_selected shelltint && install_shelltint
   install_app_configs
   is_selected spicetify && install_spicetify_theme
   write_mimeapps
@@ -362,6 +363,41 @@ install_github_rpm() {
     soft_fail "Could not download $label" "The download from GitHub failed." "./install.sh --only=apps"
   fi
   clean_tmp "$tmp"
+}
+
+# The ShellTint add-on talks to a native messaging helper; the helper comes
+# from the user's own repository. Its installer registers the manifest for
+# Firefox-family browsers (~/.mozilla, which Zen reads) and for Chromium
+# browsers whose folders already exist, then builds the website styles once.
+# The gitea certificate is a home-LAN one the VM has not met, so this one
+# clone is pinned to skipping that check.
+install_shelltint() {
+  local src="$HOME/.local/share/ShellTint"
+  if [[ -x $HOME/.local/share/shelltint/host/shelltint_host.py ]] \
+     && [[ -f $HOME/.mozilla/native-messaging-hosts/shelltint.json ]]; then
+    skip "The ShellTint helper is already installed"
+    return 0
+  fi
+
+  if [[ -d $src/.git ]]; then
+    run git -C "$src" pull --ff-only || true
+  elif run git -c http.sslVerify=false clone --depth 1 \
+        https://git.home.internal/Jazzmedo/ShellTint.git "$src"; then
+    ok "Downloaded the ShellTint helper"
+  else
+    soft_fail "Could not download the ShellTint helper" \
+              "Its repository at git.home.internal could not be reached." \
+              "git clone https://git.home.internal/Jazzmedo/ShellTint.git ~/.local/share/ShellTint && ~/.local/share/ShellTint/scripts/install.sh"
+    return 0
+  fi
+
+  if run_visible bash "$src/scripts/install.sh"; then
+    ok "Installed the ShellTint helper — the add-on connects to it on its next start"
+  else
+    soft_fail "The ShellTint helper did not install" \
+              "Its installer needs python3 and node, and the network for the website styles." \
+              "$src/scripts/install.sh"
+  fi
 }
 
 install_app_configs() {
