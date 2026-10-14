@@ -855,6 +855,17 @@ hl.window_rule({
 	focus_on_activate = true,
 })
 
+-- File transfers and their overwrite prompts are dialogs, not columns: copy,
+-- move, extract and replace windows from the file managers and Ark float.
+hl.window_rule({
+	name = "float-file-operation-dialogs",
+	match = {
+		class = "^(thunar|Thunar|dolphin|org\\.kde\\.dolphin|ark|org\\.kde\\.ark)$",
+		title = "^(Copy|Copying|Move|Moving|Deleting|Extract|Extracting|Compress|Compressing|Add Files|Progress|Question|Replace|Confirm|Warning|Error|File)",
+	},
+	float = true,
+})
+
 -- DMS/Quickshell surfaces should appear immediately and receive blur normally.
 hl.layer_rule({ match = { namespace = "^(quickshell)$" }, no_anim = true })
 hl.layer_rule({ match = { namespace = "^dms:.*" }, no_anim = true })
