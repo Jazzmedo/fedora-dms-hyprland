@@ -170,12 +170,17 @@ run_visible() {
     return 0
   fi
   _log_raw "RUN   $*"
+  local rc=0
   if [[ -n $LOG_FILE ]]; then
     # pipefail is set, so the status is the command's, not tee's.
-    "$@" 2>&1 | tee -a "$LOG_FILE"
+    "$@" 2>&1 | tee -a "$LOG_FILE" || rc=$?
   else
-    "$@"
+    "$@" || rc=$?
   fi
+  # A long child can reset the terminal's scroll margins, which carries the
+  # pinned header off the top. Put it back the moment the child is done.
+  declare -F progress_repaint >/dev/null && progress_repaint
+  return "$rc"
 }
 
 # Ask for the password once, up front, and hold the grant open for the run.

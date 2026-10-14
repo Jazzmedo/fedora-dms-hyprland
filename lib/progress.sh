@@ -102,9 +102,13 @@ progress_init() {
 progress_active() { (( PROGRESS_TTY )); }
 
 # Repaint from wherever output currently is, leaving that spot untouched.
+# The scroll margins are re-asserted first: children of the installer (dnf5's
+# repository loading has done it) reset them, and after that output scrolls
+# the whole screen and carries the header away.
 progress_repaint() {
   (( PROGRESS_TTY )) || return 0
   printf '\0337'
+  printf '\033[%d;%dr' $(( HEADER_ROWS + 1 )) "$PROGRESS_LINES"
   _progress_paint
   printf '\0338'
 }
