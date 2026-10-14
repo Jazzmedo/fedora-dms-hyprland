@@ -165,8 +165,13 @@ install_toolkit_theming() {
   fi
 
   seed_kde_palette
-  is_selected filemgr_dolphin && \
+  # Not `is_selected ... && deploy_file`: with Dolphin deselected the && list
+  # fails, and as the last statement it becomes this function's return value —
+  # which set -e treats as the stage crashing. It took down every run that
+  # picked Thunar only, with nothing in the log pointing here.
+  if is_selected filemgr_dolphin; then
     deploy_file "$REPO_DIR/config/apps/dolphinrc" "$HOME/.config/dolphinrc"
+  fi
 }
 
 # Dolphin is a KDE application, so it paints itself from the [Colors:*] blocks
