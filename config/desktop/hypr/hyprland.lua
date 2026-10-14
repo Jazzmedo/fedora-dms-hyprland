@@ -39,6 +39,11 @@ end)
 -- so the guarded Hyprgrass bindings below are registered in the same session.
 hl.on("hyprland.start", function()
 	hl.exec_cmd("hyprpm list >/dev/null 2>&1 && hyprpm reload -n && hyprctl reload")
+	-- Activate the systemd session: hyprland-session.target binds (and pulls
+	-- in) graphical-session.target, which xdg-desktop-portal requires through
+	-- Requisite. Without it the portal refuses to start and every flatpak
+	-- app falls back to light mode no matter what the shell says.
+	hl.exec_cmd("systemctl --user start hyprland-session.target")
 end)
 
 -- XDG autostart. Applications install entries in /etc/xdg/autostart expecting
