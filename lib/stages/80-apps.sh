@@ -43,6 +43,7 @@ stage_apps() {
   is_selected vesktop  && install_github_rpm Vencord/Vesktop  'vesktop.*\.x86_64\.rpm$' vesktop  Vesktop
   is_selected obsidian && install_github_rpm obsidianmd/obsidian-releases 'obsidian-[0-9.]+[^"]*\.rpm$' obsidian Obsidian
   is_selected shelltint && install_shelltint
+  is_selected nothingwidgets && install_nothing_widgets
   install_app_configs
   is_selected spicetify && install_spicetify_theme
   write_mimeapps
@@ -405,6 +406,24 @@ install_shelltint() {
     soft_fail "The ShellTint helper did not install" \
               "Its installer needs python3 and node, and the network for the website styles." \
               "$src/scripts/install.sh"
+  fi
+}
+
+# The Nothing Widgets desktop plugin ships inside this repository, so a plain
+# deploy puts it where DMS looks. A running shell only picks up a new plugin
+# after a restart; on a fresh install it loads at the first login anyway.
+install_nothing_widgets() {
+  if [[ -f $HOME/.config/DankMaterialShell/plugins/nothingWidgets/plugin.json ]] \
+     && diff -rq "$REPO_DIR/config/shell-ui/DankMaterialShell/plugins/nothingWidgets" \
+                 "$HOME/.config/DankMaterialShell/plugins/nothingWidgets" >/dev/null 2>&1; then
+    skip "The Nothing Widgets plugin is already in place"
+    return 0
+  fi
+  deploy_tree "$REPO_DIR/config/shell-ui/DankMaterialShell/plugins/nothingWidgets" \
+              "$HOME/.config/DankMaterialShell/plugins/nothingWidgets"
+  ok "Installed the Nothing Widgets plugin — pick the widget in DMS's desktop widget editor"
+  if have dms && pgrep -u "$USER" -x dms >/dev/null 2>&1; then
+    run dms restart || true
   fi
 }
 
