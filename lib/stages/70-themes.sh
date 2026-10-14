@@ -201,7 +201,12 @@ seed_kde_palette() {
   fi
 
   # KDE caches the palette per application; without this Dolphin keeps the
-  # colours it started with until the next login.
-  have kbuildsycoca6 && run kbuildsycoca6 --noincremental
+  # colours it started with until the next login. Never fatal: the cache
+  # rebuild has been known to fail on a machine without a running session,
+  # and losing the stage to it costs every step that follows.
+  if have kbuildsycoca6; then
+    run kbuildsycoca6 --noincremental \
+      || warn "KDE's app cache did not refresh; the new colours arrive at the next login"
+  fi
   return 0
 }

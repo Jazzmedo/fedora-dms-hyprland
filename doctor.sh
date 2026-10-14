@@ -160,7 +160,7 @@ kv "firewalld"     "$(systemctl is-active firewalld 2>/dev/null || echo INACTIVE
 kv "secret service" "$(busctl --user list 2>/dev/null | grep -q org.freedesktop.secrets && echo present || echo MISSING — saved passwords have nowhere to go)"
 kv "keyring PAM"   "$(grep -q pam_gnome_keyring /etc/pam.d/sddm 2>/dev/null && echo unlocks at login || echo 'not wired into the login screen')"
 kv "hyprlock PAM"  "$([[ -f /etc/pam.d/hyprlock ]] && echo present || echo 'MISSING — the lock screen may not accept the password')"
-kv "dex autostart" "$(command -v dex >/dev/null 2>&1 && echo present || echo MISSING)"
+kv "kdeconnect daemon" "$(systemctl --user is-enabled dms-kdeconnect.service >/dev/null 2>&1 && echo enabled || echo 'not enabled — your phone will not connect')"
 kv "user dirs"     "$([[ -f $HOME/.config/user-dirs.dirs ]] && echo present || echo MISSING — no Documents/Downloads)"
 # The optional pieces report only when installed, so a machine that declined
 # printing does not show red for it.

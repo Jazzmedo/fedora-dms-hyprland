@@ -131,7 +131,7 @@ pkgs "hyprland hyprland-devel hyprpaper hyprlock hypridle hyprpicker \
       ImageMagick brightnessctl playerctl libnotify \
       wl-clipboard cliphist grim slurp wtype satty \
       NetworkManager NetworkManager-wifi nm-connection-editor \
-      bluez bluez-obex blueman cargo"
+      bluez blueman cargo"
 detect 'all_of "pkg_installed hyprland" "have quickshell" \
                "have dms" "[[ -f $HOME/.config/hypr/hyprland.lua ]]" \
                "[[ -f /usr/share/wayland-sessions/hyprland.desktop ]]"' 
@@ -177,13 +177,14 @@ detect 'all_of "pkg_installed ark" "pkg_installed gwenview" "pkg_installed okula
 # forget. upower feeds the DMS battery widget (and brings udisks2, which mounts
 # removable drives); power-profiles-daemon feeds its power-profile OSD;
 # firewalld is what Fedora's Standard group normally — but only normally —
-# provides; dex runs the autostart entries applications install; and
-# xdg-user-dirs makes Documents and Downloads exist on an install that never
-# had a desktop to create them.
-component de_services base base "Desktop services" "upower, power profiles, firewall, app autostart, standard folders"
-pkgs "upower power-profiles-daemon firewalld dex xdg-user-dirs"
+# provides; and xdg-user-dirs makes Documents and Downloads exist on an
+# install that never had a desktop to create them. dex used to run autostart
+# entries here but is retired from Fedora; the one entry that matters, KDE
+# Connect's daemon, starts through its own user unit instead.
+component de_services base base "Desktop services" "upower, power profiles, firewall, standard folders"
+pkgs "upower power-profiles-daemon firewalld xdg-user-dirs"
 detect 'all_of "pkg_installed upower" "pkg_installed power-profiles-daemon" \
-               "pkg_installed firewalld" "pkg_installed dex" \
+               "pkg_installed firewalld" \
                "pkg_installed xdg-user-dirs" "[[ -f $HOME/.config/user-dirs.dirs ]]"'
 
 # libsecret is only the client library; without the service behind it, a
@@ -221,8 +222,8 @@ detect 'all_of "pkg_installed zsh" "[[ -d $HOME/.oh-my-zsh ]]" \
                "[[ $(getent passwd \"$USER\" | cut -d: -f7) == */zsh ]]"' 
 
 component prompt      shell on  "starship"         "prompt, matugen-themed from the DMS palette"
-pkgs "starship"
-detect 'all_of "pkg_installed starship" "[[ -f $HOME/.config/starship.toml ]]"' 
+# Retired from Fedora; mise provides a current build instead.
+detect 'all_of "have starship || [[ -d $HOME/.local/share/mise/installs/starship ]]" "[[ -f $HOME/.config/starship.toml ]]"'
 
 component cli         shell on  "modern CLI tools" "eza, bat, ripgrep, fd, fzf, trash-cli, grc"
 pkgs "eza bat ripgrep fd-find fzf trash-cli grc tree unzip p7zip p7zip-plugins"
@@ -231,7 +232,8 @@ component sysinfo     shell on  "btop · fastfetch · cava" "monitors, matugen-t
 pkgs "btop fastfetch cava"
 
 component filemgr_tui shell on  "yazi"             "terminal file manager"
-pkgs "yazi"
+# Retired from Fedora; mise provides a current build instead.
+detect 'all_of "have yazi || [[ -d $HOME/.local/share/mise/installs/yazi ]]"'
 
 component editor      shell on  "Neovim + LazyVim" "editor, plugins pinned by lazy-lock.json"
 pkgs "neovim python3-neovim gcc make gettext"
@@ -390,11 +392,13 @@ pkgs "cloudflare-warp"
 detect 'all_of "pkg_installed cloudflare-warp" "systemctl is-enabled warp-svc"'
 dms_plugin "warpToggle"
 
-# The daemon ships its own /etc/xdg/autostart entry, which dex runs at login,
-# and the optional stage opens its firewall ports so pairing just works.
+# The daemon autostarts through its dms-kdeconnect.service user unit (Fedora
+# retired dex, which used to run autostart entries), and the optional stage
+# opens its firewall ports so pairing just works.
 component kdeconnect  services off "KDE Connect" "pair your phone: notifications, clipboard, files; enables the Phone Connect plugin"
-pkgs "kdeconnectd kdeconnect"
-detect 'all_of "pkg_installed kdeconnectd" "pkg_installed kdeconnect"'
+# Fedora renamed the package: the daemon now ships as kdeconnectd alone.
+pkgs "kdeconnectd"
+detect 'all_of "pkg_installed kdeconnectd"'
 dms_plugin "dankKDEConnect"
 
 component niri        services off "niri session"    "second Wayland session at the login screen"
@@ -412,7 +416,7 @@ detect 'all_of "[[ -f /etc/sysctl.d/99-usb-copy-fix.conf ]]" \
                "[[ -f /etc/zen/policies/policies.json ]]"'
 
 component printing    services off "Printing & scanning" "cups, the KDE printer settings, skanpage"
-pkgs "cups cups-filters print-manager sane-backends-drivers-scanners skanpage"
+pkgs "cups cups-filters system-config-printer sane-backends-drivers-scanners skanpage"
 detect 'all_of "pkg_installed cups" "systemctl is-enabled cups"'
 
 component firmware    services off "Firmware updates" "fwupd, with its refresh timer enabled"

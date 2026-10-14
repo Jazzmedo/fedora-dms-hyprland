@@ -33,9 +33,12 @@ check_login_shell() {
 check_zshrc() { [[ -s $HOME/.zshrc ]]; }
 
 # The prompt is drawn by starship or not at all: ~/.zshrc initialises it only
-# when the program is on PATH, so a missing rpm shows up as a plain shell with
-# no error anywhere.
-check_starship() { have starship && [[ -f $HOME/.config/starship.toml ]]; }
+# when the program is on PATH, so a missing install shows up as a plain shell
+# with no error anywhere. Fedora retired the rpm; mise is the provider now.
+check_starship() {
+  have starship || [[ -d $HOME/.local/share/mise/installs/starship ]]
+  [[ -f $HOME/.config/starship.toml ]]
+}
 
 check_fastfetch() { have fastfetch && [[ -f $HOME/.config/fastfetch/config.jsonc ]]; }
 

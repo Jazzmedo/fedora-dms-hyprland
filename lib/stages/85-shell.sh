@@ -191,7 +191,7 @@ install_runtime_managers() {
   # PATH yet.
   local mise spec key tool
   mise=$(command -v mise || echo "$HOME/.local/bin/mise")
-  for spec in ytdlp:yt-dlp codex:codex opencode:opencode; do
+  for spec in prompt:starship filemgr_tui:yazi ytdlp:yt-dlp codex:codex opencode:opencode; do
     key=${spec%%:*} tool=${spec#*:}
     is_selected "$key" || continue
     if [[ -d $HOME/.local/share/mise/installs/$tool ]]; then skip "$tool is already installed"
