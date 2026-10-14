@@ -64,7 +64,10 @@ backup_flow() {
   group what "What to include"
   component x_ext      what base "Extensions + data" "Tampermonkey scripts, ShellTint styles, uBlock lists…"
   component x_settings what on   "Browser settings"        "preferences, site permissions, flags; Zen mods and spaces"
-  component x_cookies  what off  "Cookies"                 "stay logged in to sites; needs encryption"
+  # Cookies default on: the whole point of moving a backup between machines is
+  # arriving still signed in. Anything that can sign you in forces encryption
+  # on a few lines below, so the convenience has its guard rail built in.
+  component x_cookies  what on   "Cookies"                 "stay logged in to sites; needs encryption"
   component x_certs    what off  "Browser certificates"    "certificates and client keys you imported; needs encryption"
   local nsys; nsys=$(bp_system_cert_count)
   (( nsys )) && component x_syscerts what off "System certificates" "the $nsys you added to this machine"
