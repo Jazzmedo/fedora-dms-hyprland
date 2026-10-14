@@ -5,25 +5,35 @@
 #   1. xdg-terminal-exec, when the freedesktop helper is installed
 #   2. ~/.config/xdg-terminals.list — the same file DMS's Default Apps writes
 #   3. the first common terminal on the machine
+# With arguments, the command runs INSIDE the terminal (kitty/foot/alacritty
+# take -e, GNOME takes --); the list path cannot forward arguments, so it only
+# handles the plain launch.
 set -u
 
 if command -v xdg-terminal-exec >/dev/null 2>&1; then
     exec xdg-terminal-exec "$@"
 fi
 
+running_command=false
+[ $# -gt 0 ] && running_command=true
+
 list="${XDG_CONFIG_HOME:-$HOME/.config}/xdg-terminals.list"
-if [[ -f $list ]]; then
+if [[ -f $list ]] && ! $running_command; then
     id=$(awk -F= '
         /^\[/ { in_default = ($0 == "[Default Applications]"); next }
         in_default && $2 != "" { print $2; exit }
     ' "$list")
     if [[ -n ${id:-} ]] && command -v gtk-launch >/dev/null 2>&1; then
-        exec gtk-launch "${id%.desktop}" "$@"
+        exec gtk-launch "${id%.desktop}"
     fi
 fi
 
-for t in foot kitty alacritty gnome-terminal konsole xterm; do
-    command -v "$t" >/dev/null 2>&1 && exec "$t" "$@"
+for t in foot kitty alacritty wezterm gnome-terminal konsole xterm; do
+    command -v "$t" >/dev/null 2>&1 || continue
+    case "$t" in
+        gnome-terminal|kgx) $running_command && exec "$t" -- "$@" || exec "$t" ;;
+        *)                  $running_command && exec "$t" -e "$@" || exec "$t" ;;
+    esac
 done
 
 echo "default-terminal: no terminal found (tried xdg-terminals.list and the common ones)" >&2
