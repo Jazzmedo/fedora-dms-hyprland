@@ -409,21 +409,35 @@ install_shelltint() {
   fi
 }
 
-# The Nothing Widgets desktop plugin ships inside this repository, so a plain
-# deploy puts it where DMS looks. A running shell only picks up a new plugin
-# after a restart; on a fresh install it loads at the first login anyway.
+# The Nothing Widgets are five desktop plugins shipped inside this
+# repository, so a plain deploy puts each where DMS looks. A running shell
+# only picks up new plugins after a restart; on a fresh install they load at
+# the first login anyway. The pre-redesign single "nothingWidgets" plugin is
+# removed from machines that ran an earlier version of this installer.
 install_nothing_widgets() {
-  if [[ -f $HOME/.config/DankMaterialShell/plugins/nothingWidgets/plugin.json ]] \
-     && diff -rq "$REPO_DIR/config/shell-ui/DankMaterialShell/plugins/nothingWidgets" \
-                 "$HOME/.config/DankMaterialShell/plugins/nothingWidgets" >/dev/null 2>&1; then
-    skip "The Nothing Widgets plugin is already in place"
-    return 0
+  local suite="nothingmedia nothingweather nothingbattery nothingcalendar nothingdatetime"
+  local changed=0 p dest
+
+  if [[ -d $HOME/.config/DankMaterialShell/plugins/nothingWidgets ]]; then
+    run rm -rf "$HOME/.config/DankMaterialShell/plugins/nothingWidgets"
+    record file "$HOME/.config/DankMaterialShell/plugins/nothingWidgets"
   fi
-  deploy_tree "$REPO_DIR/config/shell-ui/DankMaterialShell/plugins/nothingWidgets" \
-              "$HOME/.config/DankMaterialShell/plugins/nothingWidgets"
-  ok "Installed the Nothing Widgets plugin — pick the widget in DMS's desktop widget editor"
-  if have dms && pgrep -u "$USER" -x dms >/dev/null 2>&1; then
-    run dms restart || true
+
+  for p in $suite; do
+    dest="$HOME/.config/DankMaterialShell/plugins/$p"
+    if [[ -f $dest/plugin.json ]] \
+       && diff -rq "$REPO_DIR/config/shell-ui/DankMaterialShell/plugins/$p" "$dest" >/dev/null 2>&1; then
+      continue
+    fi
+    deploy_tree "$REPO_DIR/config/shell-ui/DankMaterialShell/plugins/$p" "$dest"
+    changed=1
+  done
+
+  if (( changed )); then
+    ok "Installed the Nothing Widgets — add them in DMS's desktop widget editor"
+    if have dms && pgrep -u "$USER" -x dms >/dev/null 2>&1; then
+      run dms restart || true
+    fi
   fi
 }
 

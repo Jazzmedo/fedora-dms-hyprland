@@ -1,0 +1,14 @@
+{
+  "id": "nothingCalendar",
+  "name": "Nothing Calendar",
+  "description": "NothingOS 5-day strip — today inverted, the Nothing dot beside the date. Layout after AumGupta/KWGT-Widgets (MIT).",
+  "version": "2.0.0",
+  "author": "Jazzmedo",
+  "type": "desktop",
+  "capabilities": ["desktop-widget"],
+  "component": "./Widget.qml",
+  "icon": "calendar_month",
+  "settings": "./Settings.qml",
+  "requires_dms": ">=1.2.0",
+  "permissions": ["settings_read", "settings_write"]
+}

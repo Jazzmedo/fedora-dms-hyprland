@@ -357,12 +357,31 @@ pkgs "nodejs npm"
 detect 'all_of "[[ -x $HOME/.local/share/shelltint/host/shelltint_host.py ]]" \
                "[[ -f $HOME/.mozilla/native-messaging-hosts/shelltint.json ]]"'
 
-component nothingwidgets apps on "Nothing Widgets" "NothingOS desktop widgets: media, weather, battery, calendar, date"
-# Shipped inside this repository (config/shell-ui/.../plugins/nothingWidgets);
-# widget designs after jaxparrow07/nothing-kde-widgets (GPL-3.0) and
-# AumGupta/KWGT-Widgets (MIT). dms_plugin keeps it enabled in the shell.
-detect 'all_of "[[ -f $HOME/.config/DankMaterialShell/plugins/nothingWidgets/plugin.json ]]"'
-dms_plugin "nothingWidgets"
+component nothingmedia    apps on "Nothing Media"     "NothingOS media player: album art, progress ring, transport controls"
+detect 'all_of "[[ -f $HOME/.config/DankMaterialShell/plugins/nothingmedia/plugin.json ]]"'
+dms_plugin "nothingMedia"
+
+component nothingweather  apps on "Nothing Weather"   "NothingOS weather: dot-matrix temperature from open-meteo"
+detect 'all_of "[[ -f $HOME/.config/DankMaterialShell/plugins/nothingweather/plugin.json ]]"'
+dms_plugin "nothingWeather"
+
+component nothingbattery  apps on "Nothing Battery"   "NothingOS battery: a red sweep that empties as you do"
+detect 'all_of "[[ -f $HOME/.config/DankMaterialShell/plugins/nothingbattery/plugin.json ]]"'
+dms_plugin "nothingBattery"
+
+component nothingcalendar apps on "Nothing Calendar"  "NothingOS 5-day strip: today inverted, the dot beneath"
+detect 'all_of "[[ -f $HOME/.config/DankMaterialShell/plugins/nothingcalendar/plugin.json ]]"'
+dms_plugin "nothingCalendar"
+
+component nothingdatetime apps on "Nothing Date & Time" "NothingOS typographic date and time card"
+detect 'all_of "[[ -f $HOME/.config/DankMaterialShell/plugins/nothingdatetime/plugin.json ]]"'
+dms_plugin "nothingDateTime"
+
+# The five Nothing Widgets ship inside this repository
+# (config/shell-ui/.../plugins/nothing*); each is its own DMS plugin so they
+# can be placed and resized independently on the desktop. Widget designs
+# after jaxparrow07/nothing-kde-widgets (GPL-3.0) and AumGupta/KWGT-Widgets
+# (MIT); the plugins are GPL-3.0. Credits live in each plugin's README.
 
 component mpv         apps on  "mpv"          "video player; becomes the default for video files"
 pkgs "mpv"

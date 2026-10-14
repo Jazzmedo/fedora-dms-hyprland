@@ -1,0 +1,14 @@
+{
+  "id": "nothingDateTime",
+  "name": "Nothing Date & Time",
+  "description": "NothingOS typographic date and time card — weekday, red time, month and ordinal day. Layout after AumGupta/KWGT-Widgets (MIT).",
+  "version": "2.0.0",
+  "author": "Jazzmedo",
+  "type": "desktop",
+  "capabilities": ["desktop-widget"],
+  "component": "./Widget.qml",
+  "icon": "schedule",
+  "settings": "./Settings.qml",
+  "requires_dms": ">=1.2.0",
+  "permissions": ["settings_read", "settings_write"]
+}
