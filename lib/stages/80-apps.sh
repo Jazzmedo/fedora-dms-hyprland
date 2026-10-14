@@ -383,7 +383,7 @@ write_mimeapps() {
   (( DRY_RUN )) && { info "Would set which app opens which kind of file"; return 0; }
   local gen; gen=$(mktemp)
 
-  local image=org.kde.dolphin.desktop pdf=$TPL_BROWSER_DESKTOP
+  local image=$TPL_FILEMANAGER_DESKTOP pdf=$TPL_BROWSER_DESKTOP
   local text=nvim.desktop
   have gwenview && image=org.kde.gwenview.desktop
   have okular   && pdf=okularApplication_pdf.desktop
@@ -405,8 +405,8 @@ application/x-extension-htm=$TPL_BROWSER_DESKTOP
 application/x-extension-html=$TPL_BROWSER_DESKTOP
 application/x-extension-xhtml=$TPL_BROWSER_DESKTOP
 
-inode/directory=org.kde.dolphin.desktop
-x-scheme-handler/file=org.kde.dolphin.desktop
+inode/directory=$TPL_FILEMANAGER_DESKTOP
+x-scheme-handler/file=$TPL_FILEMANAGER_DESKTOP
 
 x-scheme-handler/terminal=$TPL_TERMINAL.desktop
 application/x-shellscript=$text

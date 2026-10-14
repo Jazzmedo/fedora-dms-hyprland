@@ -393,6 +393,9 @@ backup_path() {
 : "${TPL_BROWSER:=zen}"
 : "${TPL_BROWSER_DESKTOP:=app.zen_browser.zen.desktop}"
 : "${TPL_BROWSER_PRIVATE:=--private-window}"
+: "${TPL_FILEMANAGER:=thunar}"
+: "${TPL_ALT_FILEMANAGER:=$TPL_FILEMANAGER}"
+: "${TPL_FILEMANAGER_DESKTOP:=thunar.desktop}"
 : "${TPL_OBSIDIAN_VAULT:=$HOME/Documents/Obsidian}"
 : "${TPL_REPO_DIR:=${REPO_DIR:-}}"
 
@@ -408,6 +411,8 @@ apply_template() {
     -e "s|@@BROWSER_DESKTOP@@|$TPL_BROWSER_DESKTOP|g" \
     -e "s|@@BROWSER_PRIVATE@@|$TPL_BROWSER_PRIVATE|g" \
     -e "s|@@BROWSER@@|$TPL_BROWSER|g" \
+    -e "s|@@ALT_FILEMANAGER@@|$TPL_ALT_FILEMANAGER|g" \
+    -e "s|@@FILEMANAGER@@|$TPL_FILEMANAGER|g" \
     -e "s|@@ZEN_PROFILE@@|$TPL_ZEN_PROFILE|g" \
     -e "s|@@OBSIDIAN_VAULT@@|$TPL_OBSIDIAN_VAULT|g" \
     -e "s|@@REPO_DIR@@|$TPL_REPO_DIR|g" \
@@ -430,6 +435,16 @@ set_browser_templates() {
   case $1 in
     zen|firefox|librewolf) TPL_BROWSER_PRIVATE=--private-window ;;
     *)                     TPL_BROWSER_PRIVATE=--incognito ;;
+  esac
+}
+
+# The command and launcher entry of each file-manager component, for the
+# @@FILEMANAGER*@@ placeholders and the folder lines of mimeapps.list.
+set_filemanager_templates() {
+  case $1 in
+    thunar)  TPL_FILEMANAGER=thunar  TPL_FILEMANAGER_DESKTOP=thunar.desktop ;;
+    dolphin) TPL_FILEMANAGER=dolphin TPL_FILEMANAGER_DESKTOP=org.kde.dolphin.desktop ;;
+    *)       return 1 ;;
   esac
 }
 

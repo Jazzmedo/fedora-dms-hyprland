@@ -404,6 +404,7 @@ ui_show_plan() {
   _plan_row "Graphics"  "${GPU_VENDOR}"
   _plan_row "Windows"   "arranged the ${HYPR_LAYOUT} way"
   _plan_row "Terminal"  "${DEFAULT_TERMINAL:-foot} opens with SUPER+Return"
+  _plan_row "Files"     "${DEFAULT_FILEMANAGER:-thunar} opens folders and SUPER+E"
   _plan_row "Browser"   "${COMPONENT_NAME[${DEFAULT_BROWSER:-zen}]} opens links and SUPER+B"
   [[ -n ${BROWSER_BACKUP:-} ]] && _plan_row "Extensions" "restored from ${BROWSER_BACKUP/#$HOME/\~}"
   _plan_row "Screens"   "${OUTPUT_SUMMARY:-worked out while installing}"

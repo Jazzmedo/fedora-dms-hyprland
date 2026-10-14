@@ -131,7 +131,7 @@ pkgs "hyprland hyprland-devel hyprpaper hyprlock hypridle hyprpicker \
       ImageMagick brightnessctl playerctl libnotify \
       wl-clipboard cliphist grim slurp wtype satty \
       NetworkManager NetworkManager-wifi nm-connection-editor \
-      bluez bluez-obex blueman kdeconnectd cargo"
+      bluez bluez-obex blueman cargo"
 detect 'all_of "pkg_installed hyprland" "have quickshell" \
                "have dms" "[[ -f $HOME/.config/hypr/hyprland.lua ]]" \
                "[[ -f /usr/share/wayland-sessions/hyprland.desktop ]]"' 
@@ -141,13 +141,28 @@ pkgs "pipewire pipewire-pulseaudio pipewire-alsa pipewire-utils \
       wireplumber pavucontrol alsa-utils"
 detect 'all_of "pkg_installed pipewire" "pkg_installed wireplumber" "pkg_installed pavucontrol"' 
 
-component apps_base   base base "Dolphin"         "file manager, thumbnails, phone and network browsing"
-# kio-extras and gvfs are what let Dolphin open a phone over MTP or a Samba/NFS
-# share, and what give GTK applications a working trash and mount view.
-pkgs "dolphin kf6-kio kf6-kservice kio-extras ffmpegthumbs kdegraphics-thumbnailers \
-      gvfs gvfs-mtp gvfs-smb gvfs-nfs gvfs-gphoto2 gvfs-archive gvfs-fuse libsecret zstd"
-detect 'all_of "pkg_installed dolphin" \
+component apps_base   base base "Files & mounts"  "gvfs mounts, thumbnails, secret storage — shared by both file managers"
+# gvfs is what lets a file manager open a phone over MTP or a Samba/NFS share,
+# and what gives GTK applications a working trash and mount view. tumbler
+# generates Thunar's thumbnails; the KDE thumbnailers arrive with Dolphin.
+pkgs "gvfs gvfs-mtp gvfs-smb gvfs-nfs gvfs-gphoto2 gvfs-archive gvfs-fuse libsecret zstd tumbler"
+detect 'all_of "pkg_installed gvfs" \
                "[[ -f $HOME/.config/mimeapps.list ]]"'
+
+# ---------------------------------------------------------------------------
+# Tick one or both. With both, the installer asks which is the default:
+# SUPER+E opens it, ALT+F the other one, and folders everywhere follow it.
+group filemgr "File manager (one or both)"
+
+component filemgr_thunar filemgr on  "Thunar"  "lightweight Xfce file manager; simple and fast, few dependencies"
+pkgs "thunar thunar-archive-plugin"
+detect 'all_of "pkg_installed thunar"'
+
+component filemgr_dolphin filemgr off "Dolphin" "full-featured KDE file manager; heavier, pulls in KDE libraries"
+# kio-extras is Dolphin's MTP/Samba/NFS support; the two thumbnailers render
+# previews for images and video inside Dolphin's views.
+pkgs "dolphin kf6-kio kf6-kservice kio-extras ffmpegthumbs kdegraphics-thumbnailers"
+detect 'all_of "pkg_installed dolphin"'
 
 # The rest of what a DE would install alongside its file manager. These are the
 # apps the generated mimeapps.list and the Hyprland window rules already name
@@ -372,8 +387,15 @@ dms_plugin "dankscale"
 
 component warp        services off "Cloudflare WARP" "enables the warpToggle bar plugin"
 pkgs "cloudflare-warp"
-detect 'all_of "pkg_installed cloudflare-warp" "systemctl is-enabled warp-svc"' 
+detect 'all_of "pkg_installed cloudflare-warp" "systemctl is-enabled warp-svc"'
 dms_plugin "warpToggle"
+
+# The daemon ships its own /etc/xdg/autostart entry, which dex runs at login,
+# and the optional stage opens its firewall ports so pairing just works.
+component kdeconnect  services off "KDE Connect" "pair your phone: notifications, clipboard, files; enables the Phone Connect plugin"
+pkgs "kdeconnectd kdeconnect"
+detect 'all_of "pkg_installed kdeconnectd" "pkg_installed kdeconnect"'
+dms_plugin "dankKDEConnect"
 
 component niri        services off "niri session"    "second Wayland session at the login screen"
 pkgs "niri"
@@ -405,7 +427,7 @@ pkgs "timeshift"
 
 # The tool behind the SUPER+ALT+D draw-on-screen bind. No dnf package exists;
 # the project publishes an rpm of its own, which install_github_rpm fetches.
-component draw        services off "Draw on screen"  "wayscriber: annotate over anything on screen (SUPER+ALT+D)"
+component draw        services off "Draw on screen"  "wayscriber: annotate over anything on screen (SUPER+ALT+X)"
 detect 'all_of "have wayscriber"'
 
 # A screen driven at limited RGB range looks washed out, and Hyprland offers no
@@ -468,10 +490,12 @@ select_gpu() {
   GPU_VENDOR=$pick
 }
 
-# DMS plugins that are always installed, regardless of selection.
+# DMS plugins that are always installed, regardless of selection. The Phone
+# Connect plugin is not here: it rides with the kdeconnect component through
+# its dms_plugin line, because a plugin for a daemon that is not installed
+# only fills the log with errors.
 DMS_BASE_PLUGINS=(
   dmsThemeSync nothingClock wallpaperCarousel emojiLauncher quickCapture
-  dankKDEConnect
 )
 # Removed from plugin_settings.json and from the bar so DMS does not log for
 # them: either present in the backup's settings.json with no plugin directory

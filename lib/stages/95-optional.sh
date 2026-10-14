@@ -5,7 +5,7 @@
 stage_optional() {
   local any=0
   local c
-  for c in tailscale warp niri splash printing firmware draw; do is_selected "$c" && any=1; done
+  for c in tailscale warp kdeconnect niri splash printing firmware draw; do is_selected "$c" && any=1; done
   (( any )) || { skip "No extras were chosen"; return 0; }
 
 
@@ -32,6 +32,33 @@ stage_optional() {
       soft_fail "Cloudflare WARP did not install, so its widget will do nothing" \
                 "Its download source could not be reached earlier." \
                 "./install.sh --only=repos,packages,optional"
+    fi
+  fi
+
+  if is_selected kdeconnect; then
+    # The daemon starts itself at login through its autostart entry, which dex
+    # runs; what it cannot do for itself is open the firewall. Without these
+    # ports the phone never appears, which looks exactly like a broken install.
+    if rpm_has kdeconnectd && have firewall-cmd && firewall-cmd --state >/dev/null 2>&1; then
+      if as_root firewall-cmd --permanent --add-service=kdeconnect \
+        && as_root firewall-cmd --reload; then
+        ok "KDE Connect's ports are open — your phone should now be discoverable"
+      else
+        soft_fail "Could not open KDE Connect's firewall ports" \
+                  "The daemon runs, but the phone may not be able to reach this machine." \
+                  "sudo firewall-cmd --permanent --add-service=kdeconnect && sudo firewall-cmd --reload"
+      fi
+      systemctl --user is-enabled dms-kdeconnect.service >/dev/null 2>&1 \
+        || record unit-user dms-kdeconnect.service
+      systemctl --user enable --now dms-kdeconnect.service \
+        && ok "The KDE Connect daemon starts with your session" \
+        || soft_fail "Could not enable the KDE Connect daemon service" \
+                     "The autostart entry may still start it; check: kdeconnect-cli -a" \
+                     "systemctl --user enable --now dms-kdeconnect.service"
+    else
+      soft_fail "KDE Connect's packages or firewall are missing" \
+                "Discovery needs ports 1714-1764 open on TCP and UDP." \
+                "./install.sh --only=packages,optional"
     fi
   fi
 

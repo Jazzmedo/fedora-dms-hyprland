@@ -165,7 +165,8 @@ install_toolkit_theming() {
   fi
 
   seed_kde_palette
-  deploy_file "$REPO_DIR/config/apps/dolphinrc" "$HOME/.config/dolphinrc"
+  is_selected filemgr_dolphin && \
+    deploy_file "$REPO_DIR/config/apps/dolphinrc" "$HOME/.config/dolphinrc"
 }
 
 # Dolphin is a KDE application, so it paints itself from the [Colors:*] blocks

@@ -290,7 +290,7 @@ install_systemd_units() {
     enable_user_unit "$unit" && record unit-user "$unit" \
       || soft_fail "Could not set $unit to start automatically" "" "systemctl --user enable $unit"
   done
-  is_selected core && [[ -f $dest/dms-kdeconnect.service ]] && \
+  is_selected kdeconnect && [[ -f $dest/dms-kdeconnect.service ]] && \
     enable_user_unit dms-kdeconnect.service && record unit-user dms-kdeconnect.service
 
   user_daemon_reload

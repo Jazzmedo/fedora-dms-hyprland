@@ -31,6 +31,8 @@ DEFAULT_TERMINAL=""
 TERMINAL_FLAG=""
 DEFAULT_BROWSER=""
 BROWSER_FLAG=""
+DEFAULT_FILEMANAGER=""
+FILEMANAGER_FLAG=""
 BROWSER_BACKUP=""
 RESET_SELECTION=0
 ONLY=""
@@ -49,7 +51,8 @@ usage() {
   cat <<'EOF'
 fedora-nothing — turns a barebones Fedora into the Nothing desktop: the
 Hyprland window manager, the DankMaterialShell bar and widgets, the Nothing
-login screen and typefaces, and your choice of terminal, browser and Dolphin.
+login screen and typefaces, and your choice of terminal, browser and file
+manager.
 
   ./install.sh                    choose what to install, then install it
   ./install.sh --yes              install the usual set, ask nothing
@@ -67,6 +70,7 @@ Options:
   --terminal=NAME       foot | kitty: the default when both are ticked
   --browser=NAME        zen | firefox | librewolf | brave | brave_origin | vivaldi | helium:
                         the default when several are ticked
+  --filemanager=NAME    thunar | dolphin: the default when both are ticked
   --only=A,B            run only these stages
   --skip=A,B            run everything except these stages
   --dry-run             print what would happen, change nothing
@@ -90,6 +94,7 @@ for arg in "$@"; do
     --layout=*)      HYPR_LAYOUT=${arg#*=}; LAYOUT_FLAG=1 ;;
     --terminal=*)    DEFAULT_TERMINAL=${arg#*=}; TERMINAL_FLAG=1 ;;
     --browser=*)     DEFAULT_BROWSER=${arg#*=}; BROWSER_FLAG=1 ;;
+    --filemanager=*) DEFAULT_FILEMANAGER=${arg#*=}; FILEMANAGER_FLAG=1 ;;
     --only=*)        ONLY=${arg#*=} ;;
     --skip=*)        SKIP=${arg#*=} ;;
     --list-stages)   printf '%s\n' "${ALL_STAGES[@]}"; exit 0 ;;
@@ -188,6 +193,7 @@ load_selection() {
     [[ $k == layout=* ]] && { [[ -z $LAYOUT_FLAG ]] && HYPR_LAYOUT=${k#layout=}; continue; }
     [[ $k == terminal=* ]] && { [[ -z $TERMINAL_FLAG ]] && DEFAULT_TERMINAL=${k#terminal=}; continue; }
     [[ $k == browser=* ]]  && { [[ -z $BROWSER_FLAG ]] && DEFAULT_BROWSER=${k#browser=}; continue; }
+    [[ $k == filemanager=* ]] && { [[ -z $FILEMANAGER_FLAG ]] && DEFAULT_FILEMANAGER=${k#filemanager=}; continue; }
     # "devtools" was one row before each tool got its own.
     [[ $k == devtools ]] && { for k in mise rust golang podman ytdlp; do select_component "$k"; done; continue; }
     [[ -n ${COMPONENT_NAME[$k]:-} ]] && select_component "$k"
@@ -204,6 +210,7 @@ save_selection() {
     echo "layout=$HYPR_LAYOUT"
     echo "terminal=$DEFAULT_TERMINAL"
     echo "browser=$DEFAULT_BROWSER"
+    echo "filemanager=$DEFAULT_FILEMANAGER"
     local k
     for k in "${COMPONENT_ORDER[@]}"; do
       component_locked "$k" && continue
@@ -263,6 +270,7 @@ choose_components() {
   fi
 
   choose_default_terminal
+  choose_default_filemanager
   choose_default_browser
   choose_browser_backup
 
@@ -301,6 +309,35 @@ choose_default_terminal() {
   TPL_ALT_TERMINAL=$DEFAULT_TERMINAL
   if is_selected term_foot && is_selected term_kitty; then
     [[ $DEFAULT_TERMINAL == foot ]] && TPL_ALT_TERMINAL=kitty || TPL_ALT_TERMINAL=foot
+  fi
+}
+
+# At least one file manager is installed. With both, one is the default: it is
+# what SUPER+E and ALT+F open first, and what folders everywhere ask for.
+choose_default_filemanager() {
+  if ! is_selected filemgr_thunar && ! is_selected filemgr_dolphin; then
+    select_component filemgr_thunar
+    info "No file manager was ticked, so Thunar will be installed"
+  fi
+  if is_selected filemgr_thunar && is_selected filemgr_dolphin; then
+    if [[ $DEFAULT_FILEMANAGER != thunar && $DEFAULT_FILEMANAGER != dolphin ]]; then
+      DEFAULT_FILEMANAGER=thunar
+      if [[ -t 0 ]] && ! (( ASSUME_YES )) && [[ -z $PRESET ]]; then
+        local reply
+        printf '  %s?%s Both file managers are ticked. Which should be the default? [T]hunar / [d]olphin ' "$C_RED" "$C_OFF"
+        read -r reply
+        [[ $reply == [dD]* ]] && DEFAULT_FILEMANAGER=dolphin
+      fi
+    fi
+  elif is_selected filemgr_dolphin; then
+    DEFAULT_FILEMANAGER=dolphin
+  else
+    DEFAULT_FILEMANAGER=thunar
+  fi
+  set_filemanager_templates "$DEFAULT_FILEMANAGER"
+  TPL_ALT_FILEMANAGER=$TPL_FILEMANAGER
+  if is_selected filemgr_thunar && is_selected filemgr_dolphin; then
+    [[ $DEFAULT_FILEMANAGER == thunar ]] && TPL_ALT_FILEMANAGER=dolphin || TPL_ALT_FILEMANAGER=thunar
   fi
 }
 
