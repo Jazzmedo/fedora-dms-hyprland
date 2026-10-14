@@ -41,7 +41,7 @@ stage_apps() {
   theme_browsers
   is_selected zen && is_selected zen_sites && install_zen_site_theming
   is_selected vesktop  && install_github_rpm Vencord/Vesktop  'vesktop.*\.x86_64\.rpm$' vesktop  Vesktop
-  is_selected obsidian && install_github_rpm obsidianmd/obsidian-releases 'obsidian-[0-9.]+\.rpm$' obsidian Obsidian
+  is_selected obsidian && install_github_rpm obsidianmd/obsidian-releases 'obsidian-[0-9.]+[^"]*\.rpm$' obsidian Obsidian
   is_selected shelltint && install_shelltint
   install_app_configs
   is_selected spicetify && install_spicetify_theme

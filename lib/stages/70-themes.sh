@@ -29,6 +29,14 @@ install_wallpapers() {
     run cp -a "$set_dir/horizontal/." "$dest/$name/horizontal/"
     ok "Added $want_n $name wallpapers"
   done
+  # Collections of themes this repository no longer ships. A machine that
+  # installed them earlier should not keep them forever.
+  local gone
+  for gone in catppuccin-mocha gruvbox-material; do
+    [[ -e "$dest/$gone" ]] || continue
+    run rm -rf "$dest/$gone"
+    record file "$dest/$gone"
+  done
   # The theme-sync script falls back to the horizontal image on portrait
   # outputs when a vertical set is absent, so empty vertical/ dirs are fine.
 }
@@ -120,6 +128,15 @@ install_toolkit_theming() {
   deploy_tree "$t/qt6ct"   "$HOME/.config/qt6ct"
   deploy_file "$t/gtkrc-2.0" "$HOME/.gtkrc-2.0"
   deploy_tree "$t/kde-color-schemes" "$HOME/.local/share/color-schemes"
+  # Colour schemes of themes this repository no longer ships; a deployed copy
+  # from an earlier run would otherwise sit in the picker forever.
+  local dead_scheme
+  for dead_scheme in CatppuccinMocha CatppuccinMochaSaphhire InfinityDarkColor \
+                     InfinityLightColor Sweet-Mars SweetAmbarBlue; do
+    [[ -e "$HOME/.local/share/color-schemes/$dead_scheme.colors" ]] || continue
+    run rm -f "$HOME/.local/share/color-schemes/$dead_scheme.colors"
+    record file "$HOME/.local/share/color-schemes/$dead_scheme.colors"
+  done
 
   # The colour files themselves are seeded once and owned by the desktop shell
   # from then on. Copying the captured ones over the generated ones on every

@@ -587,6 +587,14 @@ deploy_dms_settings() {
   local src="$REPO_DIR/config/shell-ui/DankMaterialShell"
   run mkdir -p "$DMS_CONFIG/themes"
   deploy_tree "$src/themes" "$DMS_CONFIG/themes"
+  # Themes this repository stopped shipping; a deployed copy from an earlier
+  # run would otherwise linger beside the Nothing theme.
+  local dead_theme
+  for dead_theme in catppuccin gruvboxMaterial; do
+    [[ -e "$DMS_CONFIG/themes/$dead_theme" ]] || continue
+    run rm -rf "$DMS_CONFIG/themes/$dead_theme"
+    record file "$DMS_CONFIG/themes/$dead_theme"
+  done
   local n; n=$(find "$src/themes" -mindepth 1 -maxdepth 1 2>/dev/null | wc -l)
   ok "Installed $n colour themes"
   prune_themes_without_wallpapers
