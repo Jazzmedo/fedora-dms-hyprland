@@ -109,7 +109,7 @@ DesktopPluginComponent {
             asynchronous: true
         }
 
-        DotLabel {
+        Text {
             anchors.centerIn: parent
             visible: root.artUrl === ""
             text: "♪"
