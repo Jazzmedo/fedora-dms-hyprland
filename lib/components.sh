@@ -519,13 +519,20 @@ component gpu_intel   gpu off "Intel"  "mesa + ANV"
 pkgs "mesa-dri-drivers mesa-vulkan-drivers intel-media-driver libva-utils vulkan-tools"
 component gpu_nvidia  gpu off "NVIDIA" "akmod-nvidia from RPM Fusion"
 pkgs "akmod-nvidia xorg-x11-drv-nvidia-cuda nvidia-vaapi-driver libva-utils vulkan-tools"
+# On-demand (PRIME render offload) for a hybrid laptop: the integrated GPU
+# drives the desktop and the NVIDIA card renders only apps started with
+# prime-run. The driver branch is picked to match the card (see stage_gpu), so
+# the mesa stack for the integrated GPU is what this component carries; the
+# NVIDIA packages are chosen and installed by the graphics stage.
+component gpu_nvidia_offload gpu off "NVIDIA (on-demand)" "iGPU desktop, NVIDIA via prime-run"
+pkgs "mesa-dri-drivers mesa-vulkan-drivers intel-media-driver libva-utils vulkan-tools"
 component gpu_vm      gpu off "VM"     "virtio/llvmpipe + guest agent"
 pkgs "mesa-dri-drivers qemu-guest-agent spice-vdagent"
 
 # The GPU group is a radio, not a checklist.
 select_gpu() {
   local pick=$1 k
-  for k in gpu_amd gpu_intel gpu_nvidia gpu_vm; do deselect_component "$k"; done
+  for k in gpu_amd gpu_intel gpu_nvidia gpu_nvidia_offload gpu_vm; do deselect_component "$k"; done
   select_component "gpu_$pick"
   GPU_VENDOR=$pick
 }

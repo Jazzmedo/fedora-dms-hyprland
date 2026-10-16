@@ -52,6 +52,9 @@ install_matugen_config() {
   local dest="$HOME/.config/matugen"
 
   deploy_tree "$src/templates" "$dest/templates"
+  # The foot colour template regenerates dms-colors.ini on every theme change,
+  # so match its section name to the installed foot here, where it is deployed.
+  foot_use_colors_dark "$dest/templates/foot-dms.ini"
 
   backup_path "$dest/config.toml"
   run mkdir -p "$dest"
@@ -111,8 +114,17 @@ install_matugen_config() {
 # AppImage. Looking in one place meant matugen wrote the browser theme into a
 # directory that did not exist, so the browser was never themed at all.
 detect_zen_profile() {
-  local root d
+  local root d rel
   for root in "$HOME/.zen" "$HOME/.config/zen"; do
+    [[ -d $root ]] || continue
+    # installs.ini names the profile Zen actually launches (its locked
+    # per-install default). profiles.ini can flag a different one Default=1 that
+    # Zen ignores, and the *.Default* glob returns whichever sorts first, so
+    # without this the theme lands in a profile the browser never opens.
+    if [[ -f "$root/installs.ini" ]]; then
+      rel=$(sed -n 's/^Default=//p' "$root/installs.ini" | head -1)
+      [[ -n $rel && -d "$root/$rel" ]] && { printf '%s' "$root/$rel"; return; }
+    fi
     for d in "$root"/*.Default* "$root"/*default*; do
       [[ -d $d ]] && { printf '%s' "$d"; return; }
     done

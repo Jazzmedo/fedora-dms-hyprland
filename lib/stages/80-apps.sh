@@ -6,6 +6,20 @@ MATUGENFOX_DIR="$HOME/.local/share/matugenfox"
 MATUGENFOX_XPI_DIR=/usr/local/share/matugenfox
 HELIUM_INSTALL_DIR=/opt/helium
 
+# foot 1.26 renamed [colors] to [colors-dark] and warns on every start about
+# the old name; 1.25 and older reject the new one. Fedora 43 ships foot 1.24,
+# Fedora 44 ships 1.27, so rewrite the section to match the installed foot.
+# Called both here and from the theme stage, which deploys the matugen template
+# that regenerates these colours on every theme change -- patching it there too
+# means a themes-only re-run cannot leave the deprecated section behind.
+foot_use_colors_dark() {
+  local fv; fv=$(foot --version 2>/dev/null | awk '{print $3}')
+  [[ -n $fv && $(printf '%s\n' 1.26 "$fv" | sort -V | head -1) == 1.26 ]] || return 0
+  local f
+  for f in "$@"; do [[ -f $f ]] && run sed -i 's/^\[colors\]$/[colors-dark]/' "$f"; done
+  return 0
+}
+
 stage_apps() {
   if is_selected term_kitty; then
     local k="$REPO_DIR/config/terminal/kitty"
@@ -22,14 +36,8 @@ stage_apps() {
     # foot.ini includes the DMS palette and foot will not start without it;
     # matugen replaces this seed on the first theme change.
     deploy_seed "$REPO_DIR/config/terminal/foot/seed/dms-colors.ini" "$HOME/.config/foot/dms-colors.ini"
-    # foot 1.26 renamed [colors] to [colors-dark] and warns on every start
-    # about the old name; 1.25 and older reject the new one. Fedora 43 ships
-    # 1.24 and Fedora 44 1.26, so follow whichever is installed.
-    local fv; fv=$(foot --version 2>/dev/null | awk '{print $3}')
-    if [[ -n $fv && $(printf '%s\n' 1.26 "$fv" | sort -V | head -1) == 1.26 ]]; then
-      run sed -i 's/^\[colors\]$/[colors-dark]/' \
-        "$HOME/.config/matugen/templates/foot-dms.ini" "$HOME/.config/foot/dms-colors.ini"
-    fi
+    foot_use_colors_dark "$HOME/.config/foot/dms-colors.ini" \
+                         "$HOME/.config/matugen/templates/foot-dms.ini"
     ok "Set up the foot terminal"
   fi
 

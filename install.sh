@@ -65,7 +65,7 @@ is copied to ~/.fedora-nothing-backup/ first.
 Options:
   --yes, -y             accept the default selection, ask nothing
   --preset=NAME         minimal | standard | full
-  --gpu=VENDOR          amd | intel | nvidia | vm   (default: detected)
+  --gpu=VENDOR          amd | intel | nvidia | nvidia-offload | vm   (default: detected)
   --layout=NAME         scrolling | dwindle          (default: scrolling)
   --terminal=NAME       foot | kitty: the default when both are ticked
   --browser=NAME        zen | firefox | librewolf | brave | brave_origin | vivaldi | helium:
@@ -90,7 +90,7 @@ for arg in "$@"; do
     --no-backup)     NO_BACKUP=1 ;;
     --owner)         OWNER_MODE=1; ASSUME_YES=1; PRESET=full ;;
     --preset=*)      PRESET=${arg#*=} ;;
-    --gpu=*)         GPU_VENDOR=${arg#*=}; GPU_VENDOR_FLAG=1 ;;
+    --gpu=*)         GPU_VENDOR=${arg#*=}; GPU_VENDOR=${GPU_VENDOR//-/_}; GPU_VENDOR_FLAG=1 ;;
     --layout=*)      HYPR_LAYOUT=${arg#*=}; LAYOUT_FLAG=1 ;;
     --terminal=*)    DEFAULT_TERMINAL=${arg#*=}; TERMINAL_FLAG=1 ;;
     --browser=*)     DEFAULT_BROWSER=${arg#*=}; BROWSER_FLAG=1 ;;
@@ -216,6 +216,11 @@ save_selection() {
       component_locked "$k" && continue
       is_selected "$k" && printf '%s\n' "$k"
     done
+    # A final no-op so the block's exit status never follows the last
+    # `is_selected` test: when the last component (gpu_vm) is unticked, that
+    # test is non-zero, which became save_selection's status and, under set -e,
+    # ended the whole run between the plan and the first stage.
+    :
   } > "$SELECTION_FILE"
 }
 
