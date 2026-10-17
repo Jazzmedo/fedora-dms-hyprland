@@ -192,6 +192,19 @@ installs. A Zen backup also restores into Firefox or LibreWolf, and a Brave one
 into Vivaldi or Helium; Chromium extensions reinstall from the Web Store on the
 first start and pick their data back up.
 
+### AI agent data
+
+`./agent-backup.sh` does the same for the coding agents the installer can set
+up — Claude Code, Codex, OpenCode and ZCode — picked from the same checklist.
+Chats, settings and sign-in credentials each travel on their own line; auth
+forces encryption with a passphrase, the way cookies do for a browser. A backup
+holds conversations, skills, rules, plugin data and the tokens that keep you
+logged in, so a new machine starts where you left off.
+
+Backups go to `~/fedora-nothing-backups/` too, as `agents-<date>/`. They are
+home-relative, so a restore follows a home that moved, and only the kinds you
+ticked are put back.
+
 ## 🚑 If something breaks
 
 ```sh
