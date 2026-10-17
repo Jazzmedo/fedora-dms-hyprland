@@ -191,6 +191,20 @@ apply_qt6ct_palette() {
 
 have_cmd() { command -v "$1" >/dev/null 2>&1; }
 
+# Obsidian reads its palette from a CSS snippet kept per vault, and watches
+# that directory, so a running window restyles itself the moment the file
+# changes. Matugen writes only the first vault's copy; every other vault gets
+# the same file here.
+sync_obsidian() {
+  local src="$HOME/Documents/Obsidian/.obsidian/snippets/dms-colors.css" vault
+  [[ -f $src ]] || return 0
+  for vault in "$HOME"/Documents/*/.obsidian; do
+    [[ -d $vault/snippets ]] || continue
+    [[ $vault/snippets/dms-colors.css -ef $src ]] && continue
+    cp -f "$src" "$vault/snippets/dms-colors.css" 2>/dev/null || true
+  done
+}
+
 reload_toolkits() {
   # kitty re-reads its config, and with it the generated palette it includes.
   # Remote control is not enabled, so the signal is the only way in.
@@ -227,6 +241,8 @@ reload_toolkits() {
   # any theme change, with no colour-reload module in its environment, so a
   # restart is the only thing that repaints it. Brief; clients reconnect.
   systemctl --user try-restart xdg-desktop-portal-gtk.service 2>/dev/null || true
+
+    sync_obsidian
 
   # The shell regenerates dms/colors.lua, which carries the window borders.
   hyprctl reload >/dev/null 2>&1 || true
