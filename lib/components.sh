@@ -131,7 +131,12 @@ pkgs "hyprland hyprland-devel hyprpaper hyprlock hypridle hyprpicker \
       ImageMagick brightnessctl playerctl libnotify \
       wl-clipboard cliphist grim slurp wtype satty \
       NetworkManager NetworkManager-wifi nm-connection-editor \
-      bluez blueman cargo"
+      bluez blueman cargo \
+      iwlwifi-dvm-firmware iwlwifi-mvm-firmware iwlwifi-mld-firmware iwlbluetooth-firmware"
+# Fedora 44 split linux-firmware per vendor and the thin core package carries
+# no radio firmware at all, nor recommends any: without these the Intel combo
+# cards come up with no wlan interface and a Bluetooth controller stuck in
+# bootloader mode. Harmless in a VM, which has no radio hardware to load them.
 detect 'all_of "pkg_installed hyprland" "have quickshell" \
                "have dms" "[[ -f $HOME/.config/hypr/hyprland.lua ]]" \
                "[[ -f /usr/share/wayland-sessions/hyprland.desktop ]]"' 
