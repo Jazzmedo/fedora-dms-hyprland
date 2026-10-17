@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Cycle the wallpaper on the focused monitor.
-# Falls back to the global command when DMS is not in per-monitor mode.
+# Cycle the wallpaper everywhere at once: the session runs one global
+# wallpaper, so both monitors move together. The per-monitor call stays
+# as a fallback for a session with per-monitor wallpapers enabled again.
 set -u
 
 action="${1:-next}"
@@ -10,13 +11,7 @@ case "$action" in
   *) exit 2 ;;
 esac
 
-monitor="$(hyprctl -j monitors | jq -r 'first(.[] | select(.focused) | .name) // empty')"
-
-if [ -z "$monitor" ]; then
-  dms ipc call wallpaper "$action" >/dev/null
-  exit $?
-fi
-
-if ! dms ipc call wallpaper "${action}For" "$monitor" >/dev/null 2>&1; then
-  dms ipc call wallpaper "$action" >/dev/null
+if ! dms ipc call wallpaper "$action" >/dev/null 2>&1; then
+  monitor="$(hyprctl -j monitors | jq -r 'first(.[] | select(.focused) | .name) // empty')"
+  [ -n "$monitor" ] && dms ipc call wallpaper "${action}For" "$monitor" >/dev/null
 fi

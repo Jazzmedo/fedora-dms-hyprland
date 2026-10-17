@@ -17,7 +17,7 @@ hl.bind("SUPER + CTRL + SHIFT + R", exec("dms restart"), { description = "Restar
 hl.unbind("SUPER + CTRL + T")
 hl.bind("SUPER + CTRL + T", exec("dms ipc call theme toggle"), { description = "Toggle light and dark theme" })
 hl.unbind("SUPER + CTRL + W")
-hl.bind("SUPER + CTRL + W", exec("@@HOME@@/.config/hypr/scripts/wallpaper-cycle next"), { description = "Next wallpaper on focused monitor" })
+hl.bind("SUPER + CTRL + W", exec("@@HOME@@/.config/hypr/scripts/wallpaper-cycle next"), { description = "Next wallpaper on all monitors" })
 hl.unbind("SUPER + E")
 hl.bind("SUPER + E", exec("@@HOME@@/.local/bin/default-filemanager"), { description = "Open the default file manager" })
 hl.unbind("SUPER + I")

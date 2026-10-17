@@ -153,7 +153,17 @@ if [[ ${#outputs[@]} -eq 0 ]]; then
   outputs=("@@MONITOR@@ 1920 1080 0")
 fi
 
+# One wallpaper for every monitor: a single global set reaches both screens
+# at once. setFor would silently switch the session back to per-monitor mode
+# -- which is how the unified setup kept undoing itself on theme changes --
+# so it stays only in the fallback loop below, for a session that has
+# deliberately enabled per-monitor wallpapers.
 applied=0
+if dms ipc call wallpaper set "$horizontal" >/dev/null 2>&1; then
+  applied=$(( ${#outputs[@]} > 0 ? ${#outputs[@]} : 1 ))
+fi
+
+if (( applied == 0 )); then
 for spec in "${outputs[@]}"; do
   read -r name width height transform <<<"$spec"
   # Transforms 1 and 3 are the 90/270-degree rotations, which swap the axes.
@@ -179,6 +189,7 @@ for spec in "${outputs[@]}"; do
     log "could not set $wanted on $name: $err / $err2"
   fi
 done
+fi
 
 # Nothing applied means the theme must not stay recorded, or the guard above
 # turns a transient failure into a permanent one.
