@@ -58,7 +58,7 @@
         {
             "type": "disk",
             "key": "\u001b[38;2;200;200;200m{icon}  Disk      \u001b[38;2;215;25;33m│\u001b[0m",
-            "folders": "/"
+            "folders": ["/", "/home"], "format": "{size-used} / {size-total} ({size-percentage}) - {filesystem} ({mountpoint})"
         },
         {
             "type": "custom",
