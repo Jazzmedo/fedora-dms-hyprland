@@ -15,7 +15,7 @@ output_path = '~/.config/btop/themes/dms.theme'
 
 [templates.cava_dms]
 input_path = '~/.config/matugen/templates/cava-dms'
-output_path = '~/.config/cava/themes/dms'
+output_path = '~/.config/cava/config'
 
 [templates.tmux_dms]
 input_path = '~/.config/matugen/templates/tmux-dms.conf'
