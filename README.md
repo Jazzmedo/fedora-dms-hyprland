@@ -210,7 +210,6 @@ ticked are put back.
 ```sh
 ./doctor.sh                                    # check a finished install
 ./report.sh                                    # a redacted, pasteable report
-journalctl --user -u dms-theme-wallpapers -n 40  # wallpaper not following
 ```
 
 Logs and a manifest of every change land in `logs/` after each run.

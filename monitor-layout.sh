@@ -175,11 +175,6 @@ setup_monitor() {
   sleep 1
   local errors; errors=$(hyprctl configerrors 2>/dev/null | sed '/^\s*$/d')
   [[ -z $errors ]] || warn "Hyprland reports config errors:"$'\n'"$errors"
-  if systemctl --user start dms-theme-wallpapers.service 2>/dev/null; then
-    ok "The theme wallpaper matches the monitor's shape"
-  else
-    warn "The theme wallpaper could not be refreshed (journalctl --user -u dms-theme-wallpapers)"
-  fi
 }
 
 while :; do
