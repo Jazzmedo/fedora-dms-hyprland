@@ -3,9 +3,23 @@
 # on Fedora there is nothing to rewrite.
 
 # Interactive package search and install.  Was aptt() over apt-cache + nala.
+#
+# -C (cache-only) keeps the listing to the metadata already on disk. A plain
+# `dnf repoquery` re-syncs every enabled repo first — nineteen of them here,
+# several third-party — so the picker sat blank for a minute or more with no
+# sign of life. With -C it opens in about a second. The first run on a machine
+# with no cache yet comes back empty, so one full query runs instead, with a
+# note, rather than leaving the screen blank for no visible reason.
 dnfi() {
-  local bat_cmd=$(command -v bat || command -v batcat || echo cat)
-  local pkgs=$(dnf repoquery --qf '%{name}\n' --latest-limit 1 2>/dev/null | sort -u | fzf \
+  local bat_cmd; bat_cmd=$(command -v bat || command -v batcat || echo cat)
+  local list
+  list=$(dnf -C repoquery --qf '%{name}\n' --latest-limit 1 2>/dev/null | sort -u)
+  if [[ -z $list ]]; then
+    print -P "%F{yellow}⏳ Refreshing package metadata (first run)…%f"
+    list=$(dnf repoquery --qf '%{name}\n' --latest-limit 1 2>/dev/null | sort -u)
+  fi
+  local pkgs
+  pkgs=$(print -r -- "$list" | fzf \
     --multi \
     --height 80% \
     --layout=reverse \
@@ -18,7 +32,7 @@ dnfi() {
     --marker="X " \
     --bind "ctrl-d:deselect-all" \
     --color="bg+:-1,gutter:-1,border:#586e75,header:#859900,prompt:#268bd2,pointer:#cb4b16,marker:#859900,hl:#d33682,hl+:#d33682" \
-    --preview "dnf info {1} 2>/dev/null | $bat_cmd --color=always --style=plain" \
+    --preview "dnf -C info {1} 2>/dev/null | $bat_cmd --color=always --style=plain" \
     --preview-window="right,60%,border-left")
 
   [[ -z $pkgs ]] && { print -P "%F{red}✘ Selection cancelled.%f"; return 1 }
@@ -69,7 +83,7 @@ prg() {
   local list_parts=()
 
   # dnf: only packages installed by a user action, not pulled in as deps.
-  command -v dnf >/dev/null && list_parts+=("dnf repoquery --userinstalled --qf '%{name}\n' 2>/dev/null | sort -u | awk '{print \"dnf:\"\$1}'")
+  command -v dnf >/dev/null && list_parts+=("dnf -C repoquery --userinstalled --qf '%{name}\n' 2>/dev/null | sort -u | awk '{print \"dnf:\"\$1}'")
   command -v flatpak >/dev/null && list_parts+=("flatpak list --app --columns=application 2>/dev/null | awk '{print \"fp:\"\$1}'")
   command -v snap >/dev/null && list_parts+=("snap list 2>/dev/null | tail -n +2 | grep -vE 'core|bare|gtk-common|gnome-[0-9]' | awk '{print \"snap:\"\$1}'")
 
@@ -90,7 +104,7 @@ prg() {
     --preview "
       item={}
       if [[ \$item == dnf:* ]]; then
-        dnf info \${item#dnf:} 2>/dev/null | $bat_cmd --color=always --style=plain
+        dnf -C info \${item#dnf:} 2>/dev/null | $bat_cmd --color=always --style=plain
       elif [[ \$item == fp:* ]]; then
         flatpak info \${item#fp:} | $bat_cmd --color=always --style=plain
       elif [[ \$item == snap:* ]]; then
