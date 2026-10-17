@@ -1,5 +1,4 @@
 import QtQuick
-import QtWebSockets
 import qs.Common
 import qs.Services
 import qs.Widgets
@@ -32,6 +31,8 @@ PluginComponent {
     // Server config
     readonly property string serverHost: "127.0.0.1"
     readonly property int serverPort: 23560
+    // The backend's HTTP port, for the plain-HTTP polling below.
+    readonly property int httpPort: 23561
 
     // State
     property string playbackStatus: "stopped"
@@ -55,7 +56,7 @@ PluginComponent {
         return currentTrackUrl.trim()
     }
     readonly property bool currentTrackIgnored: isTrackIgnored(currentIgnoreKey)
-    // Throttle polling so WebSocket responses don't create a busy loop.
+    // Throttle polling so poll responses don't create a busy loop.
     readonly property int pollInterval: playbackStatus === "playing"
         ? 250
         : (hasActivePlayer ? 1000 : 3000)
@@ -351,65 +352,37 @@ PluginComponent {
     popoutWidth: 320
     popoutHeight: Math.max(availablePlayers.length * 44 + 156, 200)
 
-    // WebSocket connections
-    WebSocket {
-        id: pollSocket
-        url: "ws://" + serverHost + ":" + serverPort + "/poll"
-        active: true
-
-        onStatusChanged: {
-            if (pollSocket.status === WebSocket.Open) {
-                console.log("Poll WebSocket connected")
-                sendPollRequest()
-            } else if (pollSocket.status === WebSocket.Closed) {
-                console.log("Poll WebSocket closed, reconnecting...")
+    // HTTP polling transport. Fedora's Qt6 packaging ships no QtWebSockets QML
+    // module, so the backend serves the same payload over plain HTTP and this
+    // polls it with a built-in XMLHttpRequest; failures retry at pollInterval.
+    function sendPollRequest() {
+        var xhr = new XMLHttpRequest()
+        var player = requestedPlayer ? encodeURIComponent(requestedPlayer) : ""
+        xhr.open("GET", "http://" + serverHost + ":" + httpPort + "/poll?player=" + player)
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState !== XMLHttpRequest.DONE)
+                return
+            if (xhr.status === 200) {
+                try {
+                    handlePollResponse(JSON.parse(xhr.responseText))
+                } catch (e) {
+                    console.log("Error parsing poll response:", e)
+                }
+            } else {
                 hasActivePlayer = false
                 currentLyric = ""
-                reconnectTimer.start()
-            } else if (pollSocket.status === WebSocket.Error) {
-                console.log("Poll WebSocket error:", pollSocket.errorString)
-                hasActivePlayer = false
-                reconnectTimer.start()
-            }
-        }
-
-        onTextMessageReceived: function(message) {
-            try {
-                var data = JSON.parse(message)
-                handlePollResponse(data)
-            } catch (e) {
-                console.log("Error parsing poll response:", e)
             }
             pollTimer.restart()
         }
-    }
-
-    function sendPollRequest() {
-        if (pollSocket.status === WebSocket.Open) {
-            var request = { "player": requestedPlayer || null }
-            pollSocket.sendTextMessage(JSON.stringify(request))
-        }
+        xhr.send()
     }
 
     Timer {
         id: pollTimer
         interval: root.pollInterval
-        running: false
+        running: true
         repeat: false
         onTriggered: sendPollRequest()
-    }
-
-    Timer {
-        id: reconnectTimer
-        interval: 3000
-        running: false
-        repeat: false
-        onTriggered: {
-            if (pollSocket.status !== WebSocket.Open) {
-                pollSocket.active = false
-                pollSocket.active = true
-            }
-        }
     }
 
     function handlePollResponse(data) {

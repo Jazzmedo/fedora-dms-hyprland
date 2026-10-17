@@ -25,6 +25,7 @@ class LyricsServer:
     def __init__(self, host="127.0.0.1", port=23560):
         self.host = host
         self.port = port
+        self.http_port = 23561
         self.manager = LyricsManager()
         self._routes = self._collect_routes()
         self._connection_paths = {}
@@ -121,6 +122,51 @@ class LyricsServer:
             return False
 
 
+    def _start_http(self):
+        """Serve the same payloads over plain HTTP for QML clients.
+
+        Fedora ships no QtWebSockets QML module, so the DMS widget polls
+        these endpoints with XMLHttpRequest instead of a WebSocket:
+            GET /poll?player=<name>                  -> player + lyrics state
+            GET /control?action=<a>&player=<name>    -> run a playback action
+            GET /healthcheck                         -> {"status": "ok"}
+        """
+        import threading
+        from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+        from urllib.parse import urlparse, parse_qs
+
+        server = self
+
+        class Handler(BaseHTTPRequestHandler):
+            def do_GET(self):
+                parsed = urlparse(self.path)
+                query = parse_qs(parsed.query)
+                if parsed.path == "/poll":
+                    player = (query.get("player") or [""])[0] or None
+                    body = json.dumps(server.manager.poll_status(player))
+                elif parsed.path == "/control":
+                    action = (query.get("action") or [""])[0]
+                    player = (query.get("player") or [""])[0] or None
+                    body = json.dumps({"success": server._execute_control(action, player)})
+                elif parsed.path == "/healthcheck":
+                    body = json.dumps({"status": "ok"})
+                else:
+                    self.send_response(404)
+                    self.end_headers()
+                    return
+                raw = body.encode()
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(raw)))
+                self.end_headers()
+                self.wfile.write(raw)
+
+            def log_message(self, *args):
+                pass
+
+        httpd = ThreadingHTTPServer((self.host, self.http_port), Handler)
+        threading.Thread(target=httpd.serve_forever, daemon=True, name="http-api").start()
+
     async def run(self):
         async with websockets.serve(
             self.handler,
@@ -128,6 +174,7 @@ class LyricsServer:
             self.port,
             process_request=self.process_request
         ):
+            self._start_http()
             await asyncio.Future()
 
 if __name__ == "__main__":
