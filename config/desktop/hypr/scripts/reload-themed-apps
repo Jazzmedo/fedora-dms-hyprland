@@ -223,6 +223,11 @@ reload_toolkits() {
     fi
   fi
 
+  # The GTK portal draws the file dialogs. It is dbus-activated long before
+  # any theme change, with no colour-reload module in its environment, so a
+  # restart is the only thing that repaints it. Brief; clients reconnect.
+  systemctl --user try-restart xdg-desktop-portal-gtk.service 2>/dev/null || true
+
   # The shell regenerates dms/colors.lua, which carries the window borders.
   hyprctl reload >/dev/null 2>&1 || true
 }
