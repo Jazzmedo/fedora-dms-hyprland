@@ -200,6 +200,11 @@ for m in Qt5Compat/GraphicalEffects Qt/labs/folderlistmodel QtQuick SddmComponen
   else printf '  %-26s %sMISSING — greeter falls back to default%s\n' "imports $m" "$C" "$O"; fi
 done
 
+sec "wallpaper follows theme"
+kv "watcher" "$(systemctl --user is-active dms-theme-wallpapers.path 2>/dev/null)"
+kv "last theme applied" "$(cat "${XDG_STATE_HOME:-$HOME/.local/state}/dms-theme-wallpapers/last-applied" 2>/dev/null)"
+journalctl --user -u dms-theme-wallpapers.service -n 5 --no-pager -o cat 2>/dev/null | sed 's/^/  /'
+
 sec "next"
 cat <<'TXT'
   If the shell is not running, start it in the foreground so its errors land

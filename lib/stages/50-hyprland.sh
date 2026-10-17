@@ -285,7 +285,7 @@ install_systemd_units() {
   # The backup committed *.target.wants/ symlinks pointing at an absolute
   # /home/hanafi. Let systemd create them instead.
   local unit
-  for unit in dms.service dms-theme-reload.path; do
+  for unit in dms.service dms-theme-wallpapers.path dms-theme-reload.path; do
     [[ -f $dest/$unit ]] || { warn "A startup file is missing: $unit"; continue; }
     enable_user_unit "$unit" && record unit-user "$unit" \
       || soft_fail "Could not set $unit to start automatically" "" "systemctl --user enable $unit"
