@@ -43,7 +43,7 @@ artifact_home_paths() {
     "$HOME/.config/dolphinrc"
     "$HOME/.gtkrc-2.0"
     "$HOME/.local/share/color-schemes"
-    "$HOME/.local/share/icons/Afterglow-cursors"
+    "/usr/share/icons/Afterglow-cursors"
     "$HOME/.local/share/icons/Cawnonical Mono-Glyph Icon Suite (White)"
     "$HOME/Pictures/Wallpapers/theme-collections"
 

@@ -135,15 +135,18 @@ XML
   ok "Told the system about the new fonts"
 
   # Cursor and icon themes referenced by the DMS settings and by Dolphin.
+  # The cursor theme has to be system-wide: SDDM names it in its own config,
+  # and the greeter runs as the sddm user, which cannot look inside a home
+  # directory with 700 permissions -- an invisible login-screen cursor.
+  if [[ -d /usr/share/icons/Afterglow-cursors ]]; then
+    skip "The mouse cursor theme is already installed system-wide"
+  else
+    as_root tar -xf "$REPO_DIR/assets/icons/Afterglow-cursors.tar.zst" -C /usr/share/icons
+    record file "/usr/share/icons/Afterglow-cursors"
+    ok "Installed the Afterglow mouse cursors where SDDM can see them"
+  fi
   local icons="$HOME/.local/share/icons"
   run mkdir -p "$icons"
-  if [[ -d $icons/Afterglow-cursors ]]; then
-    skip "The mouse cursor theme is already installed"
-  else
-    run tar -xf "$REPO_DIR/assets/icons/Afterglow-cursors.tar.zst" -C "$icons"
-    record file "$icons/Afterglow-cursors"
-    ok "Installed the Afterglow mouse cursors"
-  fi
   if [[ -d "$icons/Cawnonical Mono-Glyph Icon Suite (White)" ]]; then
     skip "The icon set is already installed"
   else
