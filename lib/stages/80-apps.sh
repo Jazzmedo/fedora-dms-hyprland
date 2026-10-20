@@ -53,7 +53,6 @@ stage_apps() {
   is_selected shelltint && install_shelltint
   # Always: deploys the five Nothing widget plugins, and clears the old
   # single-plugin directory off machines that ran the previous design.
-  install_nothing_widgets
   install_default_launchers
   install_app_configs
   is_selected spicetify && install_spicetify_theme
@@ -417,43 +416,6 @@ install_shelltint() {
     soft_fail "The ShellTint helper did not install" \
               "Its installer needs python3 and node, and the network for the website styles." \
               "$src/scripts/install.sh"
-  fi
-}
-
-# The Nothing Widgets are five desktop plugins shipped inside this
-# repository, so a plain deploy puts each where DMS looks. A running shell
-# only picks up new plugins after a restart; on a fresh install they load at
-# the first login anyway. The pre-redesign single "nothingWidgets" plugin is
-# removed from machines that ran an earlier version of this installer.
-install_nothing_widgets() {
-  # CamelCase: these are the directory names in the repository, the plugin ids
-  # and the case DMS lists them under.
-  local suite="nothingMedia nothingWeather nothingBattery nothingCalendar nothingDateTime"
-  local changed=0 p dest
-
-  if [[ -d $HOME/.config/DankMaterialShell/plugins/nothingWidgets ]]; then
-    run rm -rf "$HOME/.config/DankMaterialShell/plugins/nothingWidgets"
-    record file "$HOME/.config/DankMaterialShell/plugins/nothingWidgets"
-  fi
-
-  for p in $suite; do
-    dest="$HOME/.config/DankMaterialShell/plugins/$p"
-    if [[ -f $dest/plugin.json ]] \
-       && diff -rq "$REPO_DIR/config/shell-ui/DankMaterialShell/plugins/$p" "$dest" >/dev/null 2>&1; then
-      continue
-    fi
-    deploy_tree "$REPO_DIR/config/shell-ui/DankMaterialShell/plugins/$p" "$dest" \
-      || soft_fail "Could not deploy the $p widget" \
-                   "Its files are missing from the repository checkout." \
-                   "git -C ~/fedora-dms-hyprland pull"
-    changed=1
-  done
-
-  if (( changed )); then
-    ok "Installed the Nothing Widgets — add them in DMS's desktop widget editor"
-    if have dms && pgrep -u "$USER" -x dms >/dev/null 2>&1; then
-      run dms restart || true
-    fi
   fi
 }
 
