@@ -30,7 +30,25 @@ Rectangle {
     property string errorMessage: ""
 
     FontLoader { id: pfDot; source: "font/NDot55.otf" }
-    readonly property string sansFont: "Roboto, Inter, sans-serif"
+
+    // The interface font follows the desktop shell: the theme-reload hook
+    // writes the DMS font family to /var/cache/dms-greeter/font, which the
+    // greeter user can read; the shipped face is the fallback for a machine
+    // where the cache has not been written yet.
+    readonly property string sansFont: greeterFont.family
+    QtObject {
+        id: greeterFont
+        property string family: "thmanyah serif text Light"
+        Component.onCompleted: {
+            var x = new XMLHttpRequest()
+            x.onreadystatechange = function() {
+                if (x.readyState === XMLHttpRequest.DONE && x.responseText.trim().length > 0)
+                    family = x.responseText.trim()
+            }
+            x.open("GET", "file:///var/cache/dms-greeter/font")
+            x.send()
+        }
+    }
 
     ListView {
         id: sessionHelper
@@ -112,24 +130,8 @@ Rectangle {
         onClicked: pwd.forceActiveFocus()
     }
 
-    // Logo
-    Text {
-        anchors.top: parent.top
-        anchors.left: parent.left
-        anchors.margins: 40 * s
-        text: "AUTHENTICATE"
-        font.family: pfDot.name
-        font.pixelSize: 24 * s
-        color: "#ffffff"
-        opacity: root.ui1
-        transform: Translate { y: (1 - root.ui1) * -20 * s }
-    }
-
-    // Layout
-    Row {
-        id: widgetGrid
-        anchors.centerIn: parent
-        spacing: 24 * s
+    Component {
+        id: clockCard
 
         // Clock
         Rectangle {
@@ -209,7 +211,29 @@ Rectangle {
                 }
             }
         }
+    }
 
+    // Logo
+    Text {
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.margins: 40 * s
+        text: "AUTHENTICATE"
+        font.family: pfDot.name
+        font.pixelSize: 24 * s
+        color: "#ffffff"
+        opacity: root.ui1
+        transform: Translate { y: (1 - root.ui1) * -20 * s }
+    }
+
+    // Layout
+    Row {
+        id: widgetGrid
+        anchors.centerIn: parent
+        spacing: 24 * s
+
+        // Clock
+        Loader { sourceComponent: clockCard }
         // Login
         Rectangle {
             id: loginWidget
@@ -603,6 +627,54 @@ Rectangle {
                         cursorShape: Qt.PointingHandCursor
                         onClicked: if (!root.isQuickshell) sddm.suspend();
                     }
+                }
+            }
+        }
+    }
+
+    // Every screen past the first gets the same field, logo and clock, minus
+    // the login form. The greeter runs under weston's kiosk shell, which maps
+    // each top-level window to its own output -- a single themed view, which
+    // is all this theme used to be, left every other screen black.
+    Repeater {
+        model: {
+            var all = Qt.application.screens
+            var rest = []
+            for (var i = 1; i < all.length; ++i)
+                rest.push(all[i])
+            return rest
+        }
+
+        delegate: Window {
+            id: sideScreen
+            required property var modelData
+            screen: modelData
+            visibility: Window.FullScreen
+            flags: Qt.FramelessWindowHint
+            color: "#050505"
+
+            readonly property real s: Screen.height / 768
+
+            Rectangle {
+                anchors.fill: parent
+                gradient: Gradient {
+                    GradientStop { position: 0.0; color: "#111111" }
+                    GradientStop { position: 1.0; color: "#050505" }
+                }
+
+                Text {
+                    anchors.top: parent.top
+                    anchors.left: parent.left
+                    anchors.margins: 40 * sideScreen.s
+                    text: "AUTHENTICATE"
+                    font.family: pfDot.name
+                    font.pixelSize: 24 * sideScreen.s
+                    color: "#ffffff"
+                }
+
+                Loader {
+                    anchors.centerIn: parent
+                    sourceComponent: clockCard
                 }
             }
         }

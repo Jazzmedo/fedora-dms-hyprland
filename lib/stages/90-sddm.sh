@@ -192,6 +192,13 @@ stage_sddm() {
   as_root mkdir -p /usr/share/sddm/themes /etc/sddm.conf.d
   as_root rm -rf "$dest"
   as_root cp -r "$REPO_DIR/assets/sddm/nothing" "$dest"
+
+  # The theme reads the interface font from this cache at every login screen,
+  # and the theme-reload hook writes it as the shell's font changes. Root owns
+  # the whole tree, so the cache is the user's one writable corner of it.
+  as_root mkdir -p /var/cache/dms-greeter
+  as_root chown "$USER" /var/cache/dms-greeter
+  record file /var/cache/dms-greeter
   record file "$dest"
   # SDDM reads theme.conf.user as an override on top of theme.conf, so shipping
   # both means the override silently wins over anything edited in the base.

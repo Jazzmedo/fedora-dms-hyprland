@@ -191,6 +191,16 @@ apply_qt6ct_palette() {
 
 have_cmd() { command -v "$1" >/dev/null 2>&1; }
 
+# The SDDM theme reads the interface font from the greeter cache each time
+# the login screen starts, so it follows shell font changes without root.
+sync_greeter_font() {
+  local cache=/var/cache/dms-greeter font
+  [[ -d $cache && -w $cache ]] || return 0
+  font=$(jq -r '.fontFamily // empty' "$HOME/.config/DankMaterialShell/settings.json" 2>/dev/null)
+  [[ -n $font ]] || return 0
+  printf '%s\n' "$font" >"$cache/font" 2>/dev/null || true
+}
+
 # Obsidian reads its palette from a CSS snippet kept per vault, and watches
 # that directory, so a running window restyles itself the moment the file
 # changes. Matugen writes only the first vault's copy; every other vault gets
@@ -243,6 +253,7 @@ reload_toolkits() {
   systemctl --user try-restart xdg-desktop-portal-gtk.service 2>/dev/null || true
 
     sync_obsidian
+  sync_greeter_font
 
   # The shell regenerates dms/colors.lua, which carries the window borders.
   hyprctl reload >/dev/null 2>&1 || true
