@@ -264,3 +264,16 @@ monitor-layout(){ # Rotate a monitor and pick where its windows open and how its
   fi
   "$script" "$@"
 }
+
+cam() { # Background 720p60 low-latency webcam preview; SUPER+Q (or q) closes it fully, re-running replaces a stale instance
+  pkill -9 -f 'mpv av://v4l2:/dev/video0' 2>/dev/null && sleep 0.3
+  mpv av://v4l2:/dev/video0 \
+    --demuxer-lavf-format=v4l2 \
+    --demuxer-lavf-o=input_format=mjpeg,video_size=1280x720,framerate=60 \
+    --profile=low-latency \
+    --untimed \
+    --no-osc \
+    --no-osd-bar \
+    --no-border \
+    --osd-level=0 "$@" >/tmp/cam.log 2>&1 &!
+}
