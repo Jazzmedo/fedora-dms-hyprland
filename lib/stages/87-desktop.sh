@@ -8,13 +8,20 @@ stage_desktop() {
   create_user_dirs
 }
 
-# firewalld and power-profiles-daemon are installed with the Desktop services
-# component; this turns them on. Both are daemons the shell talks to over D-Bus
-# and both quietly degrade to "feature missing" when absent, which is exactly
-# the failure mode this stage exists to close.
+# ufw and power-profiles-daemon are installed with the Desktop services
+# component; this turns them on. Fedora installs firewalld enabled by
+# default, and two enabled firewalls both writing nftables rules is worse
+# than either alone — so firewalld gets turned off on ufw's way in.
 enable_desktop_services() {
+  if rpm_has firewalld && systemctl is-enabled firewalld >/dev/null 2>&1; then
+    as_root systemctl disable --now firewalld \
+      && ok "firewalld is off — ufw owns the firewall" \
+      || soft_fail "Could not turn firewalld off" \
+                   "ufw and firewalld will both write firewall rules." \
+                   "sudo systemctl disable --now firewalld"
+  fi
   local unit
-  for unit in firewalld power-profiles-daemon; do
+  for unit in ufw power-profiles-daemon; do
     if ! rpm_has "${unit}"; then
       soft_fail "$unit did not install, so its part of the desktop stays dark" \
                 "The package was not available in the sources this run used." \
@@ -32,6 +39,17 @@ enable_desktop_services() {
                    "The package is installed but the service refused to start." \
                    "sudo systemctl status $unit"
   done
+  # The ufw service running is not the same as the ruleset enforced: the
+  # package ships with ENABLED=no in /etc/ufw/ufw.conf and a bare service
+  # start loads nothing. `ufw enable` flips the config and loads the rules,
+  # and is idempotent on a machine where the user already did it by hand.
+  if rpm_has ufw; then
+    as_root ufw enable \
+      && ok "ufw is active and denies incoming traffic by default" \
+      || soft_fail "Could not enable ufw's ruleset" \
+                   "The service runs, but no rules are enforced." \
+                   "sudo ufw enable"
+  fi
 }
 
 # Documents, Downloads, Pictures and friends. An install that never had a

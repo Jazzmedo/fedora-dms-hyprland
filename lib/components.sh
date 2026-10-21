@@ -181,15 +181,18 @@ detect 'all_of "pkg_installed ark" "pkg_installed gwenview" "pkg_installed okula
 # The daemons a desktop environment starts for you and this one would otherwise
 # forget. upower feeds the DMS battery widget (and brings udisks2, which mounts
 # removable drives); power-profiles-daemon feeds its power-profile OSD;
-# firewalld is what Fedora's Standard group normally — but only normally —
-# provides; and xdg-user-dirs makes Documents and Downloads exist on an
-# install that never had a desktop to create them. dex used to run autostart
-# entries here but is retired from Fedora; the one entry that matters, KDE
-# Connect's daemon, starts through its own user unit instead.
+# ufw replaces the firewalld that Fedora's Standard group would normally
+# provide — one simple firewall frontend; the desktop stage turns firewalld
+# off on ufw's way in, because two enabled firewalls both writing nftables
+# rules is worse than either alone. xdg-user-dirs makes Documents and
+# Downloads exist on an install that never had a desktop to create them.
+# dex used to run autostart entries here but is retired from Fedora; the one
+# entry that matters, KDE Connect's daemon, starts through its own user unit
+# instead.
 component de_services base base "Desktop services" "upower, power profiles, firewall, standard folders"
-pkgs "upower power-profiles-daemon firewalld xdg-user-dirs"
+pkgs "upower power-profiles-daemon ufw xdg-user-dirs"
 detect 'all_of "pkg_installed upower" "pkg_installed power-profiles-daemon" \
-               "pkg_installed firewalld" \
+               "pkg_installed ufw" \
                "pkg_installed xdg-user-dirs" "[[ -f $HOME/.config/user-dirs.dirs ]]"'
 
 # libsecret is only the client library; without the service behind it, a

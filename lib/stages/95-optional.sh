@@ -39,18 +39,16 @@ stage_optional() {
     # The daemon starts itself at login through its dms-kdeconnect unit; what
     # it cannot do for itself is open the firewall. Without these ports the
     # phone never appears, which looks exactly like a broken install.
-    #
-    # The check is deliberately not `firewall-cmd --state` as this user: that
-    # query goes through polkit, and on a tty with no agent it answers
-    # "Authorization failed" even with firewalld perfectly healthy.
-    if rpm_has kdeconnectd && have firewall-cmd; then
-      if as_root firewall-cmd --permanent --add-service=kdeconnect \
-        && as_root firewall-cmd --reload; then
+    # firewalld shipped a kdeconnect service definition; ufw does not, so the
+    # ports it covered — 1714-1764 on both TCP and UDP — are opened directly.
+    if rpm_has kdeconnectd && have ufw; then
+      if as_root ufw allow 1714:1764/tcp \
+        && as_root ufw allow 1714:1764/udp; then
         ok "KDE Connect's ports are open — your phone should now be discoverable"
       else
         soft_fail "Could not open KDE Connect's firewall ports" \
                   "The daemon runs, but the phone may not be able to reach this machine." \
-                  "sudo firewall-cmd --permanent --add-service=kdeconnect && sudo firewall-cmd --reload"
+                  "sudo ufw allow 1714:1764/tcp && sudo ufw allow 1714:1764/udp"
       fi
       systemctl --user is-enabled dms-kdeconnect.service >/dev/null 2>&1 \
         || record unit-user dms-kdeconnect.service

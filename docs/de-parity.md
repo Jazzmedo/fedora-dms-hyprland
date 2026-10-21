@@ -45,8 +45,9 @@ built on UPower, and its power-profile OSD on `power-profiles-daemon`; neither
 daemon was installed, so both widgets were dead on the machines this targets.
 UPower also brings udisks2, which is what makes removable drives appear and
 automount at all. Fixed by a core **Desktop services** component that also
-guarantees `firewalld` (Fedora's Standard group normally provides it; now it is
-not "normally") and runs `xdg-user-dirs-update` so Documents and Downloads
+guarantees `ufw` (in place of the firewalld Fedora's Standard group would
+normally provide — the desktop stage disables firewalld so only one firewall
+is ever active) and runs `xdg-user-dirs-update` so Documents and Downloads
 exist on an install that never had a desktop to make them.
 
 **App autostart.** Applications ship autostart entries in
