@@ -789,11 +789,6 @@ hl.bind("SUPER + ALT + X", exec("wayscriber --daemon-toggle"), { description = "
 -- Night light.  DMS warms the screens itself; this is its only key.
 hl.bind("SUPER + ALT + N", exec("dms ipc call night toggle"), { description = "Toggle night light" })
 
--- Grab a region and hand it to the quickCapture plugin's annotation editor.
--- The Print-family keys above stay with DMS's own captures, which save straight to disk.
-hl.bind("SUPER + ALT + P", exec("dms ipc call quickCapture screenshot region edit"),
-	{ description = "Capture a region and annotate it" })
-
 -- Show the focused window on every workspace.  Hyprland refuses to pin a tiled
 -- window -- it warns "Window does not qualify to be pinned" -- so pinning has
 -- to float it first.  Unpinning only puts the window back in the tape when that
