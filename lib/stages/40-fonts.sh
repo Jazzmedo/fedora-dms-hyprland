@@ -145,6 +145,17 @@ XML
     record file "/usr/share/icons/Afterglow-cursors"
     ok "Installed the Afterglow mouse cursors where SDDM can see them"
   fi
+  # Fedora's "default" cursor theme is a one-line redirect to Adwaita, and
+  # clients that ask for "default" without an explicit theme — the SDDM
+  # greeter among them — can end up with nothing when the redirect does not
+  # resolve. Point the redirect at Afterglow so a request for "default"
+  # always finds real cursor files.
+  if [[ -d /usr/share/icons/Afterglow-cursors ]] && \
+     ! [[ -e /usr/share/icons/default/cursors ]]; then
+    as_root ln -sfn ../Afterglow-cursors/cursors /usr/share/icons/default/cursors
+    record file /usr/share/icons/default/cursors
+    ok "Made the default cursor theme resolve to Afterglow"
+  fi
   local icons="$HOME/.local/share/icons"
   run mkdir -p "$icons"
   if [[ -d "$icons/Cawnonical Mono-Glyph Icon Suite (White)" ]]; then

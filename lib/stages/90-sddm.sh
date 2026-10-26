@@ -121,16 +121,20 @@ configure_greeter_display_server() {
     return 0
   fi
 
-  # The captured config named kwin_wayland, which this install does not have;
-  # weston is what Fedora ships for the job.
-  if ! have weston && ! have kwin_wayland; then
-    info "The login screen needs a small compositor to draw on; installing weston"
-    record_new_pkgs weston
-    as_root dnf install -y weston >/dev/null 2>&1 || true
+  # The greeter draws on a small compositor. labwc is the one that works:
+  # sddm instantiates the theme once per connected screen, and labwc — like
+  # every wlroots compositor — maps each view to its own output. Weston's
+  # kiosk shell instead piles every surface onto the default output, which
+  # is how the login screen ended up on one monitor with the rest black.
+  if ! have labwc; then
+    info "The login screen needs a small compositor to draw on; installing labwc"
+    record_new_pkgs labwc
+    as_root dnf install -y labwc >/dev/null 2>&1 || true
   fi
 
   local compositor=""
-  if have weston;         then compositor="weston --shell=fullscreen-shell.so"
+  if have labwc;          then compositor="labwc"
+  elif have weston;       then compositor="weston --shell=fullscreen-shell.so"
   elif have kwin_wayland; then compositor="kwin_wayland --no-lockscreen"
   fi
 
@@ -141,10 +145,19 @@ configure_greeter_display_server() {
     return 0
   fi
 
+  # GreeterEnvironment is the only env channel that reaches the greeter:
+  # the daemon builds its child's environment from scratch, so a systemd
+  # unit drop-in never propagates. The XCURSOR pair gives the login screen
+  # a visible pointer (labwc also reads it for its server-side cursor);
+  # QML_XHR_ALLOW_FILE_READ is what lets the theme's XMLHttpRequest read
+  # the shell's current font from /var/cache/dms-greeter/font — Qt 6
+  # blocks local-file XHR by default. No QT_WAYLAND_SHELL_INTEGRATION:
+  # Fedora's Qt6 has no layer-shell integration plugin, and naming it
+  # makes the platform plugin fail — the greeter crashes on the spot.
   as_root tee /etc/sddm.conf.d/10-wayland.conf >/dev/null <<EOF
 [General]
 DisplayServer=wayland
-GreeterEnvironment=QT_WAYLAND_SHELL_INTEGRATION=layer-shell,QT_QPA_PLATFORMTHEME=qt6ct
+GreeterEnvironment=QT_QPA_PLATFORMTHEME=qt6ct,XCURSOR_THEME=Afterglow-cursors,XCURSOR_SIZE=24,QML_XHR_ALLOW_FILE_READ=1
 
 [Wayland]
 CompositorCommand=$compositor
