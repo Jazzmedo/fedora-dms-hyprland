@@ -1,3 +1,0 @@
-websockets==15.0.1
-dbus-python==1.4.0
-mutagen==1.47.0

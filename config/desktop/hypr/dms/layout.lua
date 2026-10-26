@@ -9,6 +9,13 @@ hl.config({
 	},
 	decoration = {
 		rounding = 12,
+		active_opacity = 0.98,
+		inactive_opacity = 0.98,
+	},
+	group = {
+		groupbar = {
+			middle_click_close = false,
+		},
 	},
 })
 

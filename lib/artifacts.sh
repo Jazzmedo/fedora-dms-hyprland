@@ -70,7 +70,6 @@ artifact_home_paths() {
     "$HOME/.local/bin/cliamp"
     "$HOME/.local/share/applications/cliamp.desktop"
     "$HOME/.local/share/icons/hicolor/512x512/apps/cliamp.png"
-    "$HOME/.local/share/lyrics-on-panel"
     "$HOME/.config/vesktop"
     # Only the generated theme, not ~/.config/spicetify: spicetify itself is
     # not installed by this repository and its own config is not ours to take.

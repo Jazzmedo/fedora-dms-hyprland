@@ -320,11 +320,13 @@ choose_default_terminal() {
 # At least one file manager is installed. With both, one is the default: it is
 # what SUPER+E and ALT+F open first, and what folders everywhere ask for.
 choose_default_filemanager() {
-  if ! is_selected filemgr_thunar && ! is_selected filemgr_dolphin; then
-    select_component filemgr_thunar
-    info "No file manager was ticked, so Thunar will be installed"
+  if ! is_selected filemgr_dux && ! is_selected filemgr_thunar && ! is_selected filemgr_dolphin; then
+    select_component filemgr_dux
+    info "No file manager was ticked, so Dux Files will be installed"
   fi
-  if is_selected filemgr_thunar && is_selected filemgr_dolphin; then
+  if is_selected filemgr_dux; then
+    DEFAULT_FILEMANAGER=dux
+  elif is_selected filemgr_thunar && is_selected filemgr_dolphin; then
     if [[ $DEFAULT_FILEMANAGER != thunar && $DEFAULT_FILEMANAGER != dolphin ]]; then
       DEFAULT_FILEMANAGER=thunar
       if [[ -t 0 ]] && ! (( ASSUME_YES )) && [[ -z $PRESET ]]; then
@@ -340,9 +342,15 @@ choose_default_filemanager() {
     DEFAULT_FILEMANAGER=thunar
   fi
   set_filemanager_templates "$DEFAULT_FILEMANAGER"
+  # SUPER+ALT+F opens whichever other manager got installed; the default
+  # itself when there is no other.
   TPL_ALT_FILEMANAGER=$TPL_FILEMANAGER
-  if is_selected filemgr_thunar && is_selected filemgr_dolphin; then
-    [[ $DEFAULT_FILEMANAGER == thunar ]] && TPL_ALT_FILEMANAGER=dolphin || TPL_ALT_FILEMANAGER=thunar
+  if [[ $DEFAULT_FILEMANAGER != dux ]] && is_selected filemgr_dux; then
+    TPL_ALT_FILEMANAGER=dfiles
+  elif [[ $DEFAULT_FILEMANAGER != thunar ]] && is_selected filemgr_thunar; then
+    TPL_ALT_FILEMANAGER=thunar
+  elif [[ $DEFAULT_FILEMANAGER != dolphin ]] && is_selected filemgr_dolphin; then
+    TPL_ALT_FILEMANAGER=dolphin
   fi
 }
 

@@ -15,7 +15,6 @@ declare -A DMS_PLUGIN_REPO=(
 # would install upstream over a fork.
 declare -A DMS_PLUGIN_PINNED=(
   [cliampDms]=1
-  [lyricsOnPanel]=1
 )
 
 # Both forks live in private repositories, so a clone on a fresh machine fails
@@ -24,7 +23,6 @@ declare -A DMS_PLUGIN_PINNED=(
 # there. Format: directory|subpath, matching DMS_PLUGIN_REPO.
 declare -A DMS_PLUGIN_VENDOR=(
   [cliampDms]="cliamp-dms|."
-  [lyricsOnPanel]="lyrics-on-panel|dms"
 )
 
 stage_dms() {
@@ -415,7 +413,6 @@ plugin_post_install() {
       run_visible "$repo_dir/scripts/install-backend.sh" || soft_fail "The $name add-on did not finish building" "" "./install.sh --only=dms"
       ;;
     cliampDms)  install_cliamp "$repo_dir" ;;
-    lyricsOnPanel) install_lyrics_backend "$repo_dir" ;;
   esac
 }
 
@@ -491,66 +488,6 @@ install_cliamp() {
       info "CLIAMP radio support is in place. Once CLIAMP is installed: cliamp plugins trust cliamp-dms-bridge"
     fi
   fi
-}
-
-# The widget reads lyrics from a local websocket server that watches MPRIS.
-# The upstream scripts/install-backend.sh is Arch-only (it calls pacman) and
-# clones upstream over the fork, so the equivalent is done here against dnf and
-# against the checkout we already have.
-install_lyrics_backend() {
-  local repo_dir=$1
-  local dest="$HOME/.local/share/lyrics-on-panel"
-  local unit="Universal-Mpris-LyricServer.service"
-
-  [[ -d $repo_dir/backend ]] || { soft_fail "The lyrics add-on is missing the part that fetches the words"; return 0; }
-
-  # The sources are refreshed every run, since the vendored copy is what
-  # changes; only the virtualenv is expensive enough to reuse.
-  run mkdir -p "$dest"
-  record file "$dest"
-  run rsync -a --exclude='.venv' "$repo_dir/backend/" "$dest/backend/" \
-    || run cp -a "$repo_dir/backend/." "$dest/backend/"
-
-  if [[ -x $dest/backend/.venv/bin/python ]]; then
-    skip "The lyrics helper is already built"
-  else
-    # dbus-python has no wheel and compiles against dbus-devel and glib2-devel,
-    # so this is a real build and not a download.
-    run_quiet "Building the lyrics helper" -- \
-      bash -c 'python3 -m venv "$1/.venv" \
-        && "$1/.venv/bin/pip" install --upgrade pip \
-        && "$1/.venv/bin/pip" install -r "$1/requirements.txt"' _ "$dest/backend" \
-      || { soft_fail "The lyrics helper did not finish building" \
-           "It compiles small Python pieces that need development headers." \
-           "sudo dnf install dbus-devel glib2-devel, then ./install.sh --only=dms"; return 0; }
-  fi
-
-  (( DRY_RUN )) || cat > "$dest/backend/run.sh" <<EOF
-#!/bin/bash
-cd "\$(dirname "\$0")"
-source .venv/bin/activate
-exec python src/server.py
-EOF
-  run chmod +x "$dest/backend/run.sh"
-
-  (( DRY_RUN )) || cat > "$HOME/.config/systemd/user/$unit" <<EOF
-[Unit]
-Description=Lyrics-on-Panel MPRIS2 backend
-After=graphical-session.target
-
-[Service]
-Type=simple
-ExecStart=$dest/backend/run.sh
-Restart=on-failure
-RestartSec=5
-
-[Install]
-WantedBy=default.target
-EOF
-  user_daemon_reload
-  enable_user_unit "$unit" && record unit-user "$unit" \
-    || soft_fail "Could not set the lyrics helper to start automatically" "" "systemctl --user enable $unit"
-  ok "The lyrics helper will start when you log in"
 }
 
 # Themes this repo used to ship and no longer does, because none of them has a

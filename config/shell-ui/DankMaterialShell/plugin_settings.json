@@ -19,14 +19,6 @@
     "enabled": true,
     "language": "en"
   },
-  "lyricsOnPanel": {
-    "enabled": true,
-    "ignoredTracks": "",
-    "lyricTextBold": false,
-    "lyricTextItalic": false,
-    "lyricTextSize": 11,
-    "lyricTextVerticalOffset": 0
-  },
   "gpuMonitor": {
     "enabled": true
   },

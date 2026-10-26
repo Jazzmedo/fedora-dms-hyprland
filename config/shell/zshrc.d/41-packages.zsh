@@ -9,7 +9,9 @@
 # several third-party — so the picker sat blank for a minute or more with no
 # sign of life. With -C it opens in about a second. The first run on a machine
 # with no cache yet comes back empty, so one full query runs instead, with a
-# note, rather than leaving the screen blank for no visible reason.
+# note, rather than leaving the screen blank for no visible reason. CTRL-R
+# inside the picker re-lists with a full refresh, for packages too new for
+# the on-disk metadata.
 dnfi() {
   local bat_cmd; bat_cmd=$(command -v bat || command -v batcat || echo cat)
   local list
@@ -25,12 +27,13 @@ dnfi() {
     --layout=reverse \
     --border=rounded \
     --info=inline \
-    --header=" ⚡ [TAB]: Select | [CTRL-D]: None | [ENTER]: Install " \
+    --header=" ⚡ [TAB]: Select | [CTRL-D]: None | [CTRL-R]: Refresh metadata | [ENTER]: Install " \
     --header-first \
     --prompt=" 🔍 " \
     --pointer="👉" \
     --marker="X " \
     --bind "ctrl-d:deselect-all" \
+    --bind "ctrl-r:unbind(ctrl-r)+reload(dnf repoquery --qf '%{name}\n' --latest-limit 1 | sort -u)" \
     --color="bg+:-1,gutter:-1,border:#586e75,header:#859900,prompt:#268bd2,pointer:#cb4b16,marker:#859900,hl:#d33682,hl+:#d33682" \
     --preview "dnf -C info {1} 2>/dev/null | $bat_cmd --color=always --style=plain" \
     --preview-window="right,60%,border-left")

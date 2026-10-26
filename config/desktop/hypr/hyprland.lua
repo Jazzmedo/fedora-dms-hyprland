@@ -26,6 +26,13 @@ hl.env("BLUETOOTH_SETTINGS_CMD", "blueman-manager")
 -- The installer inserts the graphics-driver environment directly below.
 -- FEDORA_NOTHING_GPU_ENV
 
+-- Hybrid laptop (Intel + NVIDIA, on demand): the compositor runs on the
+-- integrated GPU. aquamarine auto-selects it because the NVIDIA card is a
+-- render-only 3D controller with no display outputs (not a KMS device). The
+-- NVIDIA GPU renders only the apps you start with prime-run. No AQ_DRM_DEVICES
+-- pin: aquamarine splits that var on colons, which mangles a PCI by-path name.
+hl.env("LIBVA_DRIVER_NAME", "iHD")
+
 -- DMS_STARTUP_BEGIN
 hl.on("hyprland.start", function()
 	-- Keep this ordered: services must inherit the KDE environment before the
@@ -831,7 +838,7 @@ hl.window_rule({
 	name = "ignore-codex-kitty-spinner-hover-refocus",
 	match = {
 		class = "^kitty$",
-		title = "^[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏] @@USER@@$",
+		title = "^[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏] hanafi$",
 	},
 	no_follow_mouse = true,
 })
@@ -871,3 +878,4 @@ hl.layer_rule({ match = { namespace = "^(quickshell)$" }, no_anim = true })
 hl.layer_rule({ match = { namespace = "^dms:.*" }, no_anim = true })
 
 require("dms-theme-sync")
+require("dms.input")

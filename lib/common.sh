@@ -455,6 +455,7 @@ set_filemanager_templates() {
   case $1 in
     thunar)  TPL_FILEMANAGER=thunar  TPL_FILEMANAGER_DESKTOP=thunar.desktop ;;
     dolphin) TPL_FILEMANAGER=dolphin TPL_FILEMANAGER_DESKTOP=org.kde.dolphin.desktop ;;
+    dux)     TPL_FILEMANAGER=dfiles  TPL_FILEMANAGER_DESKTOP=dev.duxlabs.files.desktop ;;
     *)       return 1 ;;
   esac
 }

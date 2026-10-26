@@ -1,7 +1,7 @@
 -- DMS default keybinds (Hyprland 0.55+ Lua)
 
 -- === Application Launchers ===
-hl.bind("SUPER + T", hl.dsp.exec_cmd("@@TERMINAL@@"))
+hl.bind("SUPER + T", hl.dsp.exec_cmd("foot"))
 hl.bind("SUPER + space", hl.dsp.exec_cmd("dms ipc call spotlight toggle"))
 hl.bind("ALT + space", hl.dsp.exec_cmd("dms ipc call spotlight-bar toggle"))
 hl.bind("SUPER + V", hl.dsp.exec_cmd("dms ipc call clipboard toggle"))

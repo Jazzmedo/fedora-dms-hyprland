@@ -1,5 +1,5 @@
-Vendored copies of two plugin forks that live in private repositories,
-so the installer cannot clone them. Captured from the working tree,
+Vendored copy of a plugin fork that lives in a private repository,
+so the installer cannot clone it. Captured from the working tree,
 uncommitted changes included.
 
 Captured 2026-09-11
@@ -9,9 +9,7 @@ cliamp-dms
   commit  767cba5 fix hyprland
   state   working tree, 4 file(s) modified beyond that commit
 
-lyrics-on-panel
-  branch  niri-enhancments
-  commit  ffa0d97 feat: personal niri/Strawberry enhancements for lyrics widget
-  state   working tree, 3 file(s) modified beyond that commit
+(The lyrics-on-panel fork was vendored here too; the plugin left the
+setup in October 2026 and its vendored copy went with it.)
 
-To refresh either one, re-run sync.sh; it copies from ~/Documents/.
+To refresh the remaining one, re-run sync.sh; it copies from ~/Documents/.

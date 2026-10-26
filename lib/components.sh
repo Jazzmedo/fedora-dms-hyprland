@@ -159,7 +159,7 @@ detect 'all_of "pkg_installed gvfs" \
 # SUPER+E opens it, ALT+F the other one, and folders everywhere follow it.
 group filemgr "File manager (one or both)"
 
-component filemgr_thunar filemgr on  "Thunar"  "lightweight Xfce file manager; simple and fast, few dependencies"
+component filemgr_thunar filemgr off "Thunar"  "lightweight Xfce file manager; simple and fast, few dependencies"
 pkgs "thunar thunar-archive-plugin"
 detect 'all_of "pkg_installed thunar"'
 
@@ -168,6 +168,11 @@ component filemgr_dolphin filemgr off "Dolphin" "full-featured KDE file manager;
 # previews for images and video inside Dolphin's views.
 pkgs "dolphin kf6-kio kf6-kservice kio-extras ffmpegthumbs kdegraphics-thumbnailers"
 detect 'all_of "pkg_installed dolphin"'
+
+component filemgr_dux filemgr on "Dux Files" "Nothing-style file manager (dfiles); the default folder opener"
+copr "avengemedia/danklinux"
+pkgs "dux-files"
+detect 'all_of "pkg_installed dux-files"'
 
 # The rest of what a DE would install alongside its file manager. These are the
 # apps the generated mimeapps.list and the Hyprland window rules already name
@@ -347,13 +352,6 @@ detect 'all_of "have cliamp" "[[ -e $HOME/.config/DankMaterialShell/plugins/clia
 pkgs "curl ffmpeg-free gjs glib2 alsa-lib-devel"
 dms_plugin "cliampDms"
 
-component lyrics      apps on  "Lyrics on Panel" "your lyrics-on-panel fork plus its MPRIS backend"
-detect 'all_of "[[ -e $HOME/.config/DankMaterialShell/plugins/lyricsOnPanel ]]" \
-               "[[ -x $HOME/.local/share/lyrics-on-panel/backend/.venv/bin/python ]]"' 
-# The backend is a Python service that reads MPRIS over D-Bus; dbus-devel and
-# the compiler are needed because dbus-python builds from source.
-pkgs "python3 python3-devel dbus-devel glib2-devel pkgconf gcc"
-dms_plugin "lyricsOnPanel"
 
 component shelltint   apps on  "ShellTint helper" "connects the ShellTint browser add-on to your desktop colours"
 # The helper comes from the user's own ShellTint repository; the apps stage
